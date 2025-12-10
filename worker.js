@@ -1,13 +1,13 @@
 // =================================================================================
 //  項目: multi-provider-image-generator
-//  版本: 8.7.0 (添加圖片歷史紀錄功能)
+//  版本: 8.7.1 (增強中文提示詞支持)
 //  作者: Enhanced by AI Assistant
 //  日期: 2025-12-11
 // =================================================================================
 
 const CONFIG = {
   PROJECT_NAME: "multi-provider-image-generator",
-  PROJECT_VERSION: "8.7.0",
+  PROJECT_VERSION: "8.7.1",
   API_MASTER_KEY: "1",
   
   PROVIDERS: {
@@ -507,7 +507,7 @@ export default {
       } else if (url.pathname === '/health') {
         return new Response(JSON.stringify({ status: 'ok', version: CONFIG.PROJECT_VERSION, timestamp: new Date().toISOString() }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       } else {
-        return new Response(JSON.stringify({ project: CONFIG.PROJECT_NAME, version: CONFIG.PROJECT_VERSION, features: ['17 Models', '12 Styles', '3 Quality Modes', 'Smart Analysis', 'Auto HD', 'History'], endpoints: ['/v1/images/generations', '/v1/chat/completions', '/v1/models', '/v1/providers', '/v1/styles', '/health'] }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+        return new Response(JSON.stringify({ project: CONFIG.PROJECT_NAME, version: CONFIG.PROJECT_VERSION, features: ['17 Models', '12 Styles', '3 Quality Modes', 'Smart Analysis', 'Auto HD', 'History', 'Chinese Support'], endpoints: ['/v1/images/generations', '/v1/chat/completions', '/v1/models', '/v1/providers', '/v1/styles', '/health'] }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       }
     } catch (error) {
       console.error('Worker error:', error);
@@ -628,6 +628,7 @@ function handleUI() {
 h1{color:#f59e0b;margin:0;font-size:36px;font-weight:800;text-shadow:0 0 30px rgba(245,158,11,0.6)}
 .badge{background:linear-gradient(135deg,#10b981 0%,#059669 100%);padding:6px 14px;border-radius:20px;font-size:14px;margin-left:10px}
 .subtitle{color:#9ca3af;margin-top:8px;font-size:15px}
+.chinese-support{display:inline-block;background:rgba(139,92,246,0.2);border:1px solid #8b5cf6;color:#a78bfa;padding:4px 10px;border-radius:6px;font-size:13px;margin-top:6px;font-weight:600}
 .history-btn{background:linear-gradient(135deg,#8b5cf6 0%,#7c3aed 100%);color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.3s;position:relative}
 .history-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(139,92,246,0.4)}
 .history-badge{position:absolute;top:-8px;right:-8px;background:#ef4444;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
@@ -657,7 +658,11 @@ h1{color:#f59e0b;margin:0;font-size:36px;font-weight:800;text-shadow:0 0 30px rg
 .btn-delete{background:rgba(239,68,68,0.2);border:1px solid #ef4444;color:#ef4444}
 .btn-delete:hover{background:rgba(239,68,68,0.3)}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0}@media (max-width:768px){.grid{grid-template-columns:1fr}.history-panel{width:100vw}}
-.box{background:rgba(26,26,26,0.95);padding:24px;border-radius:16px;border:1px solid rgba(255,255,255,0.1)}h3{color:#f59e0b;margin-bottom:18px;font-size:18px;font-weight:700}label{display:block;margin:16px 0 8px 0;color:#e5e7eb;font-weight:600;font-size:13px}select,textarea,input{width:100%;padding:12px;margin:0;background:#2a2a2a;border:1px solid #444;color:#fff;border-radius:10px;font-size:14px;font-family:inherit;transition:all 0.3s}select:focus,textarea:focus,input:focus{outline:none;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.15)}textarea{resize:vertical;min-height:90px}
+.box{background:rgba(26,26,26,0.95);padding:24px;border-radius:16px;border:1px solid rgba(255,255,255,0.1)}h3{color:#f59e0b;margin-bottom:18px;font-size:18px;font-weight:700}label{display:block;margin:16px 0 8px 0;color:#e5e7eb;font-weight:600;font-size:13px}
+.prompt-actions{display:flex;gap:8px;margin-bottom:12px}
+.btn-example{flex:1;padding:8px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);color:#a78bfa;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.3s}
+.btn-example:hover{background:rgba(139,92,246,0.2);border-color:#8b5cf6}
+select,textarea,input{width:100%;padding:12px;margin:0;background:#2a2a2a;border:1px solid #444;color:#fff;border-radius:10px;font-size:14px;font-family:inherit;transition:all 0.3s}select:focus,textarea:focus,input:focus{outline:none;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.15)}textarea{resize:vertical;min-height:90px}
 .quality-mode-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}.quality-option input[type="radio"]{position:absolute;opacity:0}.quality-label{display:block;padding:16px 12px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);border-radius:12px;text-align:center;cursor:pointer;transition:all 0.3s}.quality-label:hover{background:rgba(255,255,255,0.08);border-color:rgba(245,158,11,0.5)}.quality-option input[type="radio"]:checked + .quality-label{background:rgba(245,158,11,0.2);border-color:#f59e0b}.quality-name{font-size:14px;font-weight:600;color:#e5e7eb;margin-bottom:4px}.quality-desc{font-size:11px;color:#9ca3af}
 button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin-top:20px;transition:all 0.3s;box-shadow:0 4px 15px rgba(245,158,11,0.4)}button:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,158,11,0.6)}button:disabled{background:#555;cursor:not-allowed;transform:none;box-shadow:none}#result{margin-top:20px}.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:20px}.result img{width:100%;border-radius:12px;cursor:pointer;transition:transform 0.3s}.result img:hover{transform:scale(1.02)}.success{background:rgba(16,185,129,0.15);border:1px solid #10b981;padding:16px;border-radius:12px;color:#10b981}.error{background:rgba(239,68,68,0.15);border:1px solid #ef4444;padding:16px;border-radius:12px;color:#ef4444}.checkbox-group{display:flex;align-items:center;gap:10px;margin:12px 0}.checkbox-group input[type="checkbox"]{width:auto;margin:0}
 </style>
@@ -668,6 +673,7 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <div class="header-left">
 <h1>🎨 Flux AI Pro<span class="badge">v${CONFIG.PROJECT_VERSION}</span></h1>
 <p class="subtitle">17個模型 · 12種風格 · 3檔質量 · 智能HD優化 · 完全免費</p>
+<span class="chinese-support">✨ 支持中英文混合提示詞</span>
 </div>
 <button onclick="toggleHistory()" class="history-btn">
 📜 歷史紀錄
@@ -689,10 +695,15 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <div class="grid">
 <div class="box">
 <h3>📝 生成設置</h3>
-<label>提示詞 *</label>
-<textarea id="prompt" placeholder="描述你想生成的圖像..."></textarea>
+<label>提示詞 * (支持中英文)</label>
+<div class="prompt-actions">
+<button type="button" onclick="fillExample('zh')" class="btn-example">中文示例</button>
+<button type="button" onclick="fillExample('en')" class="btn-example">英文示例</button>
+<button type="button" onclick="fillExample('mix')" class="btn-example">混合示例</button>
+</div>
+<textarea id="prompt" placeholder="中文：一個穿著漢服的女孩在櫻花樹下&#10;English: A girl in traditional Chinese dress under cherry blossoms&#10;混合: 賽博朋克風格的龍 cyberpunk style dragon"></textarea>
 <label>負面提示詞</label>
-<textarea id="negativePrompt" placeholder="你不想看到的元素..."></textarea>
+<textarea id="negativePrompt" placeholder="低質量、模糊、變形 low quality, blurry, distorted"></textarea>
 <label>AI 模型</label>
 <select id="model">
 <optgroup label="⚡ Flux 系列">
@@ -772,6 +783,16 @@ ${Object.entries(CONFIG.PRESET_SIZES).map(([k,v])=>`<option value="${k}" ${k==='
 <script>
 const STORAGE_KEY='flux_ai_history';
 const MAX_HISTORY=100;
+
+const EXAMPLES={
+zh:'一個穿著中國傳統漢服的少女，站在盛開的櫻花樹下，溫柔的微笑，細膩的畫面，柔和的光線',
+en:'A beautiful girl in traditional Chinese hanfu dress, standing under blooming cherry blossom trees, gentle smile, delicate artwork, soft lighting',
+mix:'賽博朋克風格的中國龍 cyberpunk style, neon lights, futuristic Chinese dragon, detailed scales, glowing eyes'
+};
+
+function fillExample(type){
+document.getElementById('prompt').value=EXAMPLES[type];
+}
 
 class HistoryManager{
 static save(record){
@@ -929,7 +950,7 @@ async function generate(){
 const prompt=document.getElementById('prompt').value.trim();
 if(!prompt){alert('請輸入提示詞');return;}
 const resultDiv=document.getElementById('result');
-const button=document.querySelector('button');
+const button=document.querySelector('button[onclick="generate()"]');
 button.disabled=true;
 button.textContent='生成中...';
 resultDiv.innerHTML='<div class="success">⏳ 正在生成圖像，請稍候...</div>';
