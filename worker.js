@@ -1,9 +1,10 @@
+
 // =================================================================================
 //  項目: Flux AI Pro
-//  版本: 9.2.0 (本地上傳 + 圖生圖 + 多圖融合 + 4K + 中文支持)
+//  版本: 9.2.0 (Google 翻譯 + 本地上傳 + 圖生圖 + 多圖融合 + 4K)
 //  作者: Enhanced by AI Assistant  
 //  日期: 2025-12-12
-//  功能: 本地上傳 | 圖生圖 | 多圖融合 | 中文支持 | 4K | 計時器 | 歷史
+//  功能: Google 翻譯 | 本地上傳 | 圖生圖 | 多圖融合 | 中文支持 | 多張生成
 // =================================================================================
 
 const CONFIG = {
@@ -183,18 +184,38 @@ class Logger {
 async function translateToEnglish(text, env) {
     try {
         const hasChinese = /[\u4e00-\u9fa5]/.test(text);
-        if (!hasChinese) return { text: text, translated: false };
-        if (env?.AI) {
-            const response = await env.AI.run("@cf/meta/m2m100-1.2b", {
-                text: text,
-                source_lang: "chinese",
-                target_lang: "english"
-            });
-            return { text: response.translated_text || text, translated: true, original: text };
+        if (!hasChinese) {
+            return { text: text, translated: false };
         }
-        return { text: text, translated: false };
+        
+        // Google Apps Script 翻譯 API
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqKCUxOHsw_kXlnhY4l62iEU6zzLBb0EK8cJkax6o/exec';
+        
+        const url = GOOGLE_SCRIPT_URL + '?text=' + encodeURIComponent(text);
+        const response = await fetch(url, {
+            method: 'GET',
+            redirect: 'follow',
+            headers: {
+                'User-Agent': 'Flux-AI-Pro/9.2.0'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.translatedText) {
+            return { 
+                text: data.translatedText, 
+                translated: true,
+                original: text,
+                provider: 'Google Translate'
+            };
+        } else {
+            throw new Error(data.error || 'Translation failed');
+        }
+        
     } catch (e) {
         console.error("Translation error:", e);
+        // 如果翻譯失敗,返回原文(仍可生成圖片)
         return { text: text, translated: false, error: e.message };
     }
 }
@@ -372,6 +393,7 @@ async function fetchWithTimeout(url, options = {}, timeout = CONFIG.FETCH_TIMEOU
         throw error;
     }
 }
+
 class PollinationsProvider {
     constructor(config, env) {
         this.config = config;
@@ -495,10 +517,11 @@ class PollinationsProvider {
         const finalPromptForAPI = translation.text;
         
         if (translation.translated) {
-            logger.add("🌐 Auto Translation", { 
+            logger.add("🌐 Google Translation", { 
                 original_zh: translation.original,
                 translated_en: finalPromptForAPI,
-                success: true
+                success: true,
+                provider: translation.provider
             });
         }
         
@@ -699,46 +722,33 @@ export default {
           version: CONFIG.PROJECT_VERSION, 
           timestamp: new Date().toISOString(),
           features: [
+            'Google Translate (最高質量)',
             '本地上傳 (Local Upload)',
             '圖生圖 (Image-to-Image)',
-            '多圖融合 (Multi-Image Fusion)',
-            '中文支持 (Chinese Support)',
-            '4K Ultra HD Support',
-            'Generation Timer',
-            'Full History',
-            '17 Models',
-            '8 Styles',
-            'FLUX Official Params',
-            'Smart Optimization'
+            '多圖融合 (Multi-Image)',
+            '多張生成 (1-4張)',
+            '中文支持 (Chinese)',
+            '4K Ultra HD',
+            'Timer & History',
+            '17 Models | 8 Styles'
           ]
         }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       } else {
         return new Response(JSON.stringify({ 
           project: CONFIG.PROJECT_NAME, 
           version: CONFIG.PROJECT_VERSION, 
+          translation: 'Google Translate API',
           features: [
-            '17 Models', 
-            '8 Styles', 
-            '4 Quality Modes', 
-            'Local Upload 📤',
-            'Image-to-Image 🎨',
-            'Multi-Image Fusion 🖼️',
-            'Chinese Support 🇨🇳',
-            'Smart Analysis', 
-            'Auto HD', 
-            '4K Support 🍌',
-            'Generation Timer ⏱️',
-            'Full History 📜',
-            'Auto Translation'
-          ], 
-          endpoints: [
-            '/v1/images/generations', 
-            '/v1/chat/completions', 
-            '/v1/models', 
-            '/v1/providers', 
-            '/v1/styles', 
-            '/health'
-          ] 
+            '🌐 Google 翻譯',
+            '📤 本地上傳',
+            '🎨 圖生圖',
+            '🖼️ 多圖融合',
+            '🎲 多張生成 (1-4)',
+            '🇨🇳 中文支持',
+            '🍌 4K 支持',
+            '⏱️ 計時器',
+            '📜 歷史記錄'
+          ]
         }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       }
     } catch (error) {
@@ -1076,8 +1086,8 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <div class="container">
 <div class="header">
 <div class="header-left">
-<h1>🎨 Flux AI Pro<span class="badge">v${CONFIG.PROJECT_VERSION}</span><span class="badge-new">本地上傳 📤</span></h1>
-<p class="subtitle">本地上傳 · 圖生圖 · 多圖融合 · 中文支持 · 4K超清</p>
+<h1>🎨 Flux AI Pro<span class="badge">v${CONFIG.PROJECT_VERSION}</span><span class="badge-new">Google 翻譯 🌐</span></h1>
+<p class="subtitle">Google 翻譯 · 本地上傳 · 圖生圖 · 多圖融合 · 多張生成 · 4K</p>
 </div>
 <button onclick="toggleHistory()" class="history-btn">📜 歷史<span id="historyBadge" class="history-badge" style="display:none">0</span></button>
 </div>
@@ -1085,8 +1095,8 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <div class="grid">
 <div class="box">
 <h3>📝 生成設置</h3>
-<label>提示詞 * <span style="color:#10b981;font-size:11px;font-weight:400">✓ 支持中文 (自動翻譯)</span></label>
-<textarea id="prompt" placeholder="描述你想要的圖片... (支持中文輸入,將自動翻譯成英文)"></textarea>
+<label>提示詞 * <span style="color:#10b981;font-size:11px;font-weight:400">✓ 支持中文 (Google 翻譯)</span></label>
+<textarea id="prompt" placeholder="描述你想要的圖片... (支持中文,自動 Google 翻譯)"></textarea>
 <div class="example-btns">
 <button type="button" onclick="setPrompt('一隻貓在太空中漂浮,極致細節,8k')">🐱 太空貓</button>
 <button type="button" onclick="setPrompt('賽博朋克城市夜景,霓虹燈,未來感,高清')">🌃 賽博朋克</button>
@@ -1154,6 +1164,14 @@ ${Object.entries(CONFIG.PRESET_SIZES).map(([k,v])=>'<option value="' + k + '">' 
 <option value="ultra">💎 超高清</option>
 <option value="ultra_4k">🍌 4K超高清</option>
 </select>
+<label>生成數量 🎲</label>
+<select id="numOutputs">
+<option value="1" selected>1 張</option>
+<option value="2">2 張</option>
+<option value="3">3 張</option>
+<option value="4">4 張</option>
+</select>
+<small style="color:#9ca3af;font-size:11px;margin-top:5px;display:block">多張生成時會自動使用不同的隨機種子</small>
 <button onclick="generate()">🚀 開始生成</button>
 </div>
 </div>
@@ -1501,6 +1519,7 @@ style:document.getElementById('style').value,
 width:parseInt(document.getElementById('width').value),
 height:parseInt(document.getElementById('height').value),
 quality_mode:document.getElementById('qualityMode').value,
+n:parseInt(document.getElementById('numOutputs').value),
 auto_optimize:true,
 auto_hd:true,
 reference_images:validRefImages
@@ -1530,13 +1549,15 @@ if(!response.ok)throw new Error(data.error?.message||'生成失敗');
 const duration=((Date.now()-startTime)/1000).toFixed(1)+'s';
 clearInterval(timerInterval);
 
-resultDiv.innerHTML='<div style="background:rgba(16,185,129,0.15);border:1px solid #10b981;padding:16px;border-radius:12px;color:#10b981"><strong>✅ 生成成功!</strong><span class="timer">⏱️ '+duration+'</span></div>';
+const numGenerated=data.data.length;
+resultDiv.innerHTML='<div style="background:rgba(16,185,129,0.15);border:1px solid #10b981;padding:16px;border-radius:12px;color:#10b981"><strong>✅ 生成成功!</strong> 共 '+numGenerated+' 張<span class="timer">⏱️ '+duration+'</span></div>';
+
 data.data.forEach(function(item,index){
 const is4K=item.is_4k?'<span class="tag-4k">4K</span>':'';
 const modeTag=item.generation_mode?'<span class="tag-mode">'+item.generation_mode+'</span>':'';
 const imgDiv=document.createElement('div');
 imgDiv.style.marginTop='20px';
-imgDiv.innerHTML='<img src="'+item.url+'" style="width:100%;border-radius:12px;cursor:pointer"><div class="result-meta">'+item.model+' | '+item.width+'x'+item.height+is4K+modeTag+' | '+item.quality_mode+' | <span class="timer">⏱️ '+duration+'</span></div>';
+imgDiv.innerHTML='<div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:12px"><h4 style="color:#f59e0b;margin-bottom:10px">圖片 '+(index+1)+'/'+numGenerated+'</h4><img src="'+item.url+'" style="width:100%;border-radius:12px;cursor:pointer"><div class="result-meta">'+item.model+' | '+item.width+'x'+item.height+is4K+modeTag+' | Seed: '+item.seed+' | '+item.quality_mode+' | <span class="timer">⏱️ '+duration+'</span></div></div>';
 imgDiv.querySelector('img').onclick=function(){window.open(item.url);};
 resultDiv.appendChild(imgDiv);
 
