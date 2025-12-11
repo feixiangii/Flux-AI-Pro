@@ -33,9 +33,26 @@ const CONFIG = {
 
   PROVIDERS: {
     pollinations: {
-      name: "Pollinations.ai", endpoint: "https://image.pollinations.ai", type: "direct", auth_mode: "free", requires_key: false, enabled: true, default: true,
+      name: "Pollinations.ai",
+      endpoint: "https://image.pollinations.ai",
+      type: "direct",
+      auth_mode: "free",
+      requires_key: false,
+      enabled: true,
+      default: true,
       description: "完全免費的 AI 圖像生成服務",
-      features: { private_mode: true, custom_size: true, seed_control: true, negative_prompt: true, enhance: true, nologo: true, style_presets: true, auto_hd: true, quality_modes: true, auto_translate: true }
+      features: {
+        private_mode: true,
+        custom_size: true,
+        seed_control: true,
+        negative_prompt: true,
+        enhance: true,
+        nologo: true,
+        style_presets: true,
+        auto_hd: true,
+        quality_modes: true,
+        auto_translate: true
+      }
     }
   },
 
@@ -87,6 +104,7 @@ const CONFIG = {
   HISTORY: { MAX_ITEMS: 100, STORAGE_KEY: "flux_ai_history" }
 };
 
+// 日誌系統
 class StructuredLogger {
   constructor(requestId = null) {
     this.requestId = requestId || this.generateRequestId();
@@ -119,6 +137,7 @@ class StructuredLogger {
   getSummary() { return { requestId: this.requestId, totalTime: Date.now() - this.startTime, steps: this.logs.length, errors: this.logs.filter(log => log.step.includes('❌')).length }; }
 }
 
+// 性能監控
 class PerformanceMonitor {
   static startTimer(name, logger = null) {
     return {
@@ -133,6 +152,7 @@ class PerformanceMonitor {
   }
 }
 
+// 參數驗證
 class ParameterValidator {
   static validateImageOptions(options) {
     const errors = [];
@@ -152,6 +172,7 @@ class ParameterValidator {
   }
 }
 
+// HTTP 工具
 class HttpUtils {
   static async fetchWithTimeout(url, options = {}, timeout = CONFIG.FETCH_TIMEOUT) {
     const controller = new AbortController();
@@ -192,32 +213,27 @@ class HttpUtils {
   }
 }
 
-class TranslationService {
-  static async translateToEnglish(text, env) {
-    const timer = PerformanceMonitor.startTimer("Translation");
-    
-    try {
-      const hasChinese = /[\u4e00-\u9fa5]/.test(text);
-      if (!hasChinese) return { text: text, translated: false };
+// 翻譯服務
+async function translateToEnglish(text, env) {
+  try {
+    const hasChinese = /[\u4e00-\u9fa5]/.test(text);
+    if (!hasChinese) return { text: text, translated: false };
 
-      if (env?.AI) {
-        const response = await env.AI.run("@cf/meta/m2m100-1.2b", {
-          text: text, source_lang: "chinese", target_lang: "english"
-        });
-        
-        timer.end();
-        return { text: response.translated_text || text, translated: true, original: text };
-      }
-
-      return { text: text, translated: false };
-    } catch (e) {
-      timer.end();
-      console.error("Translation error:", e);
-      return { text: text, translated: false, error: e.message };
+    if (env?.AI) {
+      const response = await env.AI.run("@cf/meta/m2m100-1.2b", {
+        text: text, source_lang: "chinese", target_lang: "english"
+      });
+      return { text: response.translated_text || text, translated: true, original: text };
     }
+
+    return { text: text, translated: false };
+  } catch (e) {
+    console.error("Translation error:", e);
+    return { text: text, translated: false, error: e.message };
   }
 }
 
+// 提示詞分析
 class PromptAnalyzer {
   static analyzeComplexity(prompt) {
     const complexKeywords = ['detailed', 'intricate', 'complex', 'elaborate', 'realistic', 'photorealistic', 'hyperrealistic', 'architecture', 'cityscape', 'landscape', 'portrait', 'face', 'eyes', 'hair', 'texture', 'material', 'fabric', 'skin', 'lighting', 'shadows', 'reflections', 'fine details', 'high detail', 'ultra detailed'];
@@ -244,11 +260,11 @@ class PromptAnalyzer {
   }
 }
 
+// HD 優化器
 class HDOptimizer {
   static optimize(prompt, negativePrompt, model, width, height, qualityMode = 'standard', autoHD = true) {
     if (!autoHD) return { prompt: prompt, negativePrompt: negativePrompt, width: width, height: height, optimized: false };
 
-    const timer = PerformanceMonitor.startTimer("HD Optimization");
     const modeConfig = CONFIG.QUALITY_MODES[qualityMode];
     const optimizations = [];
 
@@ -280,8 +296,6 @@ class HDOptimizer {
       optimizations.push(`尺寸優化: ${width}x${height} → ${finalWidth}x${finalHeight}`);
     }
 
-    timer.end();
-
     return {
       prompt: enhancedPrompt, negativePrompt: enhancedNegative, width: finalWidth, height: finalHeight,
       optimized: true, quality_mode: qualityMode, hd_level: modeConfig?.hd_level,
@@ -290,6 +304,7 @@ class HDOptimizer {
   }
 }
 
+// 參數優化器
 class ParameterOptimizer {
   static optimizeSteps(model, width, height, style = 'none', qualityMode = 'standard', userSteps = null) {
     if (userSteps !== null && userSteps !== -1) {
@@ -357,6 +372,7 @@ class ParameterOptimizer {
   }
 }
 
+// 風格處理器
 class StyleProcessor {
   static applyStyle(prompt, style, negativePrompt) {
     const styleConfig = CONFIG.STYLE_PRESETS[style];
@@ -377,7 +393,8 @@ class StyleProcessor {
   }
 }
 
-class BaseProvider {
+// Pollinations 提供商
+class PollinationsProvider {
   constructor(config, env) {
     this.config = config;
     this.env = env;
@@ -385,58 +402,9 @@ class BaseProvider {
   }
 
   async generate(prompt, options, logger) {
-    throw new Error("generate method must be implemented");
-  }
-
-  validateOptions(options) {
-    return ParameterValidator.validateImageOptions(options);
-  }
-
-  async handleRetry(operation, maxRetries = CONFIG.MAX_RETRIES, logger = null) {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error) {
-        if (logger) logger.warn(`重試 ${attempt + 1}/${maxRetries}`, { error: error.message });
-        if (attempt === maxRetries - 1) throw error;
-        await this.delay(1000 * (attempt + 1));
-      }
-    }
-  }
-
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-}
-
-class PollinationsProvider extends BaseProvider {
-  async generate(prompt, options, logger) {
-    const timer = PerformanceMonitor.startTimer("Total Generation", logger);
-    
     try {
-      this.validateOptions(options);
-      const optimizedOptions = await this.optimizeParameters(prompt, options, logger);
-      const translatedPrompt = await this.translatePrompt(prompt, logger);
+      ParameterValidator.validateImageOptions(options);
       
-      const result = await this.handleRetry(async () => {
-        return this.performGeneration(translatedPrompt, optimizedOptions, logger);
-      }, CONFIG.MAX_RETRIES, logger);
-      
-      timer.end();
-      return result;
-      
-    } catch (error) {
-      timer.end();
-      logger.error("生成失敗", error);
-      throw error;
-    }
-  }
-
-  async optimizeParameters(prompt, options, logger) {
-    const optimizationTimer = PerformanceMonitor.startTimer("Parameter Optimization", logger);
-    let optimized = { ...options };
-
-    try {
       const complexity = PromptAnalyzer.analyzeComplexity(prompt);
       const recommendedQuality = PromptAnalyzer.recommendQualityMode(prompt, options.model);
       
@@ -446,9 +414,19 @@ class PollinationsProvider extends BaseProvider {
         selected_quality: options.qualityMode
       });
 
+      let finalPrompt = prompt;
+      let finalNegativePrompt = options.negativePrompt;
+      let finalWidth = options.width;
+      let finalHeight = options.height;
+      let finalSteps = options.steps;
+      let finalGuidance = options.guidance;
+
       if (options.autoHD) {
         const hdResult = HDOptimizer.optimize(prompt, options.negativePrompt, options.model, options.width, options.height, options.qualityMode, options.autoHD);
-        optimized = { ...optimized, ...hdResult };
+        finalPrompt = hdResult.prompt;
+        finalNegativePrompt = hdResult.negativePrompt;
+        finalWidth = hdResult.width;
+        finalHeight = hdResult.height;
         
         if (hdResult.optimized) {
           logger.add("🎨 HD Optimization", {
@@ -460,150 +438,119 @@ class PollinationsProvider extends BaseProvider {
       }
 
       if (options.autoOptimize) {
-        const stepsResult = ParameterOptimizer.optimizeSteps(options.model, optimized.width, optimized.height, options.style, options.qualityMode, options.steps);
-        optimized.steps = stepsResult.steps;
+        const stepsResult = ParameterOptimizer.optimizeSteps(options.model, finalWidth, finalHeight, options.style, options.qualityMode, options.steps);
+        finalSteps = stepsResult.steps;
         logger.add("🎯 Steps Optimization", { steps: stepsResult.steps, reasoning: stepsResult.reasoning });
 
         if (options.guidance === null) {
-          optimized.guidance = ParameterOptimizer.optimizeGuidance(options.model, options.style, options.qualityMode);
+          finalGuidance = ParameterOptimizer.optimizeGuidance(options.model, options.style, options.qualityMode);
         }
       } else {
-        optimized.steps = options.steps || 20;
-        optimized.guidance = options.guidance || 7.5;
+        finalSteps = options.steps || 20;
+        finalGuidance = options.guidance || 7.5;
       }
 
-      const { enhancedPrompt, enhancedNegative } = StyleProcessor.applyStyle(optimized.prompt || prompt, options.style, optimized.negativePrompt);
-      optimized.enhancedPrompt = enhancedPrompt;
-      optimized.enhancedNegative = enhancedNegative;
+      const { enhancedPrompt, enhancedNegative } = StyleProcessor.applyStyle(finalPrompt, options.style, finalNegativePrompt);
+      const translation = await translateToEnglish(enhancedPrompt, this.env);
+      const finalPromptForAPI = translation.text;
 
-      optimizationTimer.end();
-      return optimized;
-      
-    } catch (error) {
-      optimizationTimer.end();
-      throw error;
-    }
-  }
+      if (translation.translated) {
+        logger.add("🌐 Auto Translation", {
+          original_zh: translation.original,
+          translated_en: finalPromptForAPI,
+          success: true
+        });
+      }
 
-  async translatePrompt(prompt, logger) {
-    const translation = await TranslationService.translateToEnglish(prompt, this.env);
-    
-    if (translation.translated) {
-      logger.add("🌐 Auto Translation", {
-        original_zh: translation.original,
-        translated_en: translation.text,
-        success: true
-      });
-    }
-    
-    return translation.text;
-  }
+      const modelConfig = CONFIG.MODELS[options.model];
+      const modelsToTry = [options.model];
+      if (modelConfig?.experimental && modelConfig?.fallback) {
+        modelsToTry.push(...modelConfig.fallback);
+      }
 
-  async performGeneration(translatedPrompt, options, logger) {
-    const generationTimer = PerformanceMonitor.startTimer("API Generation", logger);
-    
-    try {
-      const modelsToTry = this.buildModelFallbackList(options.model);
-      
       logger.add("🎨 Generation Config", {
-        provider: this.name, model: options.model, dimensions: `${options.width}x${options.height}`,
-        quality_mode: options.qualityMode, hd_optimized: options.autoHD && options.optimized,
-        auto_translated: options.translated, steps: options.steps, guidance: options.guidance,
-        models_to_try: modelsToTry
+        provider: this.name, model: options.model, dimensions: `${finalWidth}x${finalHeight}`,
+        quality_mode: options.qualityMode, hd_optimized: options.autoHD,
+        auto_translated: translation.translated, steps: finalSteps, guidance: finalGuidance
       });
+
+      const currentSeed = options.seed === -1 ? Math.floor(Math.random() * 1000000) : options.seed;
+      let fullPrompt = finalPromptForAPI;
+      if (enhancedNegative && enhancedNegative.trim()) {
+        fullPrompt = `${finalPromptForAPI} [negative: ${enhancedNegative}]`;
+      }
 
       for (const tryModel of modelsToTry) {
-        try {
-          const result = await this.attemptGeneration(translatedPrompt, options, tryModel, logger);
-          generationTimer.end();
-          
-          logger.success("Generation Complete", {
-            used_model: tryModel, fallback_used: tryModel !== options.model,
-            final_size: `${result.width}x${result.height}`
-          });
-          
-          return result;
-        } catch (error) {
-          logger.warn(`模型 ${tryModel} 失敗`, { error: error.message });
-          continue;
+        for (let retry = 0; retry < CONFIG.MAX_RETRIES; retry++) {
+          try {
+            const encodedPrompt = encodeURIComponent(fullPrompt);
+            let url = `${this.config.endpoint}/prompt/${encodedPrompt}`;
+            
+            const params = new URLSearchParams({
+              model: tryModel,
+              width: finalWidth.toString(),
+              height: finalHeight.toString(),
+              seed: currentSeed.toString(),
+              nologo: (options.nologo !== false).toString(),
+              enhance: (options.enhance === true).toString(),
+              private: (options.privateMode !== false).toString()
+            });
+
+            if (finalGuidance && finalGuidance !== 7.5) params.append('guidance', finalGuidance.toString());
+            if (finalSteps && finalSteps !== 20) params.append('steps', finalSteps.toString());
+
+            url += '?' + params.toString();
+
+            const response = await HttpUtils.fetchWithTimeout(url, {
+              method: 'GET',
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'image/*,*/*',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Referer': 'https://pollinations.ai/'
+              }
+            }, 45000);
+
+            if (response.ok) {
+              const contentType = response.headers.get('content-type');
+              if (contentType && contentType.startsWith('image/')) {
+                logger.add("✅ Success", {
+                  url: response.url, used_model: tryModel, final_size: `${finalWidth}x${finalHeight}`,
+                  quality_mode: options.qualityMode, seed: currentSeed
+                });
+
+                return {
+                  url: response.url, provider: this.name, model: tryModel, requested_model: options.model,
+                  seed: currentSeed, style: options.style, steps: finalSteps, guidance: finalGuidance,
+                  width: finalWidth, height: finalHeight, quality_mode: options.qualityMode,
+                  prompt_complexity: complexity, hd_optimized: options.autoHD,
+                  auto_translated: translation.translated, cost: "FREE",
+                  fallback_used: tryModel !== options.model, auto_optimized: options.autoOptimize
+                };
+              } else {
+                throw new Error(`Invalid content type: ${contentType}`);
+              }
+            } else {
+              throw new Error(`HTTP ${response.status}`);
+            }
+          } catch (e) {
+            if (retry < CONFIG.MAX_RETRIES - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * (retry + 1)));
+            }
+          }
         }
       }
-      
-      throw new Error("所有模型都失敗了");
-      
+
+      throw new Error("All models failed");
     } catch (error) {
-      generationTimer.end();
+      logger.error("生成失敗", error);
       throw error;
     }
-  }
-
-  buildModelFallbackList(model) {
-    const modelConfig = CONFIG.MODELS[model];
-    const modelsToTry = [model];
-    
-    if (modelConfig?.experimental && modelConfig?.fallback) {
-      modelsToTry.push(...modelConfig.fallback);
-    }
-    
-    return modelsToTry;
-  }
-
-  async attemptGeneration(prompt, options, model, logger) {
-    const currentSeed = options.seed === -1 ? Math.floor(Math.random() * 1000000) : options.seed;
-    
-    let fullPrompt = prompt;
-    if (options.enhancedNegative && options.enhancedNegative.trim()) {
-      fullPrompt = `${prompt} [negative: ${options.enhancedNegative}]`;
-    }
-
-    const url = this.buildRequestURL(fullPrompt, options, model, currentSeed);
-    
-    const response = await HttpUtils.fetchWithTimeout(url, {
-      method: 'GET',
-      headers: this.getRequestHeaders()
-    }, 45000);
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-    const contentType = response.headers.get('content-type');
-    if (!contentType?.startsWith('image/')) throw new Error(`Invalid content type: ${contentType}`);
-
-    return {
-      url: response.url, provider: this.name, model: model, requested_model: options.model,
-      seed: currentSeed, style: options.style, steps: options.steps, guidance: options.guidance,
-      width: options.width, height: options.height, quality_mode: options.qualityMode,
-      prompt_complexity: PromptAnalyzer.analyzeComplexity(prompt),
-      hd_optimized: options.autoHD && options.optimized, hd_details: options.hd_details,
-      auto_translated: options.translated, cost: "FREE", fallback_used: model !== options.model,
-      auto_optimized: options.autoOptimize
-    };
-  }
-
-  buildRequestURL(prompt, options, model, seed) {
-    const encodedPrompt = encodeURIComponent(prompt);
-    let url = `${this.config.endpoint}/prompt/${encodedPrompt}`;
-    
-    const params = new URLSearchParams({
-      model: model, width: options.width.toString(), height: options.height.toString(),
-      seed: seed.toString(), nologo: (options.nologo !== false).toString(),
-      enhance: (options.enhance === true).toString(), private: (options.privateMode !== false).toString()
-    });
-
-    if (options.guidance && options.guidance !== 7.5) params.append('guidance', options.guidance.toString());
-    if (options.steps && options.steps !== 20) params.append('steps', options.steps.toString());
-
-    return `${url}?${params.toString()}`;
-  }
-
-  getRequestHeaders() {
-    return {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept': 'image/*,*/*', 'Accept-Encoding': 'gzip, deflate, br',
-      'Connection': 'keep-alive', 'Referer': 'https://pollinations.ai/'
-    };
   }
 }
 
+// 多提供商路由器
 class MultiProviderRouter {
   constructor(apiKeys = {}, env = null) {
     this.providers = {};
@@ -645,16 +592,9 @@ class MultiProviderRouter {
 
     const results = [];
     
-    if (numOutputs > 1) {
-      const promises = Array.from({ length: numOutputs }, (_, i) => {
-        const currentOptions = { ...options, seed: options.seed === -1 ? -1 : options.seed + i };
-        return provider.generate(prompt, currentOptions, logger);
-      });
-      
-      const parallelResults = await Promise.all(promises);
-      results.push(...parallelResults);
-    } else {
-      const result = await provider.generate(prompt, options, logger);
+    for (let i = 0; i < numOutputs; i++) {
+      const currentOptions = { ...options, seed: options.seed === -1 ? -1 : options.seed + i };
+      const result = await provider.generate(prompt, currentOptions, logger);
       results.push(result);
     }
 
@@ -662,230 +602,194 @@ class MultiProviderRouter {
   }
 }
 
-class ImageHandler {
-  constructor(env) { this.env = env; }
+// 處理器
+async function handleImageGenerations(request, env) {
+  const logger = new StructuredLogger();
+  
+  try {
+    const body = await request.json();
+    logger.info("Request received", { 
+      prompt_length: body.prompt?.length, model: body.model,
+      size: body.size || `${body.width}x${body.height}`
+    });
 
-  async handleGeneration(request) {
-    const logger = new StructuredLogger();
-    const timer = PerformanceMonitor.startTimer("Image Generation Request", logger);
+    const prompt = ParameterValidator.sanitizePrompt(body.prompt);
     
-    try {
-      const body = await request.json();
-      logger.info("Request received", { 
-        prompt_length: body.prompt?.length, model: body.model,
-        size: body.size || `${body.width}x${body.height}`
-      });
-
-      const prompt = ParameterValidator.sanitizePrompt(body.prompt);
-      
-      let width = 1024, height = 1024;
-      if (body.size) {
-        const [w, h] = body.size.split('x').map(Number);
-        if (w && h) { width = w; height = h; }
-      }
-      if (body.width) width = body.width;
-      if (body.height) height = body.height;
-
-      const options = {
-        provider: body.provider || null, model: body.model || "flux",
-        width: Math.min(Math.max(width, 256), 2048), height: Math.min(Math.max(height, 256), 2048),
-        numOutputs: Math.min(Math.max(body.n || 1, 1), 4), seed: body.seed !== undefined ? body.seed : -1,
-        negativePrompt: body.negative_prompt || "", guidance: body.guidance_scale || null,
-        steps: body.steps || null, enhance: body.enhance === true, nologo: body.nologo !== false,
-        privateMode: body.private !== false, style: body.style || "none",
-        autoOptimize: body.auto_optimize !== false, autoHD: body.auto_hd !== false,
-        qualityMode: body.quality_mode || 'standard'
-      };
-
-      const router = new MultiProviderRouter({}, this.env);
-      const results = await router.generate(prompt, options, logger);
-      
-      timer.end();
-      
-      logger.success("Request completed", {
-        results_count: results.length, total_time: logger.getSummary().totalTime
-      });
-
-      return HttpUtils.createJSONResponse({
-        created: Math.floor(Date.now() / 1000),
-        data: results.map(r => ({
-          url: r.url, provider: r.provider, model: r.model, seed: r.seed,
-          width: r.width, height: r.height, style: r.style, quality_mode: r.quality_mode,
-          prompt_complexity: r.prompt_complexity, steps: r.steps, guidance: r.guidance,
-          auto_optimized: r.auto_optimized, hd_optimized: r.hd_optimized,
-          auto_translated: r.auto_translated, cost: r.cost
-        })),
-        debug_logs: logger.get()
-      });
-
-    } catch (error) {
-      timer.end();
-      logger.error("Request failed", error);
-      return HttpUtils.createErrorResponse(error.message, 500, { debug_logs: logger.get() });
+    let width = 1024, height = 1024;
+    if (body.size) {
+      const [w, h] = body.size.split('x').map(Number);
+      if (w && h) { width = w; height = h; }
     }
+    if (body.width) width = body.width;
+    if (body.height) height = body.height;
+
+    const options = {
+      provider: body.provider || null, model: body.model || "flux",
+      width: Math.min(Math.max(width, 256), 2048), height: Math.min(Math.max(height, 256), 2048),
+      numOutputs: Math.min(Math.max(body.n || 1, 1), 4), seed: body.seed !== undefined ? body.seed : -1,
+      negativePrompt: body.negative_prompt || "", guidance: body.guidance_scale || null,
+      steps: body.steps || null, enhance: body.enhance === true, nologo: body.nologo !== false,
+      privateMode: body.private !== false, style: body.style || "none",
+      autoOptimize: body.auto_optimize !== false, autoHD: body.auto_hd !== false,
+      qualityMode: body.quality_mode || 'standard'
+    };
+
+    const router = new MultiProviderRouter({}, env);
+    const results = await router.generate(prompt, options, logger);
+    
+    logger.success("Request completed", { results_count: results.length });
+
+    return HttpUtils.createJSONResponse({
+      created: Math.floor(Date.now() / 1000),
+      data: results.map(r => ({
+        url: r.url, provider: r.provider, model: r.model, seed: r.seed,
+        width: r.width, height: r.height, style: r.style, quality_mode: r.quality_mode,
+        prompt_complexity: r.prompt_complexity, steps: r.steps, guidance: r.guidance,
+        auto_optimized: r.auto_optimized, hd_optimized: r.hd_optimized,
+        auto_translated: r.auto_translated, cost: r.cost
+      }))
+    });
+
+  } catch (error) {
+    logger.error("Request failed", error);
+    return HttpUtils.createErrorResponse(error.message, 500, { debug_logs: logger.get() });
   }
 }
 
-class ChatHandler {
-  constructor(env) { this.env = env; }
-
-  async handleCompletion(request) {
-    const logger = new StructuredLogger();
+async function handleChatCompletions(request, env) {
+  const logger = new StructuredLogger();
+  
+  try {
+    const body = await request.json();
+    const isWebUI = body.is_web_ui === true;
     
-    try {
-      const body = await request.json();
-      const isWebUI = body.is_web_ui === true;
-      
-      const messages = body.messages || [];
-      const lastMsg = messages[messages.length - 1];
-      if (!lastMsg) throw new Error("No messages found");
+    const messages = body.messages || [];
+    const lastMsg = messages[messages.length - 1];
+    if (!lastMsg) throw new Error("No messages found");
 
-      let prompt = "";
-      if (typeof lastMsg.content === 'string') {
-        prompt = lastMsg.content;
-      } else if (Array.isArray(lastMsg.content)) {
-        for (const part of lastMsg.content) {
-          if (part.type === 'text') prompt += part.text + " ";
-        }
+    let prompt = "";
+    if (typeof lastMsg.content === 'string') {
+      prompt = lastMsg.content;
+    } else if (Array.isArray(lastMsg.content)) {
+      for (const part of lastMsg.content) {
+        if (part.type === 'text') prompt += part.text + " ";
       }
+    }
 
-      prompt = ParameterValidator.sanitizePrompt(prompt);
+    prompt = ParameterValidator.sanitizePrompt(prompt);
 
-      const options = {
-        provider: body.provider || null, model: body.model || "flux",
-        width: body.width || 1024, height: body.height || 1024,
-        numOutputs: Math.min(Math.max(body.n || 1, 1), 4), seed: body.seed !== undefined ? body.seed : -1,
-        negativePrompt: body.negative_prompt || "", guidance: body.guidance_scale || null,
-        steps: body.steps || null, enhance: body.enhance === true, nologo: body.nologo !== false,
-        privateMode: body.private !== false, style: body.style || "none",
-        autoOptimize: body.auto_optimize !== false, autoHD: body.auto_hd !== false,
-        qualityMode: body.quality_mode || 'standard'
-      };
+    const options = {
+      provider: body.provider || null, model: body.model || "flux",
+      width: body.width || 1024, height: body.height || 1024,
+      numOutputs: Math.min(Math.max(body.n || 1, 1), 4), seed: body.seed !== undefined ? body.seed : -1,
+      negativePrompt: body.negative_prompt || "", guidance: body.guidance_scale || null,
+      steps: body.steps || null, enhance: body.enhance === true, nologo: body.nologo !== false,
+      privateMode: body.private !== false, style: body.style || "none",
+      autoOptimize: body.auto_optimize !== false, autoHD: body.auto_hd !== false,
+      qualityMode: body.quality_mode || 'standard'
+    };
 
-      const router = new MultiProviderRouter({}, this.env);
-      const results = await router.generate(prompt, options, logger);
+    const router = new MultiProviderRouter({}, env);
+    const results = await router.generate(prompt, options, logger);
 
-      let respContent = "";
-      results.forEach((result, index) => {
-        respContent += `![Generated Image ${index + 1}](${result.url})\n`;
+    let respContent = "";
+    results.forEach((result, index) => {
+      respContent += `![Generated Image ${index + 1}](${result.url})\n`;
+    });
+
+    const respId = `chatcmpl-${crypto.randomUUID()}`;
+
+    if (body.stream) {
+      const { readable, writable } = new TransformStream();
+      const writer = writable.getWriter();
+      const encoder = new TextEncoder();
+
+      (async () => {
+        try {
+          if (isWebUI) {
+            await writer.write(encoder.encode(`data: ${JSON.stringify({ debug: logger.get() })}\n\n`));
+          }
+
+          const chunk = {
+            id: respId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000),
+            model: options.model, choices: [{ index: 0, delta: { content: respContent }, finish_reason: null }]
+          };
+          
+          await writer.write(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+
+          const endChunk = {
+            id: respId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000),
+            model: options.model, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }]
+          };
+          
+          await writer.write(encoder.encode(`data: ${JSON.stringify(endChunk)}\n\n`));
+          await writer.write(encoder.encode('data: [DONE]\n\n'));
+          
+        } finally {
+          await writer.close();
+        }
+      })();
+
+      return new Response(readable, {
+        headers: HttpUtils.getCORSHeaders({ 'Content-Type': 'text/event-stream' })
       });
+    } else {
+      return HttpUtils.createJSONResponse({
+        id: respId, object: "chat.completion", created: Math.floor(Date.now() / 1000),
+        model: options.model, choices: [{
+          index: 0, message: { role: "assistant", content: respContent }, finish_reason: "stop"
+        }]
+      });
+    }
 
-      const respId = `chatcmpl-${crypto.randomUUID()}`;
+  } catch (error) {
+    logger.error("Chat completion failed", error);
+    return HttpUtils.createErrorResponse(error.message, 500, { debug_logs: logger.get() });
+  }
+}
 
-      if (body.stream) {
-        return this.createStreamResponse(respId, respContent, options, logger, isWebUI);
-      } else {
-        return HttpUtils.createJSONResponse({
-          id: respId, object: "chat.completion", created: Math.floor(Date.now() / 1000),
-          model: options.model, choices: [{
-            index: 0, message: { role: "assistant", content: respContent }, finish_reason: "stop"
-          }]
+function handleModelsRequest() {
+  const models = [];
+  
+  for (const [providerKey, providerConfig] of Object.entries(CONFIG.PROVIDERS)) {
+    if (providerConfig.enabled) {
+      for (const [modelId, modelConfig] of Object.entries(CONFIG.MODELS)) {
+        models.push({
+          id: modelConfig.id, object: 'model', name: modelConfig.name,
+          provider: providerKey, category: modelConfig.category,
+          confirmed: modelConfig.confirmed || false, experimental: modelConfig.experimental || false,
+          description: modelConfig.description
         });
       }
-
-    } catch (error) {
-      logger.error("Chat completion failed", error);
-      return HttpUtils.createErrorResponse(error.message, 500, { debug_logs: logger.get() });
     }
   }
 
-  createStreamResponse(respId, content, options, logger, isWebUI) {
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
-    const encoder = new TextEncoder();
-
-    (async () => {
-      try {
-        if (isWebUI) {
-          await writer.write(encoder.encode(`data: ${JSON.stringify({ debug: logger.get() })}\n\n`));
-        }
-
-        const chunk = {
-          id: respId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000),
-          model: options.model, choices: [{ index: 0, delta: { content: content }, finish_reason: null }]
-        };
-        
-        await writer.write(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-
-        const endChunk = {
-          id: respId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000),
-          model: options.model, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }]
-        };
-        
-        await writer.write(encoder.encode(`data: ${JSON.stringify(endChunk)}\n\n`));
-        await writer.write(encoder.encode('data: [DONE]\n\n'));
-        
-      } finally {
-        await writer.close();
-      }
-    })();
-
-    return new Response(readable, {
-      headers: HttpUtils.getCORSHeaders({ 'Content-Type': 'text/event-stream' })
-    });
-  }
+  return HttpUtils.createJSONResponse({ object: 'list', data: models, total: models.length });
 }
 
-class APIInfoHandler {
-  static handleModels() {
-    const models = [];
-    
-    for (const [providerKey, providerConfig] of Object.entries(CONFIG.PROVIDERS)) {
-      if (providerConfig.enabled) {
-        for (const [modelId, modelConfig] of Object.entries(CONFIG.MODELS)) {
-          models.push({
-            id: modelConfig.id, object: 'model', name: modelConfig.name,
-            provider: providerKey, category: modelConfig.category,
-            confirmed: modelConfig.confirmed || false, experimental: modelConfig.experimental || false,
-            description: modelConfig.description
-          });
-        }
-      }
-    }
-
-    return HttpUtils.createJSONResponse({ object: 'list', data: models, total: models.length });
+function handleProvidersRequest() {
+  const providers = {};
+  
+  for (const [key, config] of Object.entries(CONFIG.PROVIDERS)) {
+    providers[key] = {
+      name: config.name, endpoint: config.endpoint, auth_mode: config.auth_mode,
+      enabled: config.enabled, features: config.features
+    };
   }
 
-  static handleProviders() {
-    const providers = {};
-    
-    for (const [key, config] of Object.entries(CONFIG.PROVIDERS)) {
-      providers[key] = {
-        name: config.name, endpoint: config.endpoint, auth_mode: config.auth_mode,
-        enabled: config.enabled, features: config.features
-      };
-    }
-
-    return HttpUtils.createJSONResponse({ object: 'list', data: providers });
-  }
-
-  static handleStyles() {
-    const styles = Object.entries(CONFIG.STYLE_PRESETS).map(([key, value]) => ({
-      id: key, name: value.name, prompt_addition: value.prompt, negative_addition: value.negative
-    }));
-
-    return HttpUtils.createJSONResponse({ object: 'list', data: styles });
-  }
-
-  static handleHealth() {
-    return HttpUtils.createJSONResponse({
-      status: 'ok', version: CONFIG.PROJECT_VERSION, timestamp: new Date().toISOString(),
-      features: ['19 Models', '12 Styles', '3 Quality Modes', 'Smart Analysis', 'Auto HD', 'History', 'Auto Chinese Translation', 'Nano Banana Models', 'Real-time Timer', 'Performance Monitoring']
-    });
-  }
-
-  static handleDefault() {
-    return HttpUtils.createJSONResponse({
-      project: CONFIG.PROJECT_NAME, version: CONFIG.PROJECT_VERSION,
-      features: ['19 Models', '12 Styles', '3 Quality Modes', 'Smart Analysis', 'Auto HD', 'History', 'Auto Chinese Translation', 'Nano Banana Models', 'Real-time Timer', 'Performance Monitoring'],
-      endpoints: ['/v1/images/generations', '/v1/chat/completions', '/v1/models', '/v1/providers', '/v1/styles', '/health']
-    });
-  }
+  return HttpUtils.createJSONResponse({ object: 'list', data: providers });
 }
 
-class UIHandler {
-  static handleUI() {
-    const html = `<!DOCTYPE html>
+function handleStylesRequest() {
+  const styles = Object.entries(CONFIG.STYLE_PRESETS).map(([key, value]) => ({
+    id: key, name: value.name, prompt_addition: value.prompt, negative_addition: value.negative
+  }));
+
+  return HttpUtils.createJSONResponse({ object: 'list', data: styles });
+}
+
+function handleUI() {
+  const html = `<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -896,16 +800,9 @@ class UIHandler {
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%); color: #fff; padding: 20px; min-height: 100vh; }
         .container { max-width: 1400px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        .header-left { flex: 1; }
         h1 { color: #f59e0b; margin: 0; font-size: 36px; font-weight: 800; text-shadow: 0 0 30px rgba(245, 158, 11, 0.6); }
         .badge { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 6px 14px; border-radius: 20px; font-size: 14px; margin-left: 10px; }
         .subtitle { color: #9ca3af; margin-top: 8px; font-size: 15px; }
-        .mode-toggle { display: flex; gap: 10px; margin-bottom: 20px; }
-        .mode-btn { padding: 10px 20px; background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.1); color: #9ca3af; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-        .mode-btn:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(245, 158, 11, 0.5); }
-        .mode-btn.active { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-color: #f59e0b; color: #000; }
-        .history-btn { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: #fff; border: none; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.3s; position: relative; }
-        .history-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
         @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
         .box { background: rgba(26, 26, 26, 0.95); padding: 24px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1); }
@@ -922,21 +819,18 @@ class UIHandler {
         .error { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; padding: 16px; border-radius: 12px; color: #ef4444; }
         .timer { margin-top: 10px; font-size: 16px; font-weight: 600; color: #10b981; animation: pulse 1.5s ease-in-out infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .result img { width: 100%; border-radius: 12px; cursor: pointer; transition: transform 0.3s; }
+        .result img:hover { transform: scale(1.02); }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div class="header-left">
+            <div>
                 <h1>🎨 Flux AI Pro<span class="badge">v${CONFIG.PROJECT_VERSION}</span></h1>
                 <p class="subtitle">19個模型 · 12種風格 · 3檔質量 · 智能HD優化 · 🍌 Nano Banana · 性能監控</p>
             </div>
-            <button onclick="toggleHistory()" class="history-btn">📜 歷史紀錄</button>
-        </div>
-        
-        <div class="mode-toggle">
-            <button class="mode-btn all active" onclick="switchMode('all')">🎨 全部模型</button>
-            <button class="mode-btn banana" onclick="switchMode('banana')">🍌 Nano Banana 專屬</button>
         </div>
         
         <div class="grid">
@@ -1004,7 +898,6 @@ class UIHandler {
     </div>
     
     <script>
-        let currentMode = 'all';
         let generationTimer = null;
         let startTime = 0;
         
@@ -1015,25 +908,6 @@ class UIHandler {
             if (timerElement) {
                 timerElement.textContent = \`⏱️ 已耗時: \${elapsed} 秒\`;
             }
-        }
-        
-        function switchMode(mode) {
-            currentMode = mode;
-            const allBtn = document.querySelector('.mode-btn.all');
-            const bananaBtn = document.querySelector('.mode-btn.banana');
-            
-            if (mode === 'banana') {
-                allBtn.classList.remove('active');
-                bananaBtn.classList.add('active');
-                document.getElementById('model').value = 'nanobanana-pro';
-            } else {
-                allBtn.classList.add('active');
-                bananaBtn.classList.remove('active');
-            }
-        }
-        
-        function toggleHistory() {
-            alert('歷史功能開發中...');
         }
         
         const widthSlider = document.getElementById('width');
@@ -1077,4 +951,92 @@ class UIHandler {
                 negative_prompt: document.getElementById('negativePrompt').value,
                 model: document.getElementById('model').value,
                 style: document.getElementById('style').value,
-                width: parseInt(widthSlider
+                width: parseInt(widthSlider.value),
+                height: parseInt(heightSlider.value),
+                n: parseInt(document.getElementById('numOutputs').value),
+                seed: parseInt(document.getElementById('seed').value),
+                quality_mode: document.getElementById('qualityMode').value,
+                auto_optimize: true,
+                auto_hd: true
+            };
+            
+            try {
+                const response = await fetch('/v1/images/generations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) throw new Error(data.error?.message || '生成失敗');
+                
+                clearInterval(generationTimer);
+                const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                
+                resultDiv.innerHTML = \`<div class="success"><strong>✅ 生成成功!</strong> <span style="color:#10b981;font-weight:600">總耗時: \${totalTime} 秒</span></div>\`;
+                resultDiv.innerHTML += '<div class="result-grid">';
+                
+                data.data.forEach((item, index) => {
+                    resultDiv.innerHTML += \`<div class="result"><img src="\${item.url}" alt="Generated \${index+1}" onclick="window.open('\${item.url}')"><p style="margin-top:12px;font-size:13px;color:#9ca3af">\${item.model} | \${item.width}x\${item.height} | \${item.quality_mode}\${item.auto_translated?' | 🌐 已翻譯':''}</p></div>\`;
+                });
+                
+                resultDiv.innerHTML += '</div>';
+                
+            } catch (error) {
+                clearInterval(generationTimer);
+                resultDiv.innerHTML = \`<div class="error"><strong>❌ 錯誤</strong><p style="margin-top:12px">\${error.message}</p></div>\`;
+            } finally {
+                button.disabled = false;
+                button.textContent = '🚀 開始生成';
+            }
+        }
+    </script>
+</body>
+</html>`;
+
+  return new Response(html, {
+    headers: HttpUtils.getCORSHeaders({ 'Content-Type': 'text/html; charset=utf-8' })
+  });
+}
+
+// 主入口
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: HttpUtils.getCORSHeaders() });
+    }
+
+    try {
+      if (url.pathname === '/') {
+        return handleUI();
+      } else if (url.pathname === '/v1/chat/completions') {
+        return handleChatCompletions(request, env);
+      } else if (url.pathname === '/v1/images/generations') {
+        return handleImageGenerations(request, env);
+      } else if (url.pathname === '/v1/models') {
+        return handleModelsRequest();
+      } else if (url.pathname === '/v1/providers') {
+        return handleProvidersRequest();
+      } else if (url.pathname === '/v1/styles') {
+        return handleStylesRequest();
+      } else if (url.pathname === '/health') {
+        return HttpUtils.createJSONResponse({
+          status: 'ok', version: CONFIG.PROJECT_VERSION, timestamp: new Date().toISOString(),
+          features: ['19 Models', '12 Styles', '3 Quality Modes', 'Smart Analysis', 'Auto HD', 'History', 'Auto Chinese Translation', 'Nano Banana Models', 'Real-time Timer', 'Performance Monitoring']
+        });
+      } else {
+        return HttpUtils.createJSONResponse({
+          project: CONFIG.PROJECT_NAME, version: CONFIG.PROJECT_VERSION,
+          features: ['19 Models', '12 Styles', '3 Quality Modes', 'Smart Analysis', 'Auto HD', 'History', 'Auto Chinese Translation', 'Nano Banana Models', 'Real-time Timer', 'Performance Monitoring'],
+          endpoints: ['/v1/images/generations', '/v1/chat/completions', '/v1/models', '/v1/providers', '/v1/styles', '/health']
+        });
+      }
+    } catch (error) {
+      console.error('Worker error:', error);
+      return HttpUtils.createErrorResponse(error.message, 500);
+    }
+  }
+};
