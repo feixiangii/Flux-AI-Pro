@@ -1,10 +1,10 @@
 // =================================================================================
 //  項目: Flux AI Pro
-//  版本: 9.2.0 (本地上傳 + 圖生圖 + 多圖融合 + 4K + 中文支持)
+//  版本: 9.2.0-fixed
 //  作者: Enhanced by AI Assistant  
 //  日期: 2025-12-12
 //  功能: 本地上傳 | 圖生圖 | 多圖融合 | 中文支持 | 4K | 計時器 | 歷史
-//  修復: 翻譯功能 + 升級 m2m100 模型
+//  修復: 翻譯(m2m100) + 風格處理 + 移除示例按鈕
 // =================================================================================
 
 const CONFIG = {
@@ -65,14 +65,46 @@ const CONFIG = {
   DEFAULT_PROVIDER: "pollinations",
   
   STYLE_PRESETS: {
-    none: { name: "無 (使用原始提示詞)", prompt: "", negative: "" },
-    "anime": { name: "動漫風格 ✨", prompt: "anime style, anime art, vibrant colors, anime character, detailed anime", negative: "realistic, photograph, 3d, ugly" },
-    "photorealistic": { name: "寫實照片 📷", prompt: "photorealistic, ultra realistic, 8k uhd, professional photography, detailed, sharp focus", negative: "anime, cartoon, illustration, painting" },
-    "oil-painting": { name: "油畫 🎨", prompt: "oil painting, classical oil painting style, visible brushstrokes, rich colors, artistic", negative: "photograph, digital art, anime" },
-    "watercolor": { name: "水彩畫 💧", prompt: "watercolor painting, soft colors, watercolor texture, artistic, hand-painted", negative: "photograph, digital, sharp edges" },
-    "sketch": { name: "素描 ✏️", prompt: "pencil sketch, hand-drawn, sketch art, graphite drawing, artistic sketch", negative: "colored, painted, digital" },
-    "cyberpunk": { name: "賽博朋克 🌃", prompt: "cyberpunk style, neon lights, futuristic, sci-fi, dystopian, high-tech low-life", negative: "natural, rustic, medieval" },
-    "fantasy": { name: "奇幻風格 🐉", prompt: "fantasy art, magical, epic fantasy, detailed fantasy illustration", negative: "modern, realistic, mundane" }
+    none: { 
+        name: "無 (使用原始提示詞)", 
+        prompt: "", 
+        negative: "" 
+    },
+    anime: { 
+        name: "動漫風格 ✨", 
+        prompt: "anime style, anime art, vibrant colors, anime character, detailed anime", 
+        negative: "realistic, photograph, 3d, ugly" 
+    },
+    photorealistic: { 
+        name: "寫實照片 📷", 
+        prompt: "photorealistic, ultra realistic, 8k uhd, professional photography, detailed, sharp focus", 
+        negative: "anime, cartoon, illustration, painting" 
+    },
+    "oil-painting": { 
+        name: "油畫 🎨", 
+        prompt: "oil painting, classical oil painting style, visible brushstrokes, rich colors, artistic", 
+        negative: "photograph, digital art, anime" 
+    },
+    watercolor: { 
+        name: "水彩畫 💧", 
+        prompt: "watercolor painting, soft colors, watercolor texture, artistic, hand-painted", 
+        negative: "photograph, digital, sharp edges" 
+    },
+    sketch: { 
+        name: "素描 ✏️", 
+        prompt: "pencil sketch, hand-drawn, sketch art, graphite drawing, artistic sketch", 
+        negative: "colored, painted, digital" 
+    },
+    cyberpunk: { 
+        name: "賽博朋克 🌃", 
+        prompt: "cyberpunk style, neon lights, futuristic, sci-fi, dystopian, high-tech low-life", 
+        negative: "natural, rustic, medieval" 
+    },
+    fantasy: { 
+        name: "奇幻風格 🐉", 
+        prompt: "fantasy art, magical, epic fantasy, detailed fantasy illustration", 
+        negative: "modern, realistic, mundane" 
+    }
   },
   
   OPTIMIZATION_RULES: {
@@ -184,12 +216,11 @@ async function translateToEnglish(text, env) {
         }
         
         if (!env || !env.AI) {
-            console.warn("⚠️ Workers AI not configured, skipping translation");
+            console.warn("⚠️ Workers AI not configured");
             return { text: text, translated: false, reason: "AI not configured" };
         }
         
         try {
-            // 使用 m2m100 完整版模型
             const response = await env.AI.run("@cf/meta/m2m100", {
                 text: text,
                 source_lang: "chinese",
@@ -197,7 +228,7 @@ async function translateToEnglish(text, env) {
             });
             
             if (response && response.translated_text) {
-                console.log("✅ Translation success:", text, "→", response.translated_text);
+                console.log("✅ Translation:", text, "→", response.translated_text);
                 return { 
                     text: response.translated_text, 
                     translated: true, 
@@ -206,18 +237,14 @@ async function translateToEnglish(text, env) {
                 };
             }
         } catch (primaryError) {
-            console.warn("⚠️ m2m100 failed, trying fallback:", primaryError.message);
-            
-            // 備用: m2m100-1.2b
+            console.warn("⚠️ m2m100 failed:", primaryError.message);
             try {
                 const response = await env.AI.run("@cf/meta/m2m100-1.2b", {
                     text: text,
                     source_lang: "chinese",
                     target_lang: "english"
                 });
-                
                 if (response && response.translated_text) {
-                    console.log("✅ Translation success (fallback):", response.translated_text);
                     return { 
                         text: response.translated_text, 
                         translated: true, 
@@ -226,12 +253,11 @@ async function translateToEnglish(text, env) {
                     };
                 }
             } catch (fallbackError) {
-                console.error("❌ All translation models failed");
+                console.error("❌ All translation failed");
             }
         }
         
-        console.warn("⚠️ Translation failed, using original Chinese text");
-        return { text: text, translated: false, reason: "Translation failed" };
+        return { text: text, translated: false };
         
     } catch (error) {
         console.error("❌ translateToEnglish error:", error);
@@ -381,20 +407,62 @@ class ParameterOptimizer {
     }
 }
 
+// 🔧 修復版 StyleProcessor 類
 class StyleProcessor {
     static applyStyle(prompt, style, negativePrompt) {
-        const styleConfig = CONFIG.STYLE_PRESETS[style];
-        if (!styleConfig || style === 'none') {
-            return { enhancedPrompt: prompt, enhancedNegative: negativePrompt };
+        try {
+            if (!style || style === 'none' || style === '') {
+                return { 
+                    enhancedPrompt: prompt, 
+                    enhancedNegative: negativePrompt || "" 
+                };
+            }
+            
+            if (!CONFIG.STYLE_PRESETS || typeof CONFIG.STYLE_PRESETS !== 'object') {
+                console.warn("⚠️ STYLE_PRESETS not found");
+                return { 
+                    enhancedPrompt: prompt, 
+                    enhancedNegative: negativePrompt || "" 
+                };
+            }
+            
+            const styleConfig = CONFIG.STYLE_PRESETS[style];
+            
+            if (!styleConfig) {
+                console.warn("⚠️ Style '" + style + "' not found");
+                return { 
+                    enhancedPrompt: prompt, 
+                    enhancedNegative: negativePrompt || "" 
+                };
+            }
+            
+            let enhancedPrompt = prompt;
+            if (styleConfig.prompt && styleConfig.prompt.trim()) {
+                enhancedPrompt = prompt + ", " + styleConfig.prompt;
+            }
+            
+            let enhancedNegative = negativePrompt || "";
+            if (styleConfig.negative && styleConfig.negative.trim()) {
+                if (enhancedNegative && enhancedNegative.trim()) {
+                    enhancedNegative = enhancedNegative + ", " + styleConfig.negative;
+                } else {
+                    enhancedNegative = styleConfig.negative;
+                }
+            }
+            
+            console.log("✅ Style applied:", style);
+            return { 
+                enhancedPrompt: enhancedPrompt, 
+                enhancedNegative: enhancedNegative 
+            };
+            
+        } catch (error) {
+            console.error("❌ StyleProcessor error:", error.message);
+            return { 
+                enhancedPrompt: prompt, 
+                enhancedNegative: negativePrompt || "" 
+            };
         }
-        let enhancedPrompt = prompt;
-        if (styleConfig.prompt) enhancedPrompt = prompt + ", " + styleConfig.prompt;
-        
-        let enhancedNegative = negativePrompt || "";
-        if (styleConfig.negative) {
-            enhancedNegative = enhancedNegative ? enhancedNegative + ", " + styleConfig.negative : styleConfig.negative;
-        }
-        return { enhancedPrompt, enhancedNegative };
     }
 }
 
@@ -528,7 +596,17 @@ class PollinationsProvider {
             finalGuidance = guidance || 7.5;
         }
         
+        // 🔧 應用藝術風格 (在翻譯之前)
         const { enhancedPrompt, enhancedNegative } = StyleProcessor.applyStyle(finalPrompt, style, finalNegativePrompt);
+        
+        // 添加風格處理日誌
+        logger.add("🎨 Style Processing", { 
+            selected_style: style,
+            style_applied: style !== 'none',
+            original_prompt_length: finalPrompt.length,
+            enhanced_prompt_length: enhancedPrompt.length,
+            prompt_added: enhancedPrompt.length - finalPrompt.length
+        });
         
         // 🔧 修復: 確保傳遞 this.env
         const translation = await translateToEnglish(enhancedPrompt, this.env);
@@ -537,7 +615,7 @@ class PollinationsProvider {
         if (translation.translated) {
             logger.add("🌐 Auto Translation", { 
                 original_zh: translation.original,
-                translated_en: finalPromptForAPI,
+                translated_en: finalPromptForAPI.substring(0, 100) + (finalPromptForAPI.length > 100 ? '...' : ''),
                 success: true,
                 model: translation.model || "unknown"
             });
@@ -562,6 +640,7 @@ class PollinationsProvider {
             quality_mode: qualityMode, 
             hd_optimized: autoHD && hdOptimization?.optimized, 
             auto_translated: translation.translated,
+            style_applied: style !== 'none',
             reference_images: validReferenceImages.length,
             generation_mode: validReferenceImages.length > 0 ? (validReferenceImages.length === 1 ? "圖生圖" : "多圖融合") : "文生圖",
             steps: finalSteps, 
@@ -621,6 +700,7 @@ class PollinationsProvider {
                                 final_size: finalWidth + "x" + finalHeight,
                                 is_4k: finalWidth >= 4096 || finalHeight >= 4096,
                                 quality_mode: qualityMode, 
+                                style_used: style,
                                 hd_optimized: autoHD && hdOptimization?.optimized, 
                                 auto_translated: translation.translated,
                                 reference_images_used: validReferenceImages.length,
@@ -1100,9 +1180,6 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 .upload-area{background:rgba(236,72,153,0.05);border:2px dashed #ec4899;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.3s;margin-bottom:10px}
 .upload-area:hover{background:rgba(236,72,153,0.15);border-color:#f472b6}
 .upload-area.dragover{background:rgba(236,72,153,0.25);border-color:#f472b6;transform:scale(1.02)}
-.example-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.example-btns button{padding:6px 12px;font-size:12px;margin:0;width:auto;background:rgba(16,185,129,0.2);border:1px solid #10b981}
-.example-btns button:hover{background:rgba(16,185,129,0.3)}
 .ref-img-list{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 .ref-img-item{position:relative;width:80px;height:80px}
 .ref-img-item img{width:100%;height:100%;object-fit:cover;border-radius:8px;border:2px solid #ec4899}
@@ -1141,14 +1218,6 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <h3>📝 生成設置</h3>
 <label>提示詞 * <span style="color:#10b981;font-size:11px;font-weight:400">✓ 支持中文 (自動翻譯 m2m100)</span></label>
 <textarea id="prompt" placeholder="描述你想要的圖片... (支持中文輸入,將自動翻譯成英文)"></textarea>
-<div class="example-btns">
-<button type="button" onclick="setPrompt('一隻貓在太空中漂浮,極致細節,8k')">🐱 太空貓</button>
-<button type="button" onclick="setPrompt('賽博朋克城市夜景,霓虹燈,未來感,高清')">🌃 賽博朋克</button>
-<button type="button" onclick="setPrompt('美麗的櫻花樹,春天,陽光,日本庭院,超寫實')">🌸 櫻花</button>
-<button type="button" onclick="setPrompt('龍在雲中飛翔,中國風,水墨畫風格,氣勢磅礴')">🐉 中國龍</button>
-<button type="button" onclick="setPrompt('穿著漢服的少女,古典美,中國風,細膩')">👘 漢服少女</button>
-<button type="button" onclick="setPrompt('蒸汽朋克機器人,齒輪,金屬質感,復古')">🤖 蒸汽朋克</button>
-</div>
 
 <label>負面提示詞</label>
 <textarea id="negativePrompt" placeholder="low quality, blurry (也支持中文)"></textarea>
@@ -1184,10 +1253,17 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <option value="nanobanana-pro">Nano Banana Pro 🍌💎 (4K+4張)</option>
 </optgroup>
 </select>
+
 <label>藝術風格</label>
 <select id="style">
 <option value="none">無</option>
-${Object.entries(CONFIG.STYLE_PRESETS).map(([k,v])=>'<option value="' + k + '">' + v.name + '</option>').join('')}
+<option value="anime">動漫風格 ✨</option>
+<option value="photorealistic">寫實照片 📷</option>
+<option value="oil-painting">油畫 🎨</option>
+<option value="watercolor">水彩畫 💧</option>
+<option value="sketch">素描 ✏️</option>
+<option value="cyberpunk">賽博朋克 🌃</option>
+<option value="fantasy">奇幻風格 🐉</option>
 </select>
 </div>
 
@@ -1233,11 +1309,6 @@ const PRESETS=${JSON.stringify(CONFIG.PRESET_SIZES)};
 let generationHistory=[];
 let referenceImages=[];
 const MAX_FILE_SIZE=10*1024*1024;
-
-function setPrompt(text){
-document.getElementById('prompt').value=text;
-document.getElementById('prompt').focus();
-}
 
 document.getElementById('refImageUrl').addEventListener('keypress',function(e){
 if(e.key==='Enter'){
@@ -1477,7 +1548,8 @@ const div=document.createElement('div');
 div.className='history-item';
 const modeTag=item.generation_mode?'<span class="tag-mode">'+item.generation_mode+'</span>':'';
 const refCount=item.reference_images_count>0?' | '+item.reference_images_count+'張參考圖':'';
-div.innerHTML='<div style="display:flex;gap:15px"><img src="'+item.url+'" class="history-img" onclick="window.open(\\''+item.url+'\\')"><div style="flex:1"><p style="color:#f59e0b;font-weight:600">'+item.prompt.substring(0,50)+'...'+modeTag+'</p><div class="history-info">'+item.model+' | '+item.width+'x'+item.height+refCount+' | '+(item.duration||'N/A')+'</div><div class="history-info">'+new Date(item.timestamp).toLocaleString('zh-TW')+'</div><div class="history-actions"><button onclick="regenFromHistory('+index+')">🔄 重新生成</button><button onclick="deleteHistory('+index+')" style="background:#ef4444">🗑️ 刪除</button></div></div></div>';
+const styleTag=item.style&&item.style!=='none'?' | 風格:'+item.style:'';
+div.innerHTML='<div style="display:flex;gap:15px"><img src="'+item.url+'" class="history-img" onclick="window.open(\\''+item.url+'\\')"><div style="flex:1"><p style="color:#f59e0b;font-weight:600">'+item.prompt.substring(0,50)+'...'+modeTag+'</p><div class="history-info">'+item.model+' | '+item.width+'x'+item.height+refCount+styleTag+' | '+(item.duration||'N/A')+'</div><div class="history-info">'+new Date(item.timestamp).toLocaleString('zh-TW')+'</div><div class="history-actions"><button onclick="regenFromHistory('+index+')">🔄 重新生成</button><button onclick="deleteHistory('+index+')" style="background:#ef4444">🗑️ 刪除</button></div></div></div>';
 list.appendChild(div);
 });
 }
@@ -1588,9 +1660,10 @@ resultDiv.innerHTML='<div style="background:rgba(16,185,129,0.15);border:1px sol
 data.data.forEach(function(item,index){
 const is4K=item.is_4k?'<span class="tag-4k">4K</span>':'';
 const modeTag=item.generation_mode?'<span class="tag-mode">'+item.generation_mode+'</span>':'';
+const styleTag=item.style&&item.style!=='none'?' | 風格:'+item.style:'';
 const imgDiv=document.createElement('div');
 imgDiv.style.marginTop='20px';
-imgDiv.innerHTML='<img src="'+item.url+'" style="width:100%;border-radius:12px;cursor:pointer"><div class="result-meta">'+item.model+' | '+item.width+'x'+item.height+is4K+modeTag+' | '+item.quality_mode+' | <span class="timer">⏱️ '+duration+'</span></div>';
+imgDiv.innerHTML='<img src="'+item.url+'" style="width:100%;border-radius:12px;cursor:pointer"><div class="result-meta">'+item.model+' | '+item.width+'x'+item.height+is4K+modeTag+styleTag+' | '+item.quality_mode+' | <span class="timer">⏱️ '+duration+'</span></div>';
 imgDiv.querySelector('img').onclick=function(){window.open(item.url);};
 resultDiv.appendChild(imgDiv);
 
