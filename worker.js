@@ -1728,353 +1728,6 @@ export default {
     });
   }
 };
-// =================================================================================
-// 前端 HTML 界面（深色模式 + 雙語 + 100 張歷史記錄）
-// =================================================================================
-
-const HTML_CONTENT = `<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flux AI Pro - Dark Mode</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
-      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-      min-height: 100vh;
-      padding: 20px;
-      color: #e5e7eb;
-    }
-    
-    .container {
-      max-width: 1600px;
-      margin: 0 auto;
-      background: rgba(26, 26, 26, 0.95);
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-      overflow: hidden;
-      border: 1px solid rgba(168, 85, 247, 0.2);
-    }
-    
-    .header {
-      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-      color: white;
-      padding: 30px;
-      text-align: center;
-      position: relative;
-      border-bottom: 2px solid rgba(168, 85, 247, 0.3);
-    }
-    
-    .header h1 {
-      font-size: 2.5em;
-      margin-bottom: 10px;
-      background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      text-shadow: 0 0 30px rgba(168, 85, 247, 0.5);
-      animation: glow 2s ease-in-out infinite alternate;
-    }
-    
-    @keyframes glow {
-      from {
-        filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.5));
-      }
-      to {
-        filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.8));
-      }
-    }
-    
-    .header .subtitle {
-      font-size: 1.1em;
-      opacity: 0.8;
-      color: #9ca3af;
-    }
-    
-    .header .version {
-      display: inline-block;
-      background: rgba(168, 85, 247, 0.2);
-      padding: 5px 15px;
-      border-radius: 20px;
-      font-size: 0.9em;
-      margin-top: 10px;
-      border: 1px solid rgba(168, 85, 247, 0.3);
-      color: #a855f7;
-    }
-    
-    .lang-switch {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      display: flex;
-      gap: 10px;
-      background: rgba(45, 45, 45, 0.8);
-      padding: 8px 12px;
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(168, 85, 247, 0.3);
-    }
-    
-    .lang-btn {
-      background: transparent;
-      border: 2px solid rgba(168, 85, 247, 0.5);
-      color: #a855f7;
-      padding: 6px 16px;
-      border-radius: 15px;
-      cursor: pointer;
-      font-size: 0.9em;
-      font-weight: 600;
-      transition: all 0.3s;
-      font-family: inherit;
-    }
-    
-    .lang-btn:hover {
-      background: rgba(168, 85, 247, 0.2);
-      box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
-    }
-    
-    .lang-btn.active {
-      background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
-      color: white;
-      border-color: transparent;
-      box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
-    }
-    
-    .history-toggle {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: rgba(45, 45, 45, 0.8);
-      border: 2px solid rgba(59, 130, 246, 0.5);
-      color: #3b82f6;
-      padding: 8px 20px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 0.9em;
-      font-weight: 600;
-      transition: all 0.3s;
-      backdrop-filter: blur(10px);
-    }
-    
-    .history-toggle:hover {
-      background: rgba(59, 130, 246, 0.2);
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
-    }
-    
-    .main-content {
-      display: grid;
-      grid-template-columns: 400px 1fr;
-      gap: 0;
-    }
-    
-    @media (max-width: 1200px) {
-      .main-content {
-        grid-template-columns: 1fr;
-      }
-    }
-    
-    .left-panel {
-      background: rgba(30, 30, 30, 0.95);
-      padding: 25px;
-      border-right: 1px solid rgba(168, 85, 247, 0.2);
-      max-height: calc(100vh - 200px);
-      overflow-y: auto;
-    }
-    
-    .left-panel::-webkit-scrollbar {
-      width: 8px;
-    }
-    
-    .left-panel::-webkit-scrollbar-track {
-      background: rgba(45, 45, 45, 0.5);
-      border-radius: 4px;
-    }
-    
-    .left-panel::-webkit-scrollbar-thumb {
-      background: rgba(168, 85, 247, 0.5);
-      border-radius: 4px;
-    }
-    
-    .left-panel::-webkit-scrollbar-thumb:hover {
-      background: rgba(168, 85, 247, 0.7);
-    }
-    
-    .right-panel {
-      display: grid;
-      grid-template-rows: 1fr auto;
-      gap: 0;
-    }
-    
-    .result-panel {
-      padding: 25px;
-      background: rgba(26, 26, 26, 0.95);
-    }
-    
-    .history-panel {
-      background: rgba(30, 30, 30, 0.95);
-      border-top: 2px solid rgba(168, 85, 247, 0.3);
-      padding: 20px 25px;
-      max-height: 300px;
-      overflow-y: auto;
-      display: none;
-    }
-    
-    .history-panel.show {
-      display: block;
-    }
-    
-    .history-panel::-webkit-scrollbar {
-      height: 8px;
-    }
-    
-    .history-panel::-webkit-scrollbar-track {
-      background: rgba(45, 45, 45, 0.5);
-      border-radius: 4px;
-    }
-    
-    .history-panel::-webkit-scrollbar-thumb {
-      background: rgba(168, 85, 247, 0.5);
-      border-radius: 4px;
-    }
-    
-    .panel h2 {
-      background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 20px;
-      font-size: 1.5em;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .form-group {
-      margin-bottom: 20px;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-      color: #9ca3af;
-      font-size: 0.95em;
-    }
-    
-    .form-group input[type="text"],
-    .form-group textarea,
-    .form-group select,
-    .form-group input[type="number"] {
-      width: 100%;
-      padding: 12px 15px;
-      border: 2px solid rgba(168, 85, 247, 0.3);
-      border-radius: 10px;
-      font-size: 1em;
-      transition: all 0.3s;
-      font-family: inherit;
-      background: rgba(45, 45, 45, 0.8);
-      color: #e5e7eb;
-    }
-    
-    .form-group input:focus,
-    .form-group textarea:focus,
-    .form-group select:focus {
-      outline: none;
-      border-color: #a855f7;
-      box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2), 0 0 20px rgba(168, 85, 247, 0.3);
-      background: rgba(45, 45, 45, 0.95);
-    }
-    
-    .form-group textarea {
-      min-height: 80px;
-      resize: vertical;
-    }
-    
-    .form-group select option {
-      background: #2d2d2d;
-      color: #e5e7eb;
-    }
-    
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    
-    @media (max-width: 768px) {
-      .form-row {
-        grid-template-columns: 1fr;
-      }
-    }
-    
-    .btn {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 10px;
-      font-size: 1em;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      text-decoration: none;
-      font-family: inherit;
-    }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
-      color: white;
-      width: 100%;
-      box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
-      border: 1px solid rgba(168, 85, 247, 0.5);
-    }
-    
-    .btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 25px rgba(168, 85, 247, 0.6), 0 0 30px rgba(168, 85, 247, 0.4);
-    }
-    
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    
-    .btn-secondary {
-      background: rgba(59, 130, 246, 0.2);
-      color: #3b82f6;
-      border: 2px solid rgba(59, 130, 246, 0.5);
-    }
-    
-    .btn-secondary:hover {
-      background: rgba(59, 130, 246, 0.3);
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-    }
-    
-    .btn-danger {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-      border: 2px solid rgba(239, 68, 68, 0.5);
-    }
-    
-    .btn-danger:hover {
-      background: rgba(239, 68, 68, 0.3);
-      box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-    }
-    
-    .btn-small {
-      padding: 6px 12px;
-      font-size: 0.85em;
-    }
-    
     .result-container {
       background: rgba(45, 45, 45, 0.5);
       border-radius: 10px;
@@ -2283,7 +1936,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       color: #9ca3af;
     }
     
-    /* ==================== 歷史記錄樣式 ==================== */
     .history-header {
       display: flex;
       justify-content: space-between;
@@ -2438,7 +2090,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
     </div>
     
     <div class="main-content">
-      <!-- 左側控制面板 -->
       <div class="left-panel">
         <h2><span data-i18n="settings">⚙️ 生成設定</span></h2>
         
@@ -2449,12 +2100,12 @@ const HTML_CONTENT = `<!DOCTYPE html>
         
         <div class="form-group">
           <label data-i18n="promptLabel">✨ 提示詞</label>
-          <textarea id="prompt" data-i18n-placeholder="promptPlaceholder" placeholder="例如：一隻可愛的橘貓在花園裡玩耍"></textarea>
+          <textarea id="prompt" placeholder="例如：一隻可愛的橘貓在花園裡玩耍"></textarea>
         </div>
         
         <div class="form-group">
           <label data-i18n="negativePromptLabel">🚫 負面提示詞</label>
-          <textarea id="negativePrompt" data-i18n-placeholder="negativePromptPlaceholder" placeholder="不想出現的內容"></textarea>
+          <textarea id="negativePrompt" placeholder="不想出現的內容"></textarea>
         </div>
         
         <div class="form-row">
@@ -2518,9 +2169,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
         </button>
       </div>
       
-      <!-- 右側面板 -->
       <div class="right-panel">
-        <!-- 結果面板 -->
         <div class="result-panel">
           <h2><span data-i18n="resultTitle">🖼️ 生成結果</span></h2>
           
@@ -2536,7 +2185,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
           <div id="actionButtons" style="display: none;"></div>
         </div>
         
-        <!-- 歷史記錄面板 -->
         <div class="history-panel" id="historyPanel">
           <div class="history-header">
             <h3>
@@ -2565,8 +2213,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
   </div>
 
   <script>
-    const MAX_HISTORY = 100; // 最多保存 100 條記錄
-    // ==================== 多語言翻譯字典 ====================
+    const MAX_HISTORY = 100;
+    
     const translations = {
       zh: {
         subtitle: 'AI 圖像生成工具 - 深色模式 + 歷史記錄',
@@ -2574,9 +2222,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
         autoTranslateTitle: '🌐 自動翻譯已啟用',
         autoTranslateDesc: '輸入中文將自動翻譯成英文生成圖片',
         promptLabel: '✨ 提示詞',
-        promptPlaceholder: '例如：一隻可愛的橘貓在花園裡玩耍',
         negativePromptLabel: '🚫 負面提示詞',
-        negativePromptPlaceholder: '不想出現的內容',
         modelLabel: '🤖 模型',
         qualityLabel: '💎 質量',
         qualityEconomy: '經濟',
@@ -2612,9 +2258,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
         autoTranslateTitle: '🌐 Auto Translation Enabled',
         autoTranslateDesc: 'Chinese prompts will be automatically translated',
         promptLabel: '✨ Prompt',
-        promptPlaceholder: 'Example: A cute orange cat playing in the garden',
         negativePromptLabel: '🚫 Negative Prompt',
-        negativePromptPlaceholder: 'Content you don\'t want',
         modelLabel: '🤖 Model',
         qualityLabel: '💎 Quality',
         qualityEconomy: 'Economy',
@@ -2652,7 +2296,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
     let currentMetadata = null;
     let imageHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
     
-    // ==================== 語言切換函數 ====================
     function switchLanguage(lang) {
       currentLang = lang;
       localStorage.setItem('language', lang);
@@ -2660,21 +2303,14 @@ const HTML_CONTENT = `<!DOCTYPE html>
       document.getElementById('langZh').classList.toggle('active', lang === 'zh');
       document.getElementById('langEn').classList.toggle('active', lang === 'en');
       
-      document.querySelectorAll('[data-i18n]').forEach(element => {
+      document.querySelectorAll('[data-i18n]').forEach(function(element) {
         const key = element.getAttribute('data-i18n');
         if (translations[lang][key]) {
           element.textContent = translations[lang][key];
         }
       });
       
-      document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
-        const key = element.getAttribute('data-i18n-placeholder');
-        if (translations[lang][key]) {
-          element.placeholder = translations[lang][key];
-        }
-      });
-      
-      document.querySelectorAll('option[data-i18n]').forEach(element => {
+      document.querySelectorAll('option[data-i18n]').forEach(function(element) {
         const key = element.getAttribute('data-i18n');
         if (translations[lang][key]) {
           element.textContent = translations[lang][key];
@@ -2683,8 +2319,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       
       console.log('🌐 語言已切換至:', lang === 'zh' ? '繁體中文' : 'English');
     }
-    
-    // ==================== 歷史記錄管理 ====================
     function toggleHistory() {
       const panel = document.getElementById('historyPanel');
       panel.classList.toggle('show');
@@ -2735,16 +2369,15 @@ const HTML_CONTENT = `<!DOCTYPE html>
       const grid = document.getElementById('historyGrid');
       
       if (imageHistory.length === 0) {
-        grid.innerHTML = `
-          <div class="history-empty">
-            <div class="icon">📭</div>
-            <p data-i18n="historyEmpty">${translations[currentLang].historyEmpty}</p>
-          </div>
-        `;
+        const emptyHTML = '<div class="history-empty">' +
+          '<div class="icon">📭</div>' +
+          '<p data-i18n="historyEmpty">' + translations[currentLang].historyEmpty + '</p>' +
+          '</div>';
+        grid.innerHTML = emptyHTML;
         return;
       }
       
-      grid.innerHTML = imageHistory.map(record => {
+      const items = imageHistory.map(function(record) {
         const date = new Date(record.timestamp);
         const dateStr = date.toLocaleDateString(currentLang === 'zh' ? 'zh-TW' : 'en-US', {
           month: 'short',
@@ -2753,24 +2386,27 @@ const HTML_CONTENT = `<!DOCTYPE html>
           minute: '2-digit'
         });
         
-        return `
-          <div class="history-item" onclick="loadFromHistory(${record.id})">
-            <button class="history-item-delete" onclick="deleteFromHistory(${record.id}, event)">×</button>
-            <img src="${record.image}" alt="Generated Image">
-            <div class="history-item-info">
-              <div class="history-item-prompt">${record.prompt.substring(0, 30)}${record.prompt.length > 30 ? '...' : ''}</div>
-              <div class="history-item-meta">
-                <span>${record.model}</span>
-                <span>${dateStr}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
+        const promptText = record.prompt.substring(0, 30);
+        const promptFull = promptText + (record.prompt.length > 30 ? '...' : '');
+        
+        return '<div class="history-item" onclick="loadFromHistory(' + record.id + ')">' +
+          '<button class="history-item-delete" onclick="deleteFromHistory(' + record.id + ', event)">×</button>' +
+          '<img src="' + record.image + '" alt="Generated Image">' +
+          '<div class="history-item-info">' +
+          '<div class="history-item-prompt">' + promptFull + '</div>' +
+          '<div class="history-item-meta">' +
+          '<span>' + record.model + '</span>' +
+          '<span>' + dateStr + '</span>' +
+          '</div>' +
+          '</div>' +
+          '</div>';
+      });
+      
+      grid.innerHTML = items.join('');
     }
     
     function loadFromHistory(id) {
-      const record = imageHistory.find(r => r.id === id);
+      const record = imageHistory.find(function(r) { return r.id === id; });
       if (!record) return;
       
       currentImage = record.image;
@@ -2803,7 +2439,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
       const confirmMsg = translations[currentLang].deleteConfirm;
       if (!confirm(confirmMsg)) return;
       
-      imageHistory = imageHistory.filter(r => r.id !== id);
+      imageHistory = imageHistory.filter(function(r) { return r.id !== id; });
       localStorage.setItem('imageHistory', JSON.stringify(imageHistory));
       updateHistoryCount();
       renderHistory();
@@ -2834,14 +2470,13 @@ const HTML_CONTENT = `<!DOCTYPE html>
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `flux-ai-history-${Date.now()}.json`;
+      link.download = 'flux-ai-history-' + Date.now() + '.json';
       link.click();
       URL.revokeObjectURL(url);
       
       console.log('📥 已匯出', imageHistory.length, '條歷史記錄');
     }
     
-    // ==================== 圖片生成函數 ====================
     async function generateImage() {
       const prompt = document.getElementById('prompt').value.trim();
       if (!prompt) {
@@ -2866,17 +2501,15 @@ const HTML_CONTENT = `<!DOCTYPE html>
       
       const hasChinese = /[\u4e00-\u9fa5]/.test(prompt);
       const translatingText = translations[currentLang].translating;
-      const translationHint = hasChinese ? `<p style="font-size: 0.9em; color: #9ca3af; margin-top: 10px;">${translatingText}</p>` : '';
+      const translationHint = hasChinese ? '<p style="font-size: 0.9em; color: #9ca3af; margin-top: 10px;">' + translatingText + '</p>' : '';
       
       generateBtn.disabled = true;
       generateBtn.innerHTML = translations[currentLang].generating;
-      resultContainer.innerHTML = `
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>${translations[currentLang].generating_text}</p>
-          ${translationHint}
-        </div>
-      `;
+      resultContainer.innerHTML = '<div class="loading">' +
+        '<div class="spinner"></div>' +
+        '<p>' + translations[currentLang].generating_text + '</p>' +
+        translationHint +
+        '</div>';
       metaInfo.style.display = 'none';
       translationInfo.style.display = 'none';
       actionButtons.style.display = 'none';
@@ -2942,7 +2575,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
             const imageUrl = result.image || result.url;
             
             currentImage = imageUrl;
-            currentMetadata = { ...result, prompt: prompt };
+            currentMetadata = { prompt: prompt, model: model, style: style, width: width, height: height };
+            Object.assign(currentMetadata, result);
             
             displayResult(imageUrl, result);
             saveToHistory(imageUrl, currentMetadata);
@@ -2953,15 +2587,11 @@ const HTML_CONTENT = `<!DOCTYPE html>
         
       } catch (error) {
         console.error('❌ 生成失敗:', error);
-        resultContainer.innerHTML = `
-          <div class="placeholder">
-            <div class="icon" style="color: #ef4444;">❌</div>
-            <p style="color: #ef4444;">生成失敗：${error.message}</p>
-            <p style="font-size: 0.9em; color: #6b7280; margin-top: 10px;">
-              請檢查網絡連接或稍後重試
-            </p>
-          </div>
-        `;
+        resultContainer.innerHTML = '<div class="placeholder">' +
+          '<div class="icon" style="color: #ef4444;">❌</div>' +
+          '<p style="color: #ef4444;">生成失敗：' + error.message + '</p>' +
+          '<p style="font-size: 0.9em; color: #6b7280; margin-top: 10px;">請檢查網絡連接或稍後重試</p>' +
+          '</div>';
       } finally {
         generateBtn.disabled = false;
         const btnText = document.querySelector('#generateBtn span');
@@ -2970,78 +2600,58 @@ const HTML_CONTENT = `<!DOCTYPE html>
         }
       }
     }
-    
     function displayResult(imageUrl, metadata) {
       const resultContainer = document.getElementById('resultContainer');
       const metaInfo = document.getElementById('metaInfo');
       const translationInfo = document.getElementById('translationInfo');
       const actionButtons = document.getElementById('actionButtons');
       
-      resultContainer.innerHTML = `
-        <img src="${imageUrl}" alt="Generated Image">
-      `;
+      resultContainer.innerHTML = '<img src="' + imageUrl + '" alt="Generated Image">';
       
-      metaInfo.innerHTML = `
-        <div>
-          <strong>🤖 ${currentLang === 'zh' ? '模型' : 'Model'}</strong>
-          <span>${metadata.model}</span>
-        </div>
-        <div>
-          <strong>📐 ${currentLang === 'zh' ? '尺寸' : 'Size'}</strong>
-          <span>${metadata.width} × ${metadata.height}</span>
-        </div>
-        <div>
-          <strong>🎨 ${currentLang === 'zh' ? '風格' : 'Style'}</strong>
-          <span>${metadata.style}</span>
-        </div>
-        <div>
-          <strong>💎 ${currentLang === 'zh' ? '質量' : 'Quality'}</strong>
-          <span>${metadata.quality_mode || metadata.qualityMode}</span>
-        </div>
-        ${metadata.seed ? `
-        <div>
-          <strong>🎲 ${currentLang === 'zh' ? '種子' : 'Seed'}</strong>
-          <span>${metadata.seed}</span>
-        </div>
-        ` : ''}
-        <div>
-          <strong>✨ HD</strong>
-          <span>${metadata.hd_optimized || metadata.hdOptimized ? '✅' : '❌'}</span>
-        </div>
-        <div>
-          <strong>🌐 ${currentLang === 'zh' ? '翻譯' : 'Translated'}</strong>
-          <span>${metadata.auto_translated || metadata.autoTranslated ? '✅' : '❌'}</span>
-        </div>
-        <div>
-          <strong>🔐 ${currentLang === 'zh' ? '認證' : 'Auth'}</strong>
-          <span>${metadata.authenticated ? '✅' : '⚠️'}</span>
-        </div>
-      `;
+      const modelLabel = currentLang === 'zh' ? '模型' : 'Model';
+      const sizeLabel = currentLang === 'zh' ? '尺寸' : 'Size';
+      const styleLabel = currentLang === 'zh' ? '風格' : 'Style';
+      const qualityLabel = currentLang === 'zh' ? '質量' : 'Quality';
+      const seedLabel = currentLang === 'zh' ? '種子' : 'Seed';
+      const translatedLabel = currentLang === 'zh' ? '翻譯' : 'Translated';
+      const authLabel = currentLang === 'zh' ? '認證' : 'Auth';
+      
+      let metaHTML = '<div><strong>🤖 ' + modelLabel + '</strong><span>' + metadata.model + '</span></div>' +
+        '<div><strong>📐 ' + sizeLabel + '</strong><span>' + metadata.width + ' × ' + metadata.height + '</span></div>' +
+        '<div><strong>🎨 ' + styleLabel + '</strong><span>' + metadata.style + '</span></div>' +
+        '<div><strong>💎 ' + qualityLabel + '</strong><span>' + (metadata.quality_mode || metadata.qualityMode) + '</span></div>';
+      
+      if (metadata.seed) {
+        metaHTML += '<div><strong>🎲 ' + seedLabel + '</strong><span>' + metadata.seed + '</span></div>';
+      }
+      
+      metaHTML += '<div><strong>✨ HD</strong><span>' + (metadata.hd_optimized || metadata.hdOptimized ? '✅' : '❌') + '</span></div>';
+      metaHTML += '<div><strong>🌐 ' + translatedLabel + '</strong><span>' + (metadata.auto_translated || metadata.autoTranslated ? '✅' : '❌') + '</span></div>';
+      metaHTML += '<div><strong>🔐 ' + authLabel + '</strong><span>' + (metadata.authenticated ? '✅' : '⚠️') + '</span></div>';
+      
+      metaInfo.innerHTML = metaHTML;
       metaInfo.style.display = 'block';
       
       if (metadata.translation_info && metadata.translation_info.original) {
         const ti = metadata.translation_info;
-        translationInfo.innerHTML = `
-          <h4>🌐 ${currentLang === 'zh' ? 'Google 翻譯資訊' : 'Google Translation Info'}</h4>
-          <p><strong>${currentLang === 'zh' ? '原文' : 'Original'}：</strong>${ti.original}</p>
-          <p><strong>${currentLang === 'zh' ? '譯文' : 'Translated'}：</strong>${ti.translated}</p>
-          <p><strong>${currentLang === 'zh' ? '引擎' : 'Engine'}：</strong>${ti.model} <span class="badge success">${currentLang === 'zh' ? '免費' : 'Free'}</span></p>
-        `;
+        const originalLabel = currentLang === 'zh' ? '原文' : 'Original';
+        const translatedTextLabel = currentLang === 'zh' ? '譯文' : 'Translated';
+        const engineLabel = currentLang === 'zh' ? '引擎' : 'Engine';
+        const freeLabel = currentLang === 'zh' ? '免費' : 'Free';
+        
+        translationInfo.innerHTML = '<h4>🌐 ' + (currentLang === 'zh' ? 'Google 翻譯資訊' : 'Google Translation Info') + '</h4>' +
+          '<p><strong>' + originalLabel + '：</strong>' + ti.original + '</p>' +
+          '<p><strong>' + translatedTextLabel + '：</strong>' + ti.translated + '</p>' +
+          '<p><strong>' + engineLabel + '：</strong>' + ti.model + ' <span class="badge success">' + freeLabel + '</span></p>';
         translationInfo.style.display = 'block';
       } else {
         translationInfo.style.display = 'none';
       }
       
-      actionButtons.innerHTML = `
-        <div class="action-buttons">
-          <button class="btn btn-secondary" onclick="downloadImage()">
-            <span data-i18n="downloadBtn">${translations[currentLang].downloadBtn}</span>
-          </button>
-          <button class="btn btn-secondary" onclick="generateNew()">
-            <span data-i18n="newBtn">${translations[currentLang].newBtn}</span>
-          </button>
-        </div>
-      `;
+      actionButtons.innerHTML = '<div class="action-buttons">' +
+        '<button class="btn btn-secondary" onclick="downloadImage()"><span data-i18n="downloadBtn">' + translations[currentLang].downloadBtn + '</span></button>' +
+        '<button class="btn btn-secondary" onclick="generateNew()"><span data-i18n="newBtn">' + translations[currentLang].newBtn + '</span></button>' +
+        '</div>';
       actionButtons.style.display = 'block';
     }
     
@@ -3053,17 +2663,15 @@ const HTML_CONTENT = `<!DOCTYPE html>
       
       const link = document.createElement('a');
       link.href = currentImage;
-      link.download = `flux-ai-${Date.now()}.png`;
+      link.download = 'flux-ai-' + Date.now() + '.png';
       link.click();
     }
     
     function generateNew() {
-      document.getElementById('resultContainer').innerHTML = `
-        <div class="placeholder">
-          <div class="icon">🎨</div>
-          <p data-i18n="resultPlaceholder">${translations[currentLang].resultPlaceholder}</p>
-        </div>
-      `;
+      document.getElementById('resultContainer').innerHTML = '<div class="placeholder">' +
+        '<div class="icon">🎨</div>' +
+        '<p data-i18n="resultPlaceholder">' + translations[currentLang].resultPlaceholder + '</p>' +
+        '</div>';
       document.getElementById('metaInfo').style.display = 'none';
       document.getElementById('translationInfo').style.display = 'none';
       document.getElementById('actionButtons').style.display = 'none';
@@ -3071,29 +2679,20 @@ const HTML_CONTENT = `<!DOCTYPE html>
       currentMetadata = null;
     }
     
-    // ==================== 初始化與事件綁定 ====================
+    document.getElementById('generateBtn').addEventListener('click', generateImage);
     
-    // 綁定事件
-    document.getElementById('generateBtn')?.addEventListener('click', generateImage);
-    
-    // Enter 鍵快捷生成 (Ctrl+Enter)
-    document.getElementById('prompt')?.addEventListener('keydown', (e) => {
+    document.getElementById('prompt').addEventListener('keydown', function(e) {
       if (e.ctrlKey && e.key === 'Enter') {
         generateImage();
       }
     });
     
-    // 頁面載入時初始化
-    window.addEventListener('DOMContentLoaded', async () => {
+    window.addEventListener('DOMContentLoaded', async function() {
       console.log('🌙 Flux AI Pro Dark Mode 正在初始化...');
       
-      // 初始化語言
       switchLanguage(currentLang);
-      
-      // 載入歷史記錄
       updateHistoryCount();
       
-      // 載入配置
       try {
         const response = await fetch('/api/config');
         currentConfig = await response.json();
@@ -3102,7 +2701,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
         console.error('❌ 載入配置失敗:', error);
       }
       
-      // 檢查系統狀態
       try {
         const healthResponse = await fetch('/health');
         const health = await healthResponse.json();
@@ -3111,15 +2709,10 @@ const HTML_CONTENT = `<!DOCTYPE html>
         if (!health.api_key_configured) {
           const warningBox = document.createElement('div');
           warningBox.className = 'info-box warning';
-          warningBox.innerHTML = `
-            <h4>⚠️ API Key 未設定</h4>
-            <p>新 Pollinations API 端點需要 API Key 才能正常使用。請在 Cloudflare Workers 環境變數中設定 <code>POLLINATIONS_API_KEY</code>。</p>
-            <p style="margin-top: 8px;">未設定 API Key 的請求可能會失敗。</p>
-          `;
-          document.querySelector('.left-panel').insertBefore(
-            warningBox, 
-            document.querySelector('.info-box')
-          );
+          warningBox.innerHTML = '<h4>⚠️ API Key 未設定</h4>' +
+            '<p>新 Pollinations API 端點需要 API Key 才能正常使用。請在 Cloudflare Workers 環境變數中設定 <code>POLLINATIONS_API_KEY</code>。</p>' +
+            '<p style="margin-top: 8px;">未設定 API Key 的請求可能會失敗。</p>';
+          document.querySelector('.left-panel').insertBefore(warningBox, document.querySelector('.info-box'));
         }
         
         console.log('🌐 翻譯引擎:', health.translation_engine);
@@ -3137,6 +2730,3 @@ const HTML_CONTENT = `<!DOCTYPE html>
 </body>
 </html>
 `;
-
-// 匯出 HTML 內容
-export { HTML_CONTENT };
