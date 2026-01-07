@@ -1727,7 +1727,7 @@ export default {
       headers: corsHeaders() 
     });
   }
-
+const HTML_CONTENT = `<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
