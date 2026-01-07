@@ -1,12 +1,12 @@
 // =================================================================================
-//  項目: Flux AI Pro - Enhanced Edition
-//  版本: 9.7.1 (Full Source)
-//  更新: 整合 Google 免費翻譯，修復處理順序
+//  項目: Flux AI Pro - Midnight Blue Edition
+//  版本: 9.7.2 (UI Style Update)
+//  更新: 套用午夜藍調選擇框配色 + Google 免費翻譯
 // =================================================================================
 
 const CONFIG = {
   PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "9.7.1-enhanced",
+  PROJECT_VERSION: "9.7.2-midnight",
   API_MASTER_KEY: "1",
   FETCH_TIMEOUT: 120000,
   MAX_RETRIES: 3,
@@ -759,7 +759,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 .form-group{margin-bottom:16px}
 label{display:block;margin-bottom:6px;font-weight:600;font-size:13px;color:#e5e7eb}
 input,select,textarea{width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;font-size:13px;transition:all 0.3s}
-input:focus,select:focus,textarea:focus{outline:none;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.1)}
+input:focus,textarea:focus{outline:none;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.1)}
+/* Midnight Blue Style for Select */
+select{background-color:#1e293b!important;color:#e2e8f0!important;border:1px solid #334155!important}
+select:focus{border-color:#818cf8!important;box-shadow:0 0 0 3px rgba(129,140,248,0.2)!important;outline:none}
+option{background-color:#0f172a;color:#f1f5f9}
+/* End Style */
 textarea{min-height:120px;resize:vertical;font-family:inherit;line-height:1.6}
 select{cursor:pointer}
 .input-hint{font-size:11px;color:#6b7280;margin-top:4px}
