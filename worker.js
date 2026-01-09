@@ -1,12 +1,12 @@
 // =================================================================================
 //  項目: Flux AI Pro - NanoBanana Edition
-//  版本: 10.1.0-Beta (Integrated Nano Page & KV Limit)
-//  更新: 整合獨立 /nano 頁面與 KV 速率限制功能
+//  版本: 10.2.0 (Access Control & KV Limit)
+//  更新: 強制 Nano Banana 模型僅能在 /nano 頁面使用
 // =================================================================================
 
 const CONFIG = {
   PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "10.1.0-Beta",
+  PROJECT_VERSION: "10.2.0",
   API_MASTER_KEY: "1",
   FETCH_TIMEOUT: 120000,
   MAX_RETRIES: 3,
@@ -346,7 +346,7 @@ async function fetchWithTimeout(url, options = {}, timeout = CONFIG.FETCH_TIMEOU
 }
 
 function corsHeaders(additionalHeaders = {}) {
-  return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With', 'Access-Control-Max-Age': '86400', ...additionalHeaders };
+  return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Source', 'Access-Control-Max-Age': '86400', ...additionalHeaders };
 }
 class PollinationsProvider {
   constructor(config, env) { this.config = config; this.name = config.name; this.env = env; }
@@ -540,7 +540,6 @@ export default {
     
     try {
       let response;
-      // ====== 新增路由 /nano ======
       if (url.pathname === '/nano') { 
         response = handleNanoPage(request); 
       } 
@@ -585,21 +584,27 @@ async function handleInternalGenerate(request, env, ctx) {
     const prompt = body.prompt;
     if (!prompt || !prompt.trim()) throw new Error("Prompt is required");
 
-    // ====== NanoBanana 限制檢查邏輯 ======
+    // ====== 修改這裡：NanoBanana 來源與限流檢查 ======
     if (body.model === 'nano-banana') {
+        // 1. 來源檢查：必須帶有特殊 Header
+        const source = request.headers.get('X-Source');
+        if (source !== 'nano-page') {
+             return new Response(JSON.stringify({ 
+                error: { message: "🍌 Nano Banana 模型僅限於獨立頁面使用！", type: 'access_denied' } 
+            }), { status: 403, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+        }
+
+        // 2. 限流檢查
         const limiter = new RateLimiter(env);
         const check = await limiter.checkLimit(clientIP);
         
         if (!check.allowed) {
             return new Response(JSON.stringify({ 
                 error: { message: check.reason, type: 'rate_limit_exceeded' } 
-            }), { 
-                status: 429, 
-                headers: corsHeaders({ 'Content-Type': 'application/json' }) 
-            });
+            }), { status: 429, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
         }
     }
-    // ==========================================
+    // ===============================================
     
     let width = 1024, height = 1024;
     if (body.width) width = body.width;
@@ -668,7 +673,6 @@ async function handleInternalGenerate(request, env, ctx) {
   }
 }
 
-// ====== 新增：獨立頁面 UI (黃色主題) ======
 function handleNanoPage(request) {
   const html = `<!DOCTYPE html>
 <html lang="zh-TW">
@@ -748,13 +752,18 @@ select{width:100%;padding:12px;background:#333;border:1px solid #444;border-radi
         const [width, height] = document.getElementById('ratio').value.split(',').map(Number);
         try {
             const res = await fetch('/_internal/generate', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
+                method: 'POST', 
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Source': 'nano-page' // 識別證：標記來自 Nano 頁面
+                },
                 body: JSON.stringify({
                     prompt: prompt, model: 'nano-banana', width: width, height: height,
                     style: document.getElementById('style').value, nologo: true
                 })
             });
             if(res.status === 429) { const errData = await res.json(); throw new Error(errData.error.message); }
+            if(res.status === 403) { throw new Error('僅限 Nano 頁面使用此模型'); }
             if(!res.ok) throw new Error('生成失敗');
             const blob = await res.blob(); const url = URL.createObjectURL(blob);
             resultImg.src = url; resultImg.style.display = 'block';
@@ -862,9 +871,6 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
 <div class="section-title" data-t="settings_title">⚙️ 生成參數</div>
 <form id="generateForm">
 <div class="form-group"><label data-t="model_label">模型選擇</label><select id="model">
-<optgroup label="🍌 Special">
-<option value="nano-banana">Nano Banana (限時)</option>
-</optgroup>
 <optgroup label="🤖 GPT-Image Series">
 <option value="gptimage" selected>GPT-Image 🎨</option>
 <option value="gptimage-large">GPT-Image Large 🌟</option>
