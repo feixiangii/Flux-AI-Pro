@@ -1,12 +1,12 @@
 // =================================================================================
 //  項目: Flux AI Pro - NanoBanana Edition
-//  版本: 10.6.2 (Direct Pro Model Access)
-//  更新: 直接使用 nanobanana-pro 模型，移除 API 映射
+//  版本: 10.6.3 (Direct API Access)
+//  更新: 直連 nanobanana-pro 模型，無映射，每小時限額 5 張
 // =================================================================================
 
 const CONFIG = {
   PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "10.6.2",
+  PROJECT_VERSION: "10.6.3",
   API_MASTER_KEY: "1",
   FETCH_TIMEOUT: 120000,
   MAX_RETRIES: 3,
@@ -37,12 +37,12 @@ const CONFIG = {
       requires_key: true,
       enabled: true,
       default: true,
-      description: "官方 AI 圖像生成服務（需要 API Key）",
+      description: "官方 AI 圖像生成服務",
       features: {
         private_mode: true, custom_size: true, seed_control: true, negative_prompt: true, enhance: true, nologo: true, style_presets: true, auto_hd: true, quality_modes: true, auto_translate: true, reference_images: true, image_to_image: true, batch_generation: true, api_key_auth: true
       },
       models: [
-        // 🔥 核心模型設定: ID 為 nanobanana-pro
+        // 🔥 核心模型: nanobanana-pro (直連)
         { id: "nanobanana-pro", name: "Nano Banana Pro 🍌", confirmed: true, category: "special", description: "Nano Banana Pro 風格模型 (每小時限額 5 張)", max_size: 2048, pricing: { image_price: 0, currency: "free" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "gptimage", name: "GPT-Image 🎨", confirmed: true, category: "gptimage", description: "通用 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "gptimage-large", name: "GPT-Image Large 🌟", confirmed: true, category: "gptimage", description: "高質量 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
@@ -117,7 +117,6 @@ const CONFIG = {
   
   OPTIMIZATION_RULES: {
     MODEL_STEPS: { 
-      // 保持使用 nanobanana-pro
       "nanobanana-pro": { min: 15, optimal: 20, max: 30 },
       "gptimage": { min: 10, optimal: 18, max: 28 },
       "gptimage-large": { min: 15, optimal: 25, max: 35 },
@@ -157,7 +156,7 @@ class Logger {
   get() { return this.logs; }
 }
 
-// ====== RateLimiter: 負責 KV 限制邏輯 ======
+// ====== RateLimiter: 負責 KV 限制邏輯 (5次/小時) ======
 class RateLimiter {
   constructor(env) {
     this.env = env;
@@ -170,7 +169,6 @@ class RateLimiter {
     }
     const key = `nano_limit:${ip}`;
     const windowSize = 3600 * 1000; // 1小時 (毫秒)
-    // 限制數量為 5
     const maxRequests = 5; 
     try {
       const rawData = await this.KV.get(key);
@@ -361,9 +359,7 @@ class PollinationsProvider {
       qualityMode = 'standard', referenceImages = []
     } = options;
 
-    // 🔥🔥 修改：不再做任何映射，直接使用傳入的 model
-    // 之前: if (model === 'nanobanana-pro') apiModel = 'flux';
-    // 現在:
+    // 🔥 修改確認: 直連模式，不進行模型 ID 轉換
     let apiModel = model; 
     
     const modelConfig = this.config.models.find(m => m.id === model);
@@ -447,7 +443,7 @@ class PollinationsProvider {
     let baseUrl = this.config.endpoint + pathPrefix + "/" + encodedPrompt;
     
     const params = new URLSearchParams();
-    // 使用 apiModel (即 nanobanana-pro)
+    // 這裡直接使用 apiModel (即 nanobanana-pro)
     params.append('model', apiModel); 
     params.append('width', finalWidth.toString());
     params.append('height', finalHeight.toString());
@@ -954,7 +950,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     
     const now = new Date();
     const currentHourStr = now.toDateString() + '-' + now.getHours();
-    const stored = localStorage.getItem('nano_quota_hourly_v2'); // New key for 5 limit
+    const stored = localStorage.getItem('nano_quota_hourly_v2'); 
     
     if(stored) {
         const data = JSON.parse(stored);
