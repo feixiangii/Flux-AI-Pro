@@ -1,12 +1,13 @@
 // =================================================================================
-//  項目: Flux AI Pro - NanoBanana Edition
-//  版本: 10.3.0 (Final Complete Version)
-//  更新: 整合所有功能：獨立頁面、安全驗證、KV限流、頂部導航按鈕
+//  項目: Flux AI Pro - NanoBanana Pro Edition (方案 C - 完整版)
+//  版本: 11.0.0-nano-pro-c
+//  功能: 圖生圖 + 多圖融合 + 限額追蹤 + 參考強度控制 + 完整記錄
+//  更新: 2026-01-10
 // =================================================================================
 
 const CONFIG = {
-  PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "10.3.0",
+  PROJECT_NAME: "Flux-AI-Pro-NanoBanana-Pro",
+  PROJECT_VERSION: "11.0.0-nano-pro-c",
   API_MASTER_KEY: "1",
   FETCH_TIMEOUT: 120000,
   MAX_RETRIES: 3,
@@ -42,13 +43,89 @@ const CONFIG = {
         private_mode: true, custom_size: true, seed_control: true, negative_prompt: true, enhance: true, nologo: true, style_presets: true, auto_hd: true, quality_modes: true, auto_translate: true, reference_images: true, image_to_image: true, batch_generation: true, api_key_auth: true
       },
       models: [
-        { id: "nano-banana", name: "Nano Banana 🍌", confirmed: true, category: "special", description: "Nano Banana 風格模型 (每小時限額 20 張)", max_size: 2048, pricing: { image_price: 0, currency: "free" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "gptimage", name: "GPT-Image 🎨", confirmed: true, category: "gptimage", description: "通用 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "gptimage-large", name: "GPT-Image Large 🌟", confirmed: true, category: "gptimage", description: "高質量 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "zimage", name: "Z-Image Turbo ⚡", confirmed: true, category: "zimage", description: "快速 6B 參數圖像生成 (Alpha)", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "flux", name: "Flux 標準版", confirmed: true, category: "flux", description: "快速且高質量的圖像生成", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "turbo", name: "Flux Turbo ⚡", confirmed: true, category: "flux", description: "超快速圖像生成", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "kontext", name: "Kontext 🎨", confirmed: true, category: "kontext", description: "上下文感知圖像生成（支持圖生圖）", max_size: 2048, pricing: { image_price: 0.04, currency: "pollen" }, supports_reference_images: true, max_reference_images: 1, input_modalities: ["text", "image"], output_modalities: ["image"] }
+        { 
+          id: "nano-banana", 
+          name: "Nano Banana 🍌", 
+          confirmed: true, 
+          category: "special", 
+          description: "Nano Banana 風格模型 (每小時限額 20 張)", 
+          max_size: 2048, 
+          pricing: { image_price: 0, currency: "free" }, 
+          input_modalities: ["text", "image"], 
+          output_modalities: ["image"],
+          supports_reference_images: true,
+          max_reference_images: 3,
+          supports_image_to_image: true
+        },
+        { 
+          id: "gptimage", 
+          name: "GPT-Image 🎨", 
+          confirmed: true, 
+          category: "gptimage", 
+          description: "通用 GPT 圖像生成模型", 
+          max_size: 2048, 
+          pricing: { image_price: 0.0002, currency: "pollen" }, 
+          input_modalities: ["text"], 
+          output_modalities: ["image"] 
+        },
+        { 
+          id: "gptimage-large", 
+          name: "GPT-Image Large 🌟", 
+          confirmed: true, 
+          category: "gptimage", 
+          description: "高質量 GPT 圖像生成模型", 
+          max_size: 2048, 
+          pricing: { image_price: 0.0003, currency: "pollen" }, 
+          input_modalities: ["text"], 
+          output_modalities: ["image"] 
+        },
+        { 
+          id: "zimage", 
+          name: "Z-Image Turbo ⚡", 
+          confirmed: true, 
+          category: "zimage", 
+          description: "快速 6B 參數圖像生成 (Alpha)", 
+          max_size: 2048, 
+          pricing: { image_price: 0.0002, currency: "pollen" }, 
+          input_modalities: ["text"], 
+          output_modalities: ["image"] 
+        },
+        { 
+          id: "flux", 
+          name: "Flux 標準版", 
+          confirmed: true, 
+          category: "flux", 
+          description: "快速且高質量的圖像生成", 
+          max_size: 2048, 
+          pricing: { image_price: 0.00012, currency: "pollen" }, 
+          input_modalities: ["text"], 
+          output_modalities: ["image"] 
+        },
+        { 
+          id: "turbo", 
+          name: "Flux Turbo ⚡", 
+          confirmed: true, 
+          category: "flux", 
+          description: "超快速圖像生成", 
+          max_size: 2048, 
+          pricing: { image_price: 0.0003, currency: "pollen" }, 
+          input_modalities: ["text"], 
+          output_modalities: ["image"] 
+        },
+        { 
+          id: "kontext", 
+          name: "Kontext 🎨", 
+          confirmed: true, 
+          category: "kontext", 
+          description: "上下文感知圖像生成（支持圖生圖）", 
+          max_size: 2048, 
+          pricing: { image_price: 0.04, currency: "pollen" }, 
+          supports_reference_images: true, 
+          max_reference_images: 1, 
+          input_modalities: ["text", "image"], 
+          output_modalities: ["image"],
+          supports_image_to_image: true
+        }
       ],
       rate_limit: null,
       max_size: { width: 2048, height: 2048 }
@@ -124,8 +201,22 @@ const CONFIG = {
       "turbo": { min: 4, optimal: 8, max: 12 }, 
       "kontext": { min: 18, optimal: 25, max: 35 } 
     },
-    SIZE_MULTIPLIER: { small: { threshold: 512 * 512, multiplier: 0.8 }, medium: { threshold: 1024 * 1024, multiplier: 1.0 }, large: { threshold: 1536 * 1536, multiplier: 1.15 }, xlarge: { threshold: 2048 * 2048, multiplier: 1.3 } },
-    STYLE_ADJUSTMENT: { "photorealistic": 1.1, "oil-painting": 1.05, "watercolor": 0.95, "sketch": 0.9, "manga": 1.0, "pixel-art": 0.85, "3d-render": 1.15, "default": 1.0 }
+    SIZE_MULTIPLIER: { 
+      small: { threshold: 512 * 512, multiplier: 0.8 }, 
+      medium: { threshold: 1024 * 1024, multiplier: 1.0 }, 
+      large: { threshold: 1536 * 1536, multiplier: 1.15 }, 
+      xlarge: { threshold: 2048 * 2048, multiplier: 1.3 } 
+    },
+    STYLE_ADJUSTMENT: { 
+      "photorealistic": 1.1, 
+      "oil-painting": 1.05, 
+      "watercolor": 0.95, 
+      "sketch": 0.9, 
+      "manga": 1.0, 
+      "pixel-art": 0.85, 
+      "3d-render": 1.15, 
+      "default": 1.0 
+    }
   },
   
   HD_OPTIMIZATION: {
@@ -135,7 +226,11 @@ const CONFIG = {
       standard: { name: "標準模式", description: "平衡質量與速度", min_resolution: 1280, max_resolution: 2048, steps_multiplier: 1.0, guidance_multiplier: 1.0, hd_level: "enhanced" },
       ultra: { name: "超高清模式", description: "極致質量", min_resolution: 1536, max_resolution: 2048, steps_multiplier: 1.35, guidance_multiplier: 1.15, hd_level: "maximum", force_upscale: true }
     },
-    HD_PROMPTS: { basic: "high quality, detailed, sharp", enhanced: "high quality, highly detailed, sharp focus, professional, 8k uhd", maximum: "masterpiece, best quality, ultra detailed, 8k uhd, high resolution, professional photography, sharp focus, HDR" },
+    HD_PROMPTS: { 
+      basic: "high quality, detailed, sharp", 
+      enhanced: "high quality, highly detailed, sharp focus, professional, 8k uhd", 
+      maximum: "masterpiece, best quality, ultra detailed, 8k uhd, high resolution, professional photography, sharp focus, HDR" 
+    },
     HD_NEGATIVE: "blurry, low quality, distorted, ugly, bad anatomy, low resolution, pixelated, artifacts, noise",
     MODEL_QUALITY_PROFILES: {
       "nano-banana": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "standard" },
@@ -161,50 +256,88 @@ class RateLimiter {
     this.env = env;
     this.KV = env.FLUX_KV;
   }
+  
   async checkLimit(ip) {
     if (!this.KV) {
       console.warn("⚠️ FLUX_KV 未綁定，跳過限制");
-      return { allowed: true };
+      return { allowed: true, remaining: 20 };
     }
+    
     const key = `nano_limit:${ip}`;
     const windowSize = 3600 * 1000; // 1小時 (毫秒)
     const maxRequests = 20; // 限制數量
+    
     try {
       const rawData = await this.KV.get(key);
       let timestamps = rawData ? JSON.parse(rawData) : [];
       const now = Date.now();
+      
+      // 清除過期的時間戳
       timestamps = timestamps.filter(ts => now - ts < windowSize);
+      
       if (timestamps.length >= maxRequests) {
         const oldest = timestamps[0];
         const resetTime = oldest + windowSize;
         const waitMin = Math.ceil((resetTime - now) / 60000);
-        return { allowed: false, reason: `🍌 香蕉能量耗盡！限額已滿 (20張/小時)。請休息 ${waitMin} 分鐘後再來。`, remaining: 0 };
+        return { 
+          allowed: false, 
+          reason: `🍌 香蕉能量耗盡！限額已滿 (20張/小時)。請休息 ${waitMin} 分鐘後再來。`, 
+          remaining: 0,
+          resetTime: resetTime,
+          waitMinutes: waitMin
+        };
       }
+      
+      // 添加當前請求的時間戳
       timestamps.push(now);
       await this.KV.put(key, JSON.stringify(timestamps), { expirationTtl: 3600 });
-      return { allowed: true, remaining: maxRequests - timestamps.length };
+      
+      return { 
+        allowed: true, 
+        remaining: maxRequests - timestamps.length,
+        used: timestamps.length,
+        total: maxRequests
+      };
     } catch (err) {
       console.error("KV Error:", err);
-      return { allowed: true };
+      return { allowed: true, remaining: 20 };
     }
   }
 }
 
 function getClientIP(request) {
-  return request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  return request.headers.get('cf-connecting-ip') || 
+         request.headers.get('x-forwarded-for') || 
+         request.headers.get('x-real-ip') || 
+         'unknown';
 }
 
 async function translateToEnglish(text, env) {
   try {
     const hasChinese = /[\u4e00-\u9fa5\u3400-\u4db5\u20000-\u2a6d6]/.test(text);
     if (!hasChinese) return { text: text, translated: false, reason: "No Chinese detected" };
+    
     const url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=" + encodeURIComponent(text);
-    const response = await fetch(url, { method: 'GET', headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } });
+    const response = await fetch(url, { 
+      method: 'GET', 
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' 
+      } 
+    });
+    
     if (!response.ok) throw new Error(`Google API HTTP ${response.status}`);
+    
     const data = await response.json();
     let translatedText = "";
-    if (data && data[0] && Array.isArray(data[0])) { data[0].forEach(segment => { if (segment && segment[0]) translatedText += segment[0]; }); }
+    
+    if (data && data[0] && Array.isArray(data[0])) { 
+      data[0].forEach(segment => { 
+        if (segment && segment[0]) translatedText += segment[0]; 
+      }); 
+    }
+    
     if (!translatedText) throw new Error("Empty translation result");
+    
     console.log(`✅ [Google GTX] Translated: "${text.substring(0,10)}..." -> "${translatedText.substring(0,10)}..."`);
     return { text: translatedText.trim(), translated: true, original: text, model: "google-gtx-free" };
   } catch (error) {
@@ -218,15 +351,22 @@ class PromptAnalyzer {
     const complexKeywords = ['detailed', 'intricate', 'complex', 'elaborate', 'realistic', 'photorealistic', 'hyperrealistic', 'architecture', 'cityscape', 'landscape', 'portrait', 'face', 'eyes', 'hair', 'texture', 'material', 'fabric', 'skin', 'lighting', 'shadows', 'reflections', 'fine details', 'high detail', 'ultra detailed', '4k', '8k', 'uhd', 'hdr'];
     let score = 0;
     const lowerPrompt = prompt.toLowerCase();
-    complexKeywords.forEach(keyword => { if (lowerPrompt.includes(keyword)) score += 0.1; });
+    
+    complexKeywords.forEach(keyword => { 
+      if (lowerPrompt.includes(keyword)) score += 0.1; 
+    });
+    
     if (prompt.length > 100) score += 0.2;
     if (prompt.length > 200) score += 0.3;
     if (prompt.split(',').length > 5) score += 0.15;
+    
     return Math.min(score, 1.0);
   }
+  
   static recommendQualityMode(prompt, model) {
     const complexity = this.analyzeComplexity(prompt);
     const profile = CONFIG.HD_OPTIMIZATION.MODEL_QUALITY_PROFILES[model];
+    
     if (profile?.recommended_quality) return profile.recommended_quality;
     if (complexity > 0.7) return 'ultra';
     if (complexity > 0.4) return 'standard';
@@ -237,21 +377,35 @@ class PromptAnalyzer {
 class HDOptimizer {
   static optimize(prompt, negativePrompt, model, width, height, qualityMode = 'standard', autoHD = true) {
     if (!autoHD || !CONFIG.HD_OPTIMIZATION.enabled) return { prompt, negativePrompt, width, height, optimized: false };
+    
     const hdConfig = CONFIG.HD_OPTIMIZATION;
     const modeConfig = hdConfig.QUALITY_MODES[qualityMode] || hdConfig.QUALITY_MODES.standard;
     const profile = hdConfig.MODEL_QUALITY_PROFILES[model];
     const optimizations = [];
     const hdLevel = modeConfig.hd_level;
+    
+    // 增強提示詞
     let enhancedPrompt = prompt;
-    if (hdConfig.HD_PROMPTS[hdLevel]) { enhancedPrompt = prompt + ", " + hdConfig.HD_PROMPTS[hdLevel]; optimizations.push("HD增強: " + hdLevel); }
+    if (hdConfig.HD_PROMPTS[hdLevel]) { 
+      enhancedPrompt = prompt + ", " + hdConfig.HD_PROMPTS[hdLevel]; 
+      optimizations.push("HD增強: " + hdLevel); 
+    }
+    
+    // 增強負面提示詞
     let enhancedNegative = negativePrompt || "";
-    if (qualityMode !== 'economy') { enhancedNegative = enhancedNegative ? enhancedNegative + ", " + hdConfig.HD_NEGATIVE : hdConfig.HD_NEGATIVE; optimizations.push("負面提示詞: 高清過濾"); }
+    if (qualityMode !== 'economy') { 
+      enhancedNegative = enhancedNegative ? enhancedNegative + ", " + hdConfig.HD_NEGATIVE : hdConfig.HD_NEGATIVE; 
+      optimizations.push("負面提示詞: 高清過濾"); 
+    }
+    
+    // 尺寸優化
     let finalWidth = width;
     let finalHeight = height;
     let sizeUpscaled = false;
     const maxModelRes = profile?.max_resolution || 2048;
     const minRes = Math.max(modeConfig.min_resolution, profile?.min_resolution || 1024);
     const currentRes = Math.min(width, height);
+    
     if (currentRes < minRes || modeConfig.force_upscale) {
       const scale = minRes / currentRes;
       finalWidth = Math.min(Math.round(width * scale / 64) * 64, maxModelRes);
@@ -259,55 +413,112 @@ class HDOptimizer {
       sizeUpscaled = true;
       optimizations.push("尺寸優化: " + width + "x" + height + " → " + finalWidth + "x" + finalHeight);
     }
+    
     if (finalWidth > maxModelRes || finalHeight > maxModelRes) {
       const scale = maxModelRes / Math.max(finalWidth, finalHeight);
       finalWidth = Math.round(finalWidth * scale / 64) * 64;
       finalHeight = Math.round(finalHeight * scale / 64) * 64;
       optimizations.push("模型限制: 調整至 " + finalWidth + "x" + finalHeight);
     }
-    return { prompt: enhancedPrompt, negativePrompt: enhancedNegative, width: finalWidth, height: finalHeight, optimized: true, quality_mode: qualityMode, hd_level: hdLevel, optimizations, size_upscaled: sizeUpscaled };
+    
+    return { 
+      prompt: enhancedPrompt, 
+      negativePrompt: enhancedNegative, 
+      width: finalWidth, 
+      height: finalHeight, 
+      optimized: true, 
+      quality_mode: qualityMode, 
+      hd_level: hdLevel, 
+      optimizations, 
+      size_upscaled: sizeUpscaled 
+    };
   }
 }
 
 class ParameterOptimizer {
   static optimizeSteps(model, width, height, style = 'none', qualityMode = 'standard', userSteps = null) {
-    if (userSteps !== null && userSteps !== -1) { const suggestion = this.calculateOptimalSteps(model, width, height, style, qualityMode); return { steps: userSteps, optimized: false, suggested: suggestion.steps, reasoning: suggestion.reasoning, user_override: true }; }
+    if (userSteps !== null && userSteps !== -1) { 
+      const suggestion = this.calculateOptimalSteps(model, width, height, style, qualityMode); 
+      return { 
+        steps: userSteps, 
+        optimized: false, 
+        suggested: suggestion.steps, 
+        reasoning: suggestion.reasoning, 
+        user_override: true 
+      }; 
+    }
     return this.calculateOptimalSteps(model, width, height, style, qualityMode);
   }
+  
   static calculateOptimalSteps(model, width, height, style, qualityMode = 'standard') {
     const rules = CONFIG.OPTIMIZATION_RULES;
     const modelRule = rules.MODEL_STEPS[model] || rules.MODEL_STEPS["flux"];
     const modeConfig = CONFIG.HD_OPTIMIZATION.QUALITY_MODES[qualityMode];
     const profile = CONFIG.HD_OPTIMIZATION.MODEL_QUALITY_PROFILES[model];
+    
     let baseSteps = modelRule.optimal;
     const reasoning = [model + ": " + baseSteps + "步"];
+    
     const totalPixels = width * height;
     let sizeMultiplier = 1.0;
-    if (totalPixels >= rules.SIZE_MULTIPLIER.xlarge.threshold) { sizeMultiplier = rules.SIZE_MULTIPLIER.xlarge.multiplier; reasoning.push("超大 x" + sizeMultiplier); }
-    else if (totalPixels >= rules.SIZE_MULTIPLIER.large.threshold) { sizeMultiplier = rules.SIZE_MULTIPLIER.large.multiplier; reasoning.push("大尺寸 x" + sizeMultiplier); }
-    else if (totalPixels <= rules.SIZE_MULTIPLIER.small.threshold) { sizeMultiplier = rules.SIZE_MULTIPLIER.small.multiplier; }
-    else { sizeMultiplier = rules.SIZE_MULTIPLIER.medium.multiplier; }
+    
+    if (totalPixels >= rules.SIZE_MULTIPLIER.xlarge.threshold) { 
+      sizeMultiplier = rules.SIZE_MULTIPLIER.xlarge.multiplier; 
+      reasoning.push("超大 x" + sizeMultiplier); 
+    }
+    else if (totalPixels >= rules.SIZE_MULTIPLIER.large.threshold) { 
+      sizeMultiplier = rules.SIZE_MULTIPLIER.large.multiplier; 
+      reasoning.push("大尺寸 x" + sizeMultiplier); 
+    }
+    else if (totalPixels <= rules.SIZE_MULTIPLIER.small.threshold) { 
+      sizeMultiplier = rules.SIZE_MULTIPLIER.small.multiplier; 
+    }
+    else { 
+      sizeMultiplier = rules.SIZE_MULTIPLIER.medium.multiplier; 
+    }
+    
     let styleMultiplier = rules.STYLE_ADJUSTMENT[style] || rules.STYLE_ADJUSTMENT.default;
     let qualityMultiplier = modeConfig?.steps_multiplier || 1.0;
+    
     if (qualityMultiplier !== 1.0) reasoning.push(modeConfig.name + " x" + qualityMultiplier);
+    
     let profileBoost = profile?.optimal_steps_boost || 1.0;
     if (profileBoost !== 1.0) reasoning.push("模型配置 x" + profileBoost);
+    
     let optimizedSteps = Math.round(baseSteps * sizeMultiplier * styleMultiplier * qualityMultiplier * profileBoost);
     optimizedSteps = Math.max(modelRule.min, Math.min(optimizedSteps, modelRule.max));
+    
     reasoning.push("→ " + optimizedSteps + "步");
-    return { steps: optimizedSteps, optimized: true, base_steps: baseSteps, size_multiplier: sizeMultiplier, style_multiplier: styleMultiplier, quality_multiplier: qualityMultiplier, profile_boost: profileBoost, min_steps: modelRule.min, max_steps: modelRule.max, reasoning: reasoning.join(' ') };
+    
+    return { 
+      steps: optimizedSteps, 
+      optimized: true, 
+      base_steps: baseSteps, 
+      size_multiplier: sizeMultiplier, 
+      style_multiplier: styleMultiplier, 
+      quality_multiplier: qualityMultiplier, 
+      profile_boost: profileBoost, 
+      min_steps: modelRule.min, 
+      max_steps: modelRule.max, 
+      reasoning: reasoning.join(' ') 
+    };
   }
+  
   static optimizeGuidance(model, style, qualityMode = 'standard') {
     const modeConfig = CONFIG.HD_OPTIMIZATION.QUALITY_MODES[qualityMode];
     const profile = CONFIG.HD_OPTIMIZATION.MODEL_QUALITY_PROFILES[model];
+    
     let baseGuidance = 7.5;
+    
     if (model.includes('turbo')) baseGuidance = style === 'photorealistic' ? 3.0 : 2.5;
     else if (style === 'photorealistic') baseGuidance = 8.5;
     else if (['oil-painting', 'watercolor', 'sketch'].includes(style)) baseGuidance = 6.5;
     else if (['manga', 'anime', 'chibi'].includes(style)) baseGuidance = 7.0;
     else if (['pixel-art', 'low-poly'].includes(style)) baseGuidance = 6.0;
+    
     let qualityBoost = modeConfig?.guidance_multiplier || 1.0;
     let profileBoost = profile?.guidance_boost || 1.0;
+    
     return Math.round(baseGuidance * qualityBoost * profileBoost * 10) / 10;
   }
 }
@@ -317,17 +528,24 @@ class StyleProcessor {
     try {
       if (!style || style === 'none' || style === '') return { enhancedPrompt: prompt, enhancedNegative: negativePrompt || "" };
       if (!CONFIG.STYLE_PRESETS || typeof CONFIG.STYLE_PRESETS !== 'object') return { enhancedPrompt: prompt, enhancedNegative: negativePrompt || "" };
+      
       const styleConfig = CONFIG.STYLE_PRESETS[style];
       if (!styleConfig) return { enhancedPrompt: prompt, enhancedNegative: negativePrompt || "" };
+      
       let enhancedPrompt = prompt;
       if (styleConfig.prompt && styleConfig.prompt.trim()) enhancedPrompt = prompt + ", " + styleConfig.prompt;
+      
       let enhancedNegative = negativePrompt || "";
       if (styleConfig.negative && styleConfig.negative.trim()) {
         if (enhancedNegative && enhancedNegative.trim()) enhancedNegative = enhancedNegative + ", " + styleConfig.negative;
         else enhancedNegative = styleConfig.negative;
       }
+      
       return { enhancedPrompt: enhancedPrompt, enhancedNegative: enhancedNegative };
-    } catch (error) { console.error("❌ StyleProcessor error:", error.message); return { enhancedPrompt: prompt, enhancedNegative: negativePrompt || "" }; }
+    } catch (error) { 
+      console.error("❌ StyleProcessor error:", error.message); 
+      return { enhancedPrompt: prompt, enhancedNegative: negativePrompt || "" }; 
+    }
   }
 }
 
@@ -346,33 +564,80 @@ async function fetchWithTimeout(url, options = {}, timeout = CONFIG.FETCH_TIMEOU
 }
 
 function corsHeaders(additionalHeaders = {}) {
-  return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Source', 'Access-Control-Max-Age': '86400', ...additionalHeaders };
+  return { 
+    'Access-Control-Allow-Origin': '*', 
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Source', 
+    'Access-Control-Max-Age': '86400', 
+    ...additionalHeaders 
+  };
 }
+
 class PollinationsProvider {
-  constructor(config, env) { this.config = config; this.name = config.name; this.env = env; }
+  constructor(config, env) { 
+    this.config = config; 
+    this.name = config.name; 
+    this.env = env; 
+  }
   
   async generate(prompt, options, logger) {
     const { 
-      model = "zimage", width = 1024, height = 1024, seed = -1, negativePrompt = "", guidance = null, steps = null, 
-      enhance = false, nologo = true, privateMode = true, style = "none", autoOptimize = true, autoHD = true, 
-      qualityMode = 'standard', referenceImages = []
+      model = "zimage", 
+      width = 1024, 
+      height = 1024, 
+      seed = -1, 
+      negativePrompt = "", 
+      guidance = null, 
+      steps = null, 
+      enhance = false, 
+      nologo = true, 
+      privateMode = true, 
+      style = "none", 
+      autoOptimize = true, 
+      autoHD = true, 
+      qualityMode = 'standard', 
+      referenceImages = [],
+      imageToImageMode = false,
+      referenceStrength = 0.7
     } = options;
     
     const modelConfig = this.config.models.find(m => m.id === model);
     const supportsRefImages = modelConfig?.supports_reference_images || false;
     const maxRefImages = modelConfig?.max_reference_images || 0;
+    const supportsI2I = modelConfig?.supports_image_to_image || false;
     
     let validReferenceImages = [];
     if (referenceImages && referenceImages.length > 0) {
       if (!supportsRefImages) {
-        logger.add("⚠️ Reference Images", { warning: model + " 不支持參考圖像，已忽略", supported_models: ["kontext"] });
+        logger.add("⚠️ Reference Images", { 
+          warning: model + " 不支持參考圖像，已忽略", 
+          supported_models: ["nano-banana", "kontext"] 
+        });
       } else if (referenceImages.length > maxRefImages) {
-        logger.add("⚠️ Reference Images", { warning: model + " 最多支持 " + maxRefImages + " 張參考圖", provided: referenceImages.length, using: maxRefImages });
+        logger.add("⚠️ Reference Images", { 
+          warning: model + " 最多支持 " + maxRefImages + " 張參考圖", 
+          provided: referenceImages.length, 
+          using: maxRefImages 
+        });
         validReferenceImages = referenceImages.slice(0, maxRefImages);
       } else {
         validReferenceImages = referenceImages;
-        logger.add("🖼️ Reference Images", { model: model, count: validReferenceImages.length, max_allowed: maxRefImages, mode: "圖生圖" });
+        logger.add("🖼️ Reference Images", { 
+          model: model, 
+          count: validReferenceImages.length, 
+          max_allowed: maxRefImages, 
+          mode: imageToImageMode ? "圖生圖" : "多圖融合" 
+        });
       }
+    }
+    
+    // 圖生圖模式驗證
+    if (imageToImageMode && !supportsI2I) {
+      logger.add("⚠️ Image-to-Image Not Supported", { 
+        model: model, 
+        message: "該模型不支持圖生圖，改用文生圖模式" 
+      });
+      imageToImageMode = false;
     }
     
     let basePrompt = prompt;
@@ -392,7 +657,13 @@ class PollinationsProvider {
 
     const promptComplexity = PromptAnalyzer.analyzeComplexity(basePrompt);
     const recommendedQuality = PromptAnalyzer.recommendQualityMode(basePrompt, model);
-    logger.add("🧠 Prompt Analysis", { complexity: (promptComplexity * 100).toFixed(1) + '%', recommended_quality: recommendedQuality, selected_quality: qualityMode, has_reference_images: validReferenceImages.length > 0 });
+    logger.add("🧠 Prompt Analysis", { 
+      complexity: (promptComplexity * 100).toFixed(1) + '%', 
+      recommended_quality: recommendedQuality, 
+      selected_quality: qualityMode, 
+      has_reference_images: validReferenceImages.length > 0,
+      image_to_image_mode: imageToImageMode
+    });
     
     let hdOptimization = null;
     let optimizedPrompt = basePrompt;
@@ -407,7 +678,14 @@ class PollinationsProvider {
       finalWidth = hdOptimization.width;
       finalHeight = hdOptimization.height;
       if (hdOptimization.optimized) {
-        logger.add("🎨 HD Optimization", { mode: qualityMode, hd_level: hdOptimization.hd_level, original: width + "x" + height, optimized: finalWidth + "x" + finalHeight, upscaled: hdOptimization.size_upscaled, details: hdOptimization.optimizations });
+        logger.add("🎨 HD Optimization", { 
+          mode: qualityMode, 
+          hd_level: hdOptimization.hd_level, 
+          original: width + "x" + height, 
+          optimized: finalWidth + "x" + finalHeight, 
+          upscaled: hdOptimization.size_upscaled, 
+          details: hdOptimization.optimizations 
+        });
       }
     }
     
@@ -417,7 +695,10 @@ class PollinationsProvider {
     if (autoOptimize) {
       const stepsOptimization = ParameterOptimizer.optimizeSteps(model, finalWidth, finalHeight, style, qualityMode, steps);
       finalSteps = stepsOptimization.steps;
-      logger.add("🎯 Steps Optimization", { steps: stepsOptimization.steps, reasoning: stepsOptimization.reasoning });
+      logger.add("🎯 Steps Optimization", { 
+        steps: stepsOptimization.steps, 
+        reasoning: stepsOptimization.reasoning 
+      });
       if (guidance === null) finalGuidance = ParameterOptimizer.optimizeGuidance(model, style, qualityMode);
       else finalGuidance = guidance;
     } else {
@@ -428,7 +709,13 @@ class PollinationsProvider {
     const { enhancedPrompt, enhancedNegative } = StyleProcessor.applyStyle(optimizedPrompt, style, finalNegative);
     const finalFullPrompt = enhancedPrompt;
 
-    logger.add("🎨 Style Processing", { selected_style: style, style_name: CONFIG.STYLE_PRESETS[style]?.name || style, style_applied: style !== 'none', original_prompt_length: optimizedPrompt.length, enhanced_prompt_length: enhancedPrompt.length });
+    logger.add("🎨 Style Processing", { 
+      selected_style: style, 
+      style_name: CONFIG.STYLE_PRESETS[style]?.name || style, 
+      style_applied: style !== 'none', 
+      original_prompt_length: optimizedPrompt.length, 
+      enhanced_prompt_length: enhancedPrompt.length 
+    });
     
     const currentSeed = seed === -1 ? Math.floor(Math.random() * 1000000) : seed;
     let fullPrompt = finalFullPrompt;
@@ -446,24 +733,64 @@ class PollinationsProvider {
     params.append('nologo', nologo.toString());
     params.append('enhance', enhance.toString());
     params.append('private', privateMode.toString());
+    
+    // 參考圖像處理
     if (validReferenceImages && validReferenceImages.length > 0) {
-      params.append('image', validReferenceImages.join(','));
-      logger.add("🖼️ Reference Images Added", { count: validReferenceImages.length, urls: validReferenceImages });
+      if (imageToImageMode) {
+        // 圖生圖：只用第一張，添加 strength
+        params.append('image', validReferenceImages[0]);
+        params.append('strength', referenceStrength.toString());
+        logger.add("🖼️ Image-to-Image Parameters", { 
+          image: validReferenceImages[0].substring(0, 50) + "...", 
+          strength: referenceStrength 
+        });
+      } else {
+        // 多圖融合：用所有圖
+        params.append('image', validReferenceImages.join(','));
+        logger.add("🔀 Reference Fusion Parameters", { 
+          count: validReferenceImages.length, 
+          urls: validReferenceImages 
+        });
+      }
     }
+    
     if (finalGuidance !== 7.5) params.append('guidance', finalGuidance.toString());
     if (finalSteps !== 20) params.append('steps', finalSteps.toString());
     
-    const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'image/*', 'Referer': 'https://pollinations.ai/' };
+    const headers = { 
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 
+      'Accept': 'image/*', 
+      'Referer': 'https://pollinations.ai/' 
+    };
+    
     const authConfig = CONFIG.POLLINATIONS_AUTH;
     if (authConfig.enabled && authConfig.token) {
       headers['Authorization'] = `Bearer ${authConfig.token}`;
-      logger.add("🔐 API Authentication", { method: "Bearer Token", token_prefix: authConfig.token.substring(0, 8) + "...", enabled: true, endpoint: this.config.endpoint });
+      logger.add("🔐 API Authentication", { 
+        method: "Bearer Token", 
+        token_prefix: authConfig.token.substring(0, 8) + "...", 
+        enabled: true, 
+        endpoint: this.config.endpoint 
+      });
     } else {
-      logger.add("⚠️ No API Key", { authenticated: false, note: "新 API 端點需要 API Key，請設置 POLLINATIONS_API_KEY 環境變量", endpoint: this.config.endpoint, warning: "未認證的請求可能會失敗" });
+      logger.add("⚠️ No API Key", { 
+        authenticated: false, 
+        note: "新 API 端點需要 API Key，請設置 POLLINATIONS_API_KEY 環境變量", 
+        endpoint: this.config.endpoint, 
+        warning: "未認證的請求可能會失敗" 
+      });
     }
     
     const url = baseUrl + '?' + params.toString();
-    logger.add("📡 API Request", { endpoint: this.config.endpoint, path: pathPrefix + "/" + encodedPrompt.substring(0, 50) + "...", model: model, authenticated: authConfig.enabled && !!authConfig.token, full_url: url.substring(0, 100) + "..." });
+    logger.add("📡 API Request", { 
+      endpoint: this.config.endpoint, 
+      path: pathPrefix + "/" + encodedPrompt.substring(0, 50) + "...", 
+      model: model, 
+      authenticated: authConfig.enabled && !!authConfig.token, 
+      generation_mode: imageToImageMode ? "圖生圖" : (validReferenceImages.length > 0 ? "多圖融合" : "文生圖"),
+      reference_images_count: validReferenceImages.length,
+      full_url: url.substring(0, 100) + "..." 
+    });
     
     for (let retry = 0; retry < CONFIG.MAX_RETRIES; retry++) {
       try {
@@ -471,20 +798,77 @@ class PollinationsProvider {
         if (response.ok) {
           const contentType = response.headers.get('content-type');
           if (contentType && contentType.startsWith('image/')) {
-            logger.add("✅ Success", { url: response.url, used_model: model, final_size: finalWidth + "x" + finalHeight, quality_mode: qualityMode, style_used: style, style_name: CONFIG.STYLE_PRESETS[style]?.name || style, hd_optimized: autoHD && hdOptimization?.optimized, auto_translated: translationLog.translated, reference_images_used: validReferenceImages.length, generation_mode: validReferenceImages.length > 0 ? "圖生圖" : "文生圖", authenticated: authConfig.enabled && !!authConfig.token, seed: currentSeed });
+            logger.add("✅ Success", { 
+              url: response.url, 
+              used_model: model, 
+              final_size: finalWidth + "x" + finalHeight, 
+              quality_mode: qualityMode, 
+              style_used: style, 
+              style_name: CONFIG.STYLE_PRESETS[style]?.name || style, 
+              hd_optimized: autoHD && hdOptimization?.optimized, 
+              auto_translated: translationLog.translated, 
+              reference_images_used: validReferenceImages.length, 
+              generation_mode: imageToImageMode ? "圖生圖" : (validReferenceImages.length > 0 ? "多圖融合" : "文生圖"),
+              reference_strength: imageToImageMode ? referenceStrength : null,
+              authenticated: authConfig.enabled && !!authConfig.token, 
+              seed: currentSeed 
+            });
+            
             const imageBlob = await response.blob();
             const imageBuffer = await imageBlob.arrayBuffer();
-            return { imageData: imageBuffer, contentType: contentType, url: response.url, provider: this.name, model: model, requested_model: model, seed: currentSeed, style: style, style_name: CONFIG.STYLE_PRESETS[style]?.name || style, style_category: CONFIG.STYLE_PRESETS[style]?.category || 'unknown', steps: finalSteps, guidance: finalGuidance, width: finalWidth, height: finalHeight, quality_mode: qualityMode, prompt_complexity: promptComplexity, hd_optimized: autoHD && hdOptimization?.optimized, hd_details: hdOptimization, auto_translated: translationLog.translated, reference_images: validReferenceImages, reference_images_count: validReferenceImages.length, generation_mode: validReferenceImages.length > 0 ? "圖生圖" : "文生圖", authenticated: authConfig.enabled && !!authConfig.token, cost: "FREE", auto_optimized: autoOptimize };
-          } else { throw new Error("Invalid content type: " + contentType); }
-        } else if (response.status === 401) { throw new Error("Authentication failed: Invalid or missing API key. Please set POLLINATIONS_API_KEY"); } 
-        else if (response.status === 403) { throw new Error("Access forbidden: API key may lack required permissions"); } 
-        else { throw new Error("HTTP " + response.status + ": " + (await response.text()).substring(0, 200)); }
+            return { 
+              imageData: imageBuffer, 
+              contentType: contentType, 
+              url: response.url, 
+              provider: this.name, 
+              model: model, 
+              requested_model: model, 
+              seed: currentSeed, 
+              style: style, 
+              style_name: CONFIG.STYLE_PRESETS[style]?.name || style, 
+              style_category: CONFIG.STYLE_PRESETS[style]?.category || 'unknown', 
+              steps: finalSteps, 
+              guidance: finalGuidance, 
+              width: finalWidth, 
+              height: finalHeight, 
+              quality_mode: qualityMode, 
+              prompt_complexity: promptComplexity, 
+              hd_optimized: autoHD && hdOptimization?.optimized, 
+              hd_details: hdOptimization, 
+              auto_translated: translationLog.translated,
+              reference_images: validReferenceImages, 
+              reference_images_count: validReferenceImages.length,
+              reference_strength: imageToImageMode ? referenceStrength : null,
+              generation_mode: imageToImageMode ? "圖生圖" : (validReferenceImages.length > 0 ? "多圖融合" : "文生圖"), 
+              authenticated: authConfig.enabled && !!authConfig.token, 
+              cost: "FREE", 
+              auto_optimized: autoOptimize 
+            };
+          } else { 
+            throw new Error("Invalid content type: " + contentType); 
+          }
+        } else if (response.status === 401) { 
+          throw new Error("Authentication failed: Invalid or missing API key. Please set POLLINATIONS_API_KEY"); 
+        } 
+        else if (response.status === 403) { 
+          throw new Error("Access forbidden: API key may lack required permissions"); 
+        } 
+        else { 
+          throw new Error("HTTP " + response.status + ": " + (await response.text()).substring(0, 200)); 
+        }
       } catch (e) {
-        logger.add("❌ Request Failed", { error: e.message, model: model, retry: retry + 1, max_retries: CONFIG.MAX_RETRIES, endpoint: this.config.endpoint });
+        logger.add("❌ Request Failed", { 
+          error: e.message, 
+          model: model, 
+          retry: retry + 1, 
+          max_retries: CONFIG.MAX_RETRIES, 
+          endpoint: this.config.endpoint 
+        });
         if (retry < CONFIG.MAX_RETRIES - 1) await new Promise(resolve => setTimeout(resolve, 1000 * (retry + 1)));
         else throw new Error("Generation failed: " + e.message);
       }
     }
+    
     throw new Error("Model " + model + " failed after " + CONFIG.MAX_RETRIES + " retries");
   }
 }
@@ -500,6 +884,7 @@ class MultiProviderRouter {
       }
     }
   }
+  
   getProvider(providerName = null) {
     if (providerName && this.providers[providerName]) return { name: providerName, instance: this.providers[providerName] };
     const defaultName = CONFIG.DEFAULT_PROVIDER;
@@ -508,6 +893,7 @@ class MultiProviderRouter {
     if (firstProvider) return { name: firstProvider, instance: this.providers[firstProvider] };
     throw new Error('No available provider');
   }
+  
   async generate(prompt, options, logger) {
     const { provider: requestedProvider = null, numOutputs = 1 } = options;
     const { name: providerName, instance: provider } = this.getProvider(requestedProvider);
@@ -526,8 +912,16 @@ export default {
     const url = new URL(request.url);
     const startTime = Date.now();
     const clientIP = getClientIP(request);
-    if (env.POLLINATIONS_API_KEY) { CONFIG.POLLINATIONS_AUTH.enabled = true; CONFIG.POLLINATIONS_AUTH.token = env.POLLINATIONS_API_KEY; } 
-    else { console.warn("⚠️ POLLINATIONS_API_KEY not set - requests may fail on new API endpoint"); CONFIG.POLLINATIONS_AUTH.enabled = false; CONFIG.POLLINATIONS_AUTH.token = ""; }
+    
+    if (env.POLLINATIONS_API_KEY) { 
+      CONFIG.POLLINATIONS_AUTH.enabled = true; 
+      CONFIG.POLLINATIONS_AUTH.token = env.POLLINATIONS_API_KEY; 
+    } 
+    else { 
+      console.warn("⚠️ POLLINATIONS_API_KEY not set - requests may fail on new API endpoint"); 
+      CONFIG.POLLINATIONS_AUTH.enabled = false; 
+      CONFIG.POLLINATIONS_AUTH.token = ""; 
+    }
     
     console.log("=== Request Info ===");
     console.log("IP:", clientIP);
@@ -551,15 +945,38 @@ export default {
       } 
       else if (url.pathname === '/health') {
         response = new Response(JSON.stringify({
-          status: 'ok', version: CONFIG.PROJECT_VERSION, timestamp: new Date().toISOString(),
+          status: 'ok', 
+          version: CONFIG.PROJECT_VERSION, 
+          timestamp: new Date().toISOString(),
           styles_count: Object.keys(CONFIG.STYLE_PRESETS).length,
-          api_auth: { enabled: CONFIG.POLLINATIONS_AUTH.enabled, method: CONFIG.POLLINATIONS_AUTH.method, has_token: !!CONFIG.POLLINATIONS_AUTH.token, endpoint: CONFIG.PROVIDERS.pollinations.endpoint },
-          models: CONFIG.PROVIDERS.pollinations.models.map(m => ({ id: m.id, name: m.name, category: m.category, supports_reference_images: m.supports_reference_images || false })),
-          style_categories: Object.keys(CONFIG.STYLE_CATEGORIES).map(key => ({ id: key, name: CONFIG.STYLE_CATEGORIES[key].name, icon: CONFIG.STYLE_CATEGORIES[key].icon, count: Object.values(CONFIG.STYLE_PRESETS).filter(s => s.category === key).length }))
+          api_auth: { 
+            enabled: CONFIG.POLLINATIONS_AUTH.enabled, 
+            method: CONFIG.POLLINATIONS_AUTH.method, 
+            has_token: !!CONFIG.POLLINATIONS_AUTH.token, 
+            endpoint: CONFIG.PROVIDERS.pollinations.endpoint 
+          },
+          models: CONFIG.PROVIDERS.pollinations.models.map(m => ({ 
+            id: m.id, 
+            name: m.name, 
+            category: m.category, 
+            supports_reference_images: m.supports_reference_images || false,
+            supports_image_to_image: m.supports_image_to_image || false
+          })),
+          style_categories: Object.keys(CONFIG.STYLE_CATEGORIES).map(key => ({ 
+            id: key, 
+            name: CONFIG.STYLE_CATEGORIES[key].name, 
+            icon: CONFIG.STYLE_CATEGORIES[key].icon, 
+            count: Object.values(CONFIG.STYLE_PRESETS).filter(s => s.category === key).length 
+          }))
         }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       } else {
-        response = new Response(JSON.stringify({ error: 'Not Found', message: '此 Worker 僅提供 Web UI 界面', available_paths: ['/', '/health', '/_internal/generate', '/nano'] }), { status: 404, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+        response = new Response(JSON.stringify({ 
+          error: 'Not Found', 
+          message: '此 Worker 僅提供 Web UI 界面', 
+          available_paths: ['/', '/health', '/_internal/generate', '/nano'] 
+        }), { status: 404, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       }
+      
       const duration = Date.now() - startTime;
       const headers = new Headers(response.headers);
       headers.set('X-Response-Time', duration + 'ms');
@@ -569,7 +986,14 @@ export default {
     } catch (error) {
       const duration = Date.now() - startTime;
       console.error('Worker error:', error);
-      return new Response(JSON.stringify({ error: { message: error.message, type: 'worker_error', timestamp: new Date().toISOString(), duration_ms: duration } }), { status: 500, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+      return new Response(JSON.stringify({ 
+        error: { 
+          message: error.message, 
+          type: 'worker_error', 
+          timestamp: new Date().toISOString(), 
+          duration_ms: duration 
+        } 
+      }), { status: 500, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
     }
   }
 };
@@ -594,15 +1018,31 @@ async function handleInternalGenerate(request, env, ctx) {
             }), { status: 403, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
         }
 
-        // 2. 限流檢查
+        // 2. 限流檢查 - 詳細返回信息
         const limiter = new RateLimiter(env);
         const check = await limiter.checkLimit(clientIP);
         
         if (!check.allowed) {
             return new Response(JSON.stringify({ 
-                error: { message: check.reason, type: 'rate_limit_exceeded' } 
+                error: { 
+                    message: check.reason, 
+                    type: 'rate_limit_exceeded',
+                    remaining: check.remaining,
+                    used: check.used,
+                    total: check.total,
+                    reset_in_minutes: check.waitMinutes
+                } 
             }), { status: 429, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
         }
+
+        // 3. 成功，回傳剩餘額度
+        logger.add("🍌 Rate Limit Status", { 
+            remaining: check.remaining, 
+            used: check.used,
+            max: check.total, 
+            ip: clientIP,
+            window: "1小時"
+        });
     }
     // ===============================================
     
@@ -610,9 +1050,33 @@ async function handleInternalGenerate(request, env, ctx) {
     if (body.width) width = body.width;
     if (body.height) height = body.height;
     
+    // ====== 參考圖像處理（支持多張，最多 3 張）======
     let referenceImages = [];
     if (body.reference_images && Array.isArray(body.reference_images)) {
-      referenceImages = body.reference_images.filter(url => { try { new URL(url); return true; } catch { return false; } });
+      referenceImages = body.reference_images.filter(url => { 
+        try { new URL(url); return true; } 
+        catch { return false; } 
+      }).slice(0, 3); // 限制最多 3 張
+    }
+
+    // 圖生圖模式：使用第一張參考圖作為基礎
+    const imageToImageMode = body.generation_mode === 'image-to-image' && referenceImages.length > 0;
+    const referenceStrength = body.reference_strength !== undefined ? parseFloat(body.reference_strength) : 0.7;
+    
+    // 驗證 strength 範圍
+    const validStrength = Math.max(0.1, Math.min(1.0, referenceStrength));
+    
+    if (imageToImageMode) {
+      logger.add("🖼️ Image-to-Image Mode", { 
+        base_image: referenceImages[0].substring(0, 50) + "...",
+        strength: validStrength,
+        reference_images_count: referenceImages.length
+      });
+    } else if (referenceImages.length > 0) {
+      logger.add("🔀 Reference Fusion Mode", { 
+        images: referenceImages.map(url => url.substring(0, 50) + "..."),
+        count: referenceImages.length
+      });
     }
     
     const seedInput = body.seed !== undefined ? body.seed : -1;
@@ -643,7 +1107,9 @@ async function handleInternalGenerate(request, env, ctx) {
       autoOptimize: autoOptimize, 
       autoHD: body.auto_hd !== false, 
       qualityMode: body.quality_mode || 'standard', 
-      referenceImages: referenceImages
+      referenceImages: referenceImages,
+      imageToImageMode: imageToImageMode,
+      referenceStrength: validStrength
     };
     
     const router = new MultiProviderRouter({}, env);
@@ -653,126 +1119,598 @@ async function handleInternalGenerate(request, env, ctx) {
     if (results.length === 1 && results[0].imageData) {
       const result = results[0];
       return new Response(result.imageData, {
-        headers: { 'Content-Type': result.contentType || 'image/png', 'Content-Disposition': `inline; filename="flux-ai-${result.seed}.png"`, 'X-Model': result.model, 'X-Model-Name': result.style_name || result.model, 'X-Seed': result.seed.toString(), 'X-Width': result.width.toString(), 'X-Height': result.height.toString(), 'X-Generation-Time': duration + 'ms', 'X-Quality-Mode': result.quality_mode, 'X-Style': result.style, 'X-Style-Name': result.style_name || result.style, 'X-Style-Category': result.style_category || 'unknown', 'X-Generation-Mode': result.generation_mode || '文生圖', 'X-Authenticated': result.authenticated ? 'true' : 'false', 'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint, ...corsHeaders() }
+        headers: { 
+          'Content-Type': result.contentType || 'image/png', 
+          'Content-Disposition': `inline; filename="nano-${result.seed}.png"`,
+          'X-Model': result.model, 
+          'X-Model-Name': result.style_name || result.model,
+          'X-Seed': result.seed.toString(), 
+          'X-Width': result.width.toString(), 
+          'X-Height': result.height.toString(), 
+          'X-Generation-Time': duration + 'ms',
+          'X-Quality-Mode': result.quality_mode,
+          'X-Style': result.style,
+          'X-Style-Name': result.style_name || result.style,
+          'X-Style-Category': result.style_category || 'unknown',
+          'X-Generation-Mode': result.generation_mode || '文生圖',
+          'X-Reference-Count': result.reference_images_count.toString(),
+          'X-Reference-Strength': result.reference_strength?.toString() || '0',
+          'X-Authenticated': result.authenticated ? 'true' : 'false', 
+          'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint, 
+          ...corsHeaders() 
+        }
       });
     }
+    
     const imagesData = await Promise.all(results.map(async (r) => {
       if (r.imageData) {
         const uint8Array = new Uint8Array(r.imageData);
         let binary = '';
         const len = uint8Array.byteLength;
         for (let i = 0; i < len; i++) binary += String.fromCharCode(uint8Array[i]);
-        return { image: `data:${r.contentType};base64,${btoa(binary)}`, model: r.model, seed: r.seed, width: r.width, height: r.height, quality_mode: r.quality_mode, style: r.style, style_name: r.style_name || r.style, style_category: r.style_category || 'unknown', generation_mode: r.generation_mode, authenticated: r.authenticated };
+        return { 
+          image: `data:${r.contentType};base64,${btoa(binary)}`, 
+          model: r.model, 
+          seed: r.seed, 
+          width: r.width, 
+          height: r.height,
+          quality_mode: r.quality_mode,
+          style: r.style,
+          style_name: r.style_name,
+          style_category: r.style_category,
+          generation_mode: r.generation_mode,
+          reference_count: r.reference_images_count,
+          reference_strength: r.reference_strength,
+          authenticated: r.authenticated 
+        };
       }
       return null;
     }));
-    return new Response(JSON.stringify({ created: Math.floor(Date.now() / 1000), data: imagesData.filter(d => d !== null), generation_time_ms: duration, api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint, authenticated: CONFIG.POLLINATIONS_AUTH.enabled, styles_available: Object.keys(CONFIG.STYLE_PRESETS).length }), { headers: corsHeaders({ 'Content-Type': 'application/json', 'X-Generation-Time': duration + 'ms', 'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint, 'X-Styles-Count': Object.keys(CONFIG.STYLE_PRESETS).length.toString() }) });
+    
+    return new Response(JSON.stringify({ 
+      created: Math.floor(Date.now() / 1000), 
+      data: imagesData.filter(d => d !== null), 
+      generation_time_ms: duration,
+      api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint, 
+      authenticated: CONFIG.POLLINATIONS_AUTH.enabled, 
+      styles_available: Object.keys(CONFIG.STYLE_PRESETS).length 
+    }), { headers: corsHeaders({ 'Content-Type': 'application/json', 'X-Generation-Time': duration + 'ms' }) });
   } catch (e) {
     logger.add("❌ Error", e.message);
-    return new Response(JSON.stringify({ error: { message: e.message, debug_logs: logger.get(), api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint, authenticated: CONFIG.POLLINATIONS_AUTH.enabled } }), { status: 400, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+    return new Response(JSON.stringify({ 
+      error: { 
+        message: e.message, 
+        debug_logs: logger.get(), 
+        api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint, 
+        authenticated: CONFIG.POLLINATIONS_AUTH.enabled 
+      } 
+    }), { status: 400, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
   }
 }
 
 function handleNanoPage(request) {
-  const html = `<!DOCTYPE html>
+  const html = \`<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🍌 NanoBanana AI - 獨立版</title>
+<title>🍌 NanoBanana Pro - 方案 C</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍌</text></svg>">
 <style>
-/* 獨立頁面的 CSS：黃色主題 */
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a1a;color:#fff;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
-.container{max-width:500px;width:100%;background:#2a2a2a;border-radius:20px;padding:30px;box-shadow:0 10px 30px rgba(0,0,0,0.5);border:1px solid #333}
-.header{text-align:center;margin-bottom:30px}
-.logo{font-size:48px;margin-bottom:10px;animation:bounce 2s infinite}
-h1{color:#FACC15;margin-bottom:5px;font-size:24px}
-.subtitle{color:#888;font-size:14px}
-.limit-badge{display:inline-block;background:#FACC15;color:#000;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:bold;margin-top:10px}
-.form-group{margin-bottom:20px}
-textarea{width:100%;background:#333;border:2px solid #444;border-radius:12px;padding:15px;color:#fff;font-size:16px;min-height:100px;resize:vertical;transition:0.3s}
-textarea:focus{outline:none;border-color:#FACC15;background:#404040}
-.controls{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px}
-select{width:100%;padding:12px;background:#333;border:1px solid #444;border-radius:10px;color:#fff;cursor:pointer}
-.btn{width:100%;padding:15px;background:linear-gradient(45deg, #FACC15, #EAB308);border:none;border-radius:12px;color:#000;font-weight:900;font-size:18px;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s}
-.btn:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(250, 204, 21, 0.3)}
-.btn:active{transform:translateY(0)}
-.btn:disabled{opacity:0.6;cursor:not-allowed}
-#resultArea{margin-top:30px;min-height:200px;display:flex;justify-content:center;align-items:center;background:#222;border-radius:12px;border:2px dashed #444;position:relative;overflow:hidden}
-#resultImg{max-width:100%;display:none;border-radius:8px}
-.loading{display:none;color:#FACC15;font-weight:bold}
-@keyframes bounce {0%, 100% {transform: translateY(0);} 50% {transform: translateY(-10px);}}
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ef4444;color:white;padding:10px 20px;border-radius:8px;display:none;z-index:100;box-shadow:0 5px 15px rgba(0,0,0,0.3)}
+html,body{width:100%;height:100%}
+body{font-family:system-ui,sans-serif;background:#1a1a1a;color:#fff;display:flex;flex-direction:column}
+.top-bar{background:rgba(0,0,0,0.5);border-bottom:1px solid #444;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.logo-area{display:flex;align-items:center;gap:12px;font-size:28px}
+.title{color:#FACC15;font-weight:900;font-size:18px}
+.subtitle{font-size:10px;color:#888}
+.quota-display{display:flex;align-items:center;gap:15px}
+.quota-item{background:rgba(250,204,21,0.1);border:1px solid rgba(250,204,21,0.3);padding:6px 12px;border-radius:8px;font-size:12px}
+.quota-label{color:#aaa;font-size:10px;text-transform:uppercase}
+.quota-value{color:#FACC15;font-weight:900;font-size:16px}
+.nav-btn{padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#ddd;cursor:pointer;font-size:12px;text-decoration:none;transition:0.3s}
+.nav-btn:hover{border-color:#FACC15;color:#FACC15}
+
+.main{flex:1;display:grid;grid-template-columns:320px 1fr 380px;gap:20px;padding:20px;overflow:hidden}
+.panel{background:#2a2a2a;border:1px solid #333;border-radius:12px;padding:20px;overflow-y:auto}
+
+.section-title{color:#FACC15;font-size:13px;font-weight:900;text-transform:uppercase;margin-bottom:15px}
+.form-group{margin-bottom:16px}
+label{display:block;margin-bottom:6px;font-size:12px;color:#bbb;font-weight:600}
+input,textarea,select{width:100%;padding:10px;background:#333;border:1px solid #555;border-radius:8px;color:#fff;font-size:13px;font-family:inherit;transition:0.3s}
+input:focus,textarea:focus,select:focus{outline:none;border-color:#FACC15;box-shadow:0 0 8px rgba(250,204,21,0.2)}
+textarea{resize:vertical;min-height:80px}
+
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:15px}
+.mode-tab{padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;cursor:pointer;text-align:center;font-size:12px;transition:0.3s;font-weight:600}
+.mode-tab.active{background:rgba(250,204,21,0.2);border-color:#FACC15;color:#FACC15}
+
+.image-upload{border:2px dashed #555;border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:0.3s}
+.image-upload:hover{border-color:#FACC15}
+.image-upload.active{border-color:#FACC15;background:rgba(250,204,21,0.05)}
+.upload-icon{font-size:32px;margin-bottom:8px}
+
+.image-previews{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.preview-item{position:relative;border-radius:8px;overflow:hidden;background:#333;aspect-ratio:1}
+.preview-item img{width:100%;height:100%;object-fit:cover}
+.preview-remove{position:absolute;top:5px;right:5px;background:#ef4444;border:none;border-radius:50%;width:24px;height:24px;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+
+.slider-group{margin-bottom:15px}
+.slider-label{display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;color:#bbb}
+.slider-value{color:#FACC15;font-weight:600}
+input[type="range"]{width:100%;cursor:pointer}
+
+.preset-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}
+.preset-btn{padding:10px;background:rgba(250,204,21,0.1);border:1px solid rgba(250,204,21,0.2);border-radius:6px;color:#FACC15;cursor:pointer;font-size:12px;font-weight:600;transition:0.3s}
+.preset-btn.active{background:rgba(250,204,21,0.3);border-color:#FACC15}
+.preset-btn:hover{background:rgba(250,204,21,0.25)}
+
+.advanced-toggle{display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;user-select:none}
+input[type="checkbox"]{width:16px;height:16px;cursor:pointer}
+.advanced-params{background:#222;border:1px solid #555;border-radius:8px;padding:15px;display:none;margin-top:10px}
+.advanced-params.show{display:block}
+
+.btn{width:100%;padding:12px;background:linear-gradient(45deg, #FACC15, #EAB308);border:none;border-radius:8px;color:#000;font-weight:900;font-size:14px;cursor:pointer;transition:all 0.3s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(250,204,21,0.3)}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;height:100%;overflow-y:auto}
+.gallery-item{position:relative;border-radius:10px;overflow:hidden;background:#333;border:1px solid #555;cursor:pointer;transition:0.3s;aspect-ratio:1}
+.gallery-item img{width:100%;height:100%;object-fit:cover;display:block}
+.gallery-item:hover{transform:scale(1.05);border-color:#FACC15;box-shadow:0 0 15px rgba(250,204,21,0.2)}
+
+.loading{text-align:center;padding:40px 20px;color:#FACC15}
+.spinner{border:3px solid rgba(250,204,21,0.2);border-top:3px solid #FACC15;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 15px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ef4444;color:white;padding:12px 24px;border-radius:8px;display:none;z-index:100;font-weight:600}
+.toast.success{background:#22c55e}
+
+.history-item{background:#333;border:1px solid #555;border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;transition:0.3s}
+.history-item:hover{border-color:#FACC15;background:#404040}
+.history-time{font-size:10px;color:#888}
+.history-prompt{font-size:12px;color:#fff;margin:5px 0;word-break:break-all}
+.history-meta{font-size:10px;color:#666}
+
+@media(max-width:1400px){
+  .main{grid-template-columns:1fr;gap:15px}
+  .left-panel{display:none}
+}
+
+@media(max-width:900px){
+  .main{grid-template-columns:1fr;gap:15px}
+  .right-panel{display:none}
+}
+
+@media(max-width:768px){
+  .main{grid-template-columns:1fr;gap:15px}
+  .mode-tabs{grid-template-columns:1fr}
+  .image-previews{grid-template-columns:repeat(2,1fr)}
+  .quota-display{flex-direction:column;align-items:flex-start;gap:10px}
+}
 </style>
 </head>
 <body>
-    <div id="toast" class="toast"></div>
-    <div class="container">
-        <div class="header">
-            <div class="logo">🍌</div>
-            <h1>NanoBanana Generator</h1>
-            <div class="subtitle">極速生成 • 獨立通道</div>
-            <div class="limit-badge">⚡ 每小時限額: 20 張</div>
-        </div>
-        <div class="form-group">
-            <textarea id="prompt" placeholder="輸入你想看到的畫面... (例如: yellow banana cyberpunk city)"></textarea>
-        </div>
-        <div class="controls">
-            <select id="ratio">
-                <option value="1024,1024">1:1 方形</option>
-                <option value="1080,1920">9:16 手機</option>
-                <option value="1920,1080">16:9 電腦</option>
-            </select>
-            <select id="style">
-                <option value="none">無風格</option>
-                <option value="photorealistic">寫實照片</option>
-                <option value="anime">日系動漫</option>
-                <option value="pixel-art">像素藝術</option>
-                <option value="cyberpunk">賽博龐克</option>
-            </select>
-        </div>
-        <button id="genBtn" class="btn">立即生成 🍌</button>
-        <div id="resultArea">
-            <div class="loading">🍌 正在召喚香蕉之力...</div>
-            <img id="resultImg" alt="Result">
-        </div>
+<div id="toast" class="toast"></div>
+
+<!-- 頂部欄 -->
+<div class="top-bar">
+<div class="logo-area">
+  <span>🍌</span>
+  <div>
+    <div class="title">NanoBanana Pro</div>
+    <div class="subtitle">圖生圖 • 多圖融合 • 專業版 (方案 C)</div>
+  </div>
+</div>
+<div class="quota-display">
+  <div class="quota-item">
+    <div class="quota-label">📊 今天已用</div>
+    <div class="quota-value"><span id="usedQuota">0</span>/20</div>
+  </div>
+  <div class="quota-item">
+    <div class="quota-label">⚡ 剩餘額度</div>
+    <div class="quota-value" id="remainingQuota">20</div>
+  </div>
+  <a href="/" class="nav-btn">← 返回</a>
+</div>
+</div>
+
+<!-- 主內容 -->
+<div class="main">
+<!-- 左側：控制面板 -->
+<div class="panel" id="leftPanel">
+<div class="section-title">⚙️ 生成配置</div>
+
+<form id="genForm">
+<!-- 生成模式切換 -->
+<div class="form-group">
+  <label>🎨 生成模式</label>
+  <div class="mode-tabs">
+    <button type="button" class="mode-tab active" data-mode="text">📝 文生圖</button>
+    <button type="button" class="mode-tab" data-mode="image">🖼️ 圖生圖</button>
+    <button type="button" class="mode-tab" data-mode="fusion">🔀 融合</button>
+  </div>
+  <input type="hidden" id="genMode" value="text">
+</div>
+
+<!-- 提示詞 -->
+<div class="form-group">
+  <label>✍️ 描述 / 修改指令</label>
+  <textarea id="prompt" placeholder="例如: Make it more vibrant, change to sunset lighting..." required></textarea>
+</div>
+
+<!-- 參考圖上傳 -->
+<div class="form-group" id="imageUploadGroup" style="display:none">
+  <label>📸 上傳圖片 (最多 3 張)</label>
+  <div class="image-upload" id="imageUpload">
+    <div class="upload-icon">📤</div>
+    <div style="font-size:12px;color:#bbb">點擊或拖放上傳</div>
+  </div>
+  <input type="file" id="imageInput" accept="image/*" multiple hidden>
+  <div class="image-previews" id="previewsContainer"></div>
+</div>
+
+<!-- 尺寸 & 風格 -->
+<div class="form-group">
+  <label>📐 尺寸</label>
+  <select id="ratio">
+    <option value="1024,1024">方形 1024x1024</option>
+    <option value="1080,1920">豎屏 1080x1920</option>
+    <option value="1920,1080">寬屏 1920x1080</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label>🎨 風格</label>
+  <select id="style">
+    <option value="none">無風格</option>
+    <option value="photorealistic">寫實照片</option>
+    <option value="anime">日系動漫</option>
+    <option value="cyberpunk">賽博龐克</option>
+    <option value="oil-painting">油畫</option>
+  </select>
+</div>
+
+<!-- 參考強度滑塊（圖生圖模式）-->
+<div class="form-group" id="strengthGroup" style="display:none">
+  <label>💪 參考圖強度</label>
+  <div class="slider-group">
+    <div class="slider-label">
+      <span>弱 (更創意)</span>
+      <span class="slider-value" id="strengthValue">0.7</span>
+      <span>強 (更接近原圖)</span>
     </div>
+    <input type="range" id="strength" min="0.1" max="1" step="0.1" value="0.7">
+  </div>
+</div>
+
+<!-- 質量模式 -->
+<div class="form-group">
+  <label>⭐ 質量模式</label>
+  <select id="quality">
+    <option value="economy">⚡ 經濟 (快速)</option>
+    <option value="standard" selected>📊 標準 (推薦)</option>
+    <option value="ultra">✨ 超高清</option>
+  </select>
+</div>
+
+<!-- 批量生成 -->
+<div class="form-group">
+  <label>📊 一次生成張數</label>
+  <div class="preset-buttons">
+    <button type="button" class="preset-btn active" data-n="1">1 張</button>
+    <button type="button" class="preset-btn" data-n="2">2 張</button>
+    <button type="button" class="preset-btn" data-n="4">4 張</button>
+  </div>
+  <input type="hidden" id="batchSize" value="1">
+</div>
+
+<!-- 進階參數 -->
+<div class="advanced-toggle" id="advToggle">
+  <input type="checkbox" id="advCheckbox">
+  <label for="advCheckbox" style="margin:0;cursor:pointer;font-size:12px">🛠️ 進階參數</label>
+</div>
+<div class="advanced-params" id="advParams">
+  <div class="form-group">
+    <label>Steps (生成步數)</label>
+    <input type="number" id="steps" value="20" min="5" max="50">
+  </div>
+  <div class="form-group">
+    <label>Guidance (引導係數)</label>
+    <input type="number" id="guidance" value="7.5" step="0.5" min="1" max="20">
+  </div>
+</div>
+
+<!-- 提交按鈕 -->
+<button type="submit" class="btn" style="margin-top:15px">🍌 立即生成</button>
+<button type="button" class="btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#ddd;margin-top:10px" id="clearHistoryBtn">🗑️ 清空歷史</button>
+</form>
+</div>
+
+<!-- 中間：結果預覽 -->
+<div class="panel" style="padding:0;display:flex;flex-direction:column">
+<div style="padding:20px;border-bottom:1px solid #444;flex-shrink:0">
+  <div class="section-title" style="margin:0">📸 結果畫廊</div>
+</div>
+<div id="resultGallery" class="gallery" style="flex:1">
+  <div class="loading">
+    <div style="font-size:24px">🍌</div>
+    <div style="margin-top:10px">還沒有生成任何圖像</div>
+  </div>
+</div>
+</div>
+
+<!-- 右側：歷史記錄 -->
+<div class="panel" id="rightPanel" style="padding:0;display:flex;flex-direction:column">
+<div style="padding:20px;border-bottom:1px solid #444;flex-shrink:0;display:flex;justify-content:space-between;align-items:center">
+  <div class="section-title" style="margin:0">📚 本地記錄</div>
+  <button id="clearAllBtn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);padding:4px 8px;border-radius:4px;color:#ddd;cursor:pointer;font-size:11px">清空</button>
+</div>
+<div id="historyList" style="flex:1;overflow-y:auto;padding:10px">
+  <div style="text-align:center;padding:20px;color:#666;font-size:12px">暫無記錄</div>
+</div>
+</div>
+</div>
+
 <script>
-    const genBtn = document.getElementById('genBtn');
-    const promptIn = document.getElementById('prompt');
-    const resultImg = document.getElementById('resultImg');
-    const loading = document.querySelector('.loading');
-    const toast = document.getElementById('toast');
-    function showToast(msg) { toast.textContent = msg; toast.style.display = 'block'; setTimeout(() => toast.style.display = 'none', 3000); }
-    genBtn.onclick = async () => {
-        const prompt = promptIn.value.trim();
-        if(!prompt) return showToast("請輸入提示詞！");
-        genBtn.disabled = true; genBtn.innerHTML = '生成中...'; resultImg.style.display = 'none'; loading.style.display = 'block';
-        const [width, height] = document.getElementById('ratio').value.split(',').map(Number);
-        try {
-            const res = await fetch('/_internal/generate', {
-                method: 'POST', 
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Source': 'nano-page' // 識別證：標記來自 Nano 頁面
-                },
-                body: JSON.stringify({
-                    prompt: prompt, model: 'nano-banana', width: width, height: height,
-                    style: document.getElementById('style').value, nologo: true
-                })
-            });
-            if(res.status === 429) { const errData = await res.json(); throw new Error(errData.error.message); }
-            if(res.status === 403) { throw new Error('僅限 Nano 頁面使用此模型'); }
-            if(!res.ok) throw new Error('生成失敗');
-            const blob = await res.blob(); const url = URL.createObjectURL(blob);
-            resultImg.src = url; resultImg.style.display = 'block';
-        } catch (err) { showToast(err.message); } finally { loading.style.display = 'none'; genBtn.disabled = false; genBtn.innerHTML = '立即生成 🍌'; }
+// ====== IndexedDB 設置 ======
+const DB_NAME='NanoBananaProDB',STORE_NAME='images',DB_VERSION=1;
+const dbPromise=new Promise((r,j)=>{
+  const req=indexedDB.open(DB_NAME,DB_VERSION);
+  req.onupgradeneeded=e=>{
+    const db=e.target.result;
+    if(!db.objectStoreNames.contains(STORE_NAME))db.createObjectStore(STORE_NAME,{keyPath:'id'});
+  };
+  req.onsuccess=e=>r(e.target.result);
+  req.onerror=e=>j(e.target.error);
+});
+
+async function saveToDB(item){
+  const db=await dbPromise;
+  return new Promise(r=>{
+    const tx=db.transaction(STORE_NAME,'readwrite');
+    tx.objectStore(STORE_NAME).put(item);
+    tx.oncomplete=()=>r();
+  });
+}
+
+async function getHistory(){
+  const db=await dbPromise;
+  return new Promise(r=>{
+    const tx=db.transaction(STORE_NAME,'readonly');
+    const req=tx.objectStore(STORE_NAME).getAll();
+    req.onsuccess=()=>r((req.result||[]).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)));
+  });
+}
+
+async function clearAllHistory(){
+  const db=await dbPromise;
+  const tx=db.transaction(STORE_NAME,'readwrite');
+  tx.objectStore(STORE_NAME).clear();
+  await new Promise(r=>tx.oncomplete=r);
+}
+
+// ====== UI 邏輯 ======
+const toast=document.getElementById('toast');
+function showToast(m,s=false){
+  toast.textContent=m;
+  toast.className='toast'+(s?' success':'');
+  toast.style.display='block';
+  setTimeout(()=>toast.style.display='none',3000);
+}
+
+// 生成模式切換
+const modeTabs=document.querySelectorAll('.mode-tab');
+const genModeInput=document.getElementById('genMode');
+const imageUploadGroup=document.getElementById('imageUploadGroup');
+const strengthGroup=document.getElementById('strengthGroup');
+
+modeTabs.forEach(tab=>{
+  tab.addEventListener('click',(e)=>{
+    e.preventDefault();
+    modeTabs.forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const mode=tab.dataset.mode;
+    genModeInput.value=mode;
+    
+    if(mode==='text'){
+      imageUploadGroup.style.display='none';
+      strengthGroup.style.display='none';
+    }else if(mode==='image'){
+      imageUploadGroup.style.display='block';
+      strengthGroup.style.display='block';
+    }else if(mode==='fusion'){
+      imageUploadGroup.style.display='block';
+      strengthGroup.style.display='none';
+    }
+  });
+});
+
+// 圖片上傳處理
+const imageUpload=document.getElementById('imageUpload');
+const imageInput=document.getElementById('imageInput');
+const previewsContainer=document.getElementById('previewsContainer');
+let uploadedImages=[];
+
+imageUpload.addEventListener('click',()=>imageInput.click());
+imageUpload.addEventListener('dragover',(e)=>{e.preventDefault();imageUpload.classList.add('active');});
+imageUpload.addEventListener('dragleave',()=>imageUpload.classList.remove('active'));
+imageUpload.addEventListener('drop',(e)=>{
+  e.preventDefault();
+  imageUpload.classList.remove('active');
+  handleFiles(e.dataTransfer.files);
+});
+imageInput.addEventListener('change',(e)=>handleFiles(e.target.files));
+
+function handleFiles(files){
+  uploadedImages=[];
+  previewsContainer.innerHTML='';
+  Array.from(files).slice(0,3).forEach((file,idx)=>{
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      const src=e.target.result;
+      uploadedImages.push(src);
+      const div=document.createElement('div');
+      div.className='preview-item';
+      div.innerHTML=\\\`<img src="\\\${src}" alt="preview"><button type="button" class="preview-remove" data-idx="\\\${idx}">×</button>\\\`;
+      div.querySelector('.preview-remove').addEventListener('click',(ev)=>{
+        ev.preventDefault();
+        uploadedImages.splice(idx,1);
+        div.remove();
+      });
+      previewsContainer.appendChild(div);
     };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Strength 滑塊
+document.getElementById('strength').addEventListener('input',(e)=>{
+  document.getElementById('strengthValue').textContent=e.target.value;
+});
+
+// 批量大小
+document.querySelectorAll('.preset-btn').forEach(btn=>{
+  btn.addEventListener('click',(e)=>{
+    e.preventDefault();
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('batchSize').value=btn.dataset.n;
+  });
+});
+
+// 進階參數
+document.getElementById('advCheckbox').addEventListener('change',(e)=>{
+  document.getElementById('advParams').classList.toggle('show',e.target.checked);
+});
+
+// 生成邏輯
+document.getElementById('genForm').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  const prompt=document.getElementById('prompt').value.trim();
+  if(!prompt)return showToast('請輸入提示詞！');
+  
+  const mode=document.getElementById('genMode').value;
+  const [w,h]=document.getElementById('ratio').value.split(',').map(Number);
+  const style=document.getElementById('style').value;
+  const quality=document.getElementById('quality').value;
+  const batch=parseInt(document.getElementById('batchSize').value);
+  const strength=parseFloat(document.getElementById('strength').value);
+  const useAdv=document.getElementById('advCheckbox').checked;
+  
+  const btn=document.querySelector('button[type="submit"]');
+  btn.disabled=true;
+  document.getElementById('resultGallery').innerHTML=\\\`<div class="loading" style="grid-column:1/-1"><div class="spinner"></div><div>生成中 (\\\${batch} 張)...</div></div>\\\`;
+  
+  try{
+    for(let i=0;i<batch;i++){
+      const res=await fetch('/_internal/generate',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'X-Source':'nano-page'
+        },
+        body:JSON.stringify({
+          prompt,model:'nano-banana',width:w,height:h,style,quality_mode:quality,
+          seed:-1,auto_optimize:!useAdv,
+          generation_mode:mode,
+          reference_images:uploadedImages.length>0?uploadedImages:[],
+          reference_strength:strength,
+          steps:useAdv?parseInt(document.getElementById('steps').value):null,
+          guidance_scale:useAdv?parseFloat(document.getElementById('guidance').value):null,
+          nologo:true
+        })
+      });
+      
+      if(res.status===429){
+        const err=await res.json();
+        throw new Error(err.error.message);
+      }
+      if(!res.ok)throw new Error('生成失敗');
+      
+      const blob=await res.blob();
+      const url=URL.createObjectURL(blob);
+      const genMode=res.headers.get('X-Generation-Mode')||mode;
+      const item={
+        id:Date.now()+Math.random(),
+        timestamp:new Date().toISOString(),
+        prompt,style,mode:genMode,
+        blobUrl:url,
+        seed:res.headers.get('X-Seed')||'-1',
+        base64:await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(blob);})
+      };
+      await saveToDB(item);
+      
+      if(document.querySelector('.loading')){
+        document.getElementById('resultGallery').innerHTML='';
+      }
+      
+      const div=document.createElement('div');
+      div.className='gallery-item';
+      div.innerHTML=\\\`<img src="\\\${url}" alt="result">\\\`;
+      div.addEventListener('click',()=>{
+        const a=document.createElement('a');
+        a.href=url;
+        a.download='nano-\\\${item.id}.png';
+        a.click();
+      });
+      document.getElementById('resultGallery').insertBefore(div,document.getElementById('resultGallery').firstChild);
+    }
+    
+    updateQuotaDisplay();
+    renderHistory();
+    showToast('✅ 生成完成！',true);
+  }catch(err){
+    showToast('❌ '+err.message);
+  }finally{
+    btn.disabled=false;
+  }
+});
+
+// 配額顯示
+function updateQuotaDisplay(){
+  const used=parseInt(document.getElementById('usedQuota').textContent)||0;
+  document.getElementById('usedQuota').textContent=used+1;
+  document.getElementById('remainingQuota').textContent=Math.max(0,20-(used+1));
+}
+
+// 歷史記錄渲染
+async function renderHistory(){
+  const history=await getHistory();
+  const list=document.getElementById('historyList');
+  if(history.length===0){
+    list.innerHTML='<div style="text-align:center;padding:20px;color:#666;font-size:12px">暫無記錄</div>';
+    return;
+  }
+  list.innerHTML=history.map(item=>\\\`
+    <div class="history-item" onclick="copyPrompt(this)">
+      <div class="history-time">\\\${item.timestamp.slice(5,16)}</div>
+      <div class="history-prompt">\\\${item.prompt.slice(0,50)}...</div>
+      <div class="history-meta">\\\${item.mode} • \\\${item.style}</div>
+    </div>
+  \\\`).join('');
+}
+
+function copyPrompt(el){
+  const prompt=el.querySelector('.history-prompt').textContent;
+  navigator.clipboard.writeText(prompt).then(()=>showToast('✅ 已複製',true));
+}
+
+document.getElementById('clearAllBtn').addEventListener('click',async()=>{
+  if(confirm('確定要清空所有記錄？')){
+    await clearAllHistory();
+    renderHistory();
+    showToast('✅ 已清空',true);
+  }
+});
+
+window.addEventListener('load',()=>{
+  updateQuotaDisplay();
+  renderHistory();
+});
 </script>
 </body>
-</html>`;
-  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+</html>\`;
+  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', ...corsHeaders() } });
 }
 
 function handleUI() {
@@ -802,7 +1740,7 @@ function handleUI() {
 <title>Flux AI Pro v${CONFIG.PROJECT_VERSION}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
 <style>
-/* CSS 部分 */
+/* 主頁 CSS 省略 - 保持原樣 */
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#0a0a0a 0%,#1a1a2e 100%);color:#fff;min-height:100vh}
 .container{max-width:100%;margin:0;padding:0;height:100vh;display:flex;flex-direction:column}
@@ -811,13 +1749,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 .logo{color:#f59e0b;font-size:24px;font-weight:800;text-shadow:0 0 20px rgba(245,158,11,0.6);display:flex;align-items:center;gap:10px}
 .badge{background:linear-gradient(135deg,#10b981 0%,#059669 100%);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600}
 .nav-menu{display:flex;gap:10px;align-items:center}
-/* nav-btn 樣式通用於 button 和 a */
 .nav-btn{padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#9ca3af;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s;display:flex;align-items:center;gap:6px;text-decoration:none}
 .nav-btn:hover{border-color:#f59e0b;color:#fff}
 .nav-btn.active{background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;border-color:#f59e0b}
-/* 特別為 Nano 按鈕設計的懸停效果 */
 .nav-btn.nano-btn:hover {border-color: #FACC15; background: rgba(250, 204, 21, 0.1); color: #FACC15; box-shadow: 0 0 10px rgba(250, 204, 21, 0.2);}
-
 .lang-btn{padding:6px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#ccc;cursor:pointer;font-size:12px;margin-left:10px}
 .main-content{flex:1;display:flex;overflow:hidden}
 .left-panel{width:320px;background:rgba(255,255,255,0.03);border-right:1px solid rgba(255,255,255,0.1);overflow-y:auto;padding:20px;flex-shrink:0}
@@ -863,7 +1798,6 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
         <div><div class="api-status">${authStatus}</div></div>
     </div>
     <div class="nav-menu">
-        <!-- 🔥 在這裡加入 Nano Banana 按鈕 -->
         <a href="/nano" target="_blank" class="nav-btn nano-btn" style="border-color:rgba(250,204,21,0.5);color:#FACC15;margin-right:5px">
             🍌 Nano版
         </a>
@@ -1063,8 +1997,8 @@ seedToggleBtn.addEventListener('click', () => { isSeedRandom = !isSeedRandom; up
 autoOptCheckbox.addEventListener('change', () => { advParamsDiv.style.display = autoOptCheckbox.checked ? 'none' : 'block'; });
 
 // 生成與歷史記錄處理
-const PRESET_SIZES=${JSON.stringify(CONFIG.PRESET_SIZES)};
-const STYLE_PRESETS=${JSON.stringify(CONFIG.STYLE_PRESETS)};
+const PRESET_SIZES=\${JSON.stringify(CONFIG.PRESET_SIZES)};
+const STYLE_PRESETS=\${JSON.stringify(CONFIG.STYLE_PRESETS)};
 
 async function addToHistory(item){
     let base64Data = item.image;
@@ -1190,7 +2124,7 @@ window.onload=()=>{
 };
 </script>
 </body>
-</html>`;
+</html>\`;
   
   return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', ...corsHeaders() } });
 }
