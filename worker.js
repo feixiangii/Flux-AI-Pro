@@ -1,12 +1,12 @@
 // =================================================================================
 //  項目: Flux AI Pro - NanoBanana Edition
-//  版本: 10.6.5 (Nano Cooldown)
-//  更新: Nano Pro 頁面加入 180 秒強制冷卻機制 (抗重整)
+//  版本: 10.7.0 (Multi-Provider Support)
+//  更新: 加入 Infip.pro 提供商支持，自動獲取模型列表
 // =================================================================================
 
 const CONFIG = {
   PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "10.6.5",
+  PROJECT_VERSION: "10.7.0",
   API_MASTER_KEY: "1",
   FETCH_TIMEOUT: 120000,
   MAX_RETRIES: 3,
@@ -14,6 +14,13 @@ const CONFIG = {
   POLLINATIONS_AUTH: {
     enabled: true,
     token: "", 
+    method: "header"
+  },
+  
+  // 🔥 新增：Infip.pro API 配置
+  INFIP_AUTH: {
+    enabled: false,
+    token: "",
     method: "header"
   },
   
@@ -30,7 +37,6 @@ const CONFIG = {
   PROVIDERS: {
     pollinations: {
       name: "Pollinations.ai",
-      // 🔥 修改：使用 gen.pollinations.ai (需要 API Key)
       endpoint: "https://gen.pollinations.ai",
       pathPrefix: "/image",
       type: "direct",
@@ -43,7 +49,6 @@ const CONFIG = {
         private_mode: true, custom_size: true, seed_control: true, negative_prompt: true, enhance: true, nologo: true, style_presets: true, auto_hd: true, quality_modes: true, auto_translate: true, reference_images: true, image_to_image: true, batch_generation: true, api_key_auth: true
       },
       models: [
-        // 🔥 核心模型: nanobanana-pro (直連)
         { id: "nanobanana-pro", name: "Nano Banana Pro 🍌", confirmed: true, category: "special", description: "Nano Banana Pro 風格模型 (每小時限額 5 張)", max_size: 2048, pricing: { image_price: 0, currency: "free" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "gptimage", name: "GPT-Image 🎨", confirmed: true, category: "gptimage", description: "通用 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "gptimage-large", name: "GPT-Image Large 🌟", confirmed: true, category: "gptimage", description: "高質量 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
@@ -52,6 +57,25 @@ const CONFIG = {
         { id: "turbo", name: "Flux Turbo ⚡", confirmed: true, category: "flux", description: "超快速圖像生成", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "kontext", name: "Kontext 🎨", confirmed: true, category: "kontext", description: "上下文感知圖像生成（支持圖生圖）", max_size: 2048, pricing: { image_price: 0.04, currency: "pollen" }, supports_reference_images: true, max_reference_images: 1, input_modalities: ["text", "image"], output_modalities: ["image"] }
       ],
+      rate_limit: null,
+      max_size: { width: 2048, height: 2048 }
+    },
+    
+    // 🔥 新增：Infip.pro 提供商
+    infip: {
+      name: "Infip.pro",
+      endpoint: "https://api.infip.pro",
+      pathPrefix: "/v1/images/generations",
+      type: "openai-compatible",
+      auth_mode: "required",
+      requires_key: true,
+      enabled: false, // 默認關閉，有 API Key 時自動啟用
+      default: false,
+      description: "OpenAI 兼容的圖像生成 API",
+      features: {
+        private_mode: true, custom_size: true, seed_control: false, negative_prompt: true, enhance: false, nologo: true, style_presets: true, auto_hd: true, quality_modes: true, auto_translate: true, reference_images: false, image_to_image: false, batch_generation: true, api_key_auth: true, auto_fetch_models: true
+      },
+      models: [], // 啟動時自動獲取
       rate_limit: null,
       max_size: { width: 2048, height: 2048 }
     }
@@ -157,7 +181,6 @@ class Logger {
   get() { return this.logs; }
 }
 
-// ====== RateLimiter: 負責 KV 限制邏輯 (5次/小時) ======
 class RateLimiter {
   constructor(env) {
     this.env = env;
@@ -169,7 +192,7 @@ class RateLimiter {
       return { allowed: true };
     }
     const key = `nano_limit:${ip}`;
-    const windowSize = 3600 * 1000; // 1小時 (毫秒)
+    const windowSize = 3600 * 1000;
     const maxRequests = 5; 
     try {
       const rawData = await this.KV.get(key);
@@ -350,6 +373,45 @@ async function fetchWithTimeout(url, options = {}, timeout = CONFIG.FETCH_TIMEOU
 function corsHeaders(additionalHeaders = {}) {
   return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Source', 'Access-Control-Max-Age': '86400', ...additionalHeaders };
 }
+
+// 🔥 新增：自動獲取 Infip.pro 模型列表
+async function fetchInfipModels(apiKey) {
+  try {
+    const response = await fetchWithTimeout('https://api.infip.pro/v1/models', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    }, 10000);
+    
+    if (!response.ok) {
+      console.error(`❌ Infip Models API failed: ${response.status}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    console.log(`✅ Fetched ${data.data?.length || 0} models from Infip.pro`);
+    
+    // 轉換格式
+    return (data.data || [])
+      .filter(m => m.id && m.id.includes('image')) // 只保留圖像模型
+      .map(m => ({
+        id: m.id,
+        name: m.id,
+        confirmed: true,
+        category: "infip",
+        description: m.description || "Infip AI Image Model",
+        max_size: 2048,
+        pricing: { image_price: 0, currency: "credits" },
+        input_modalities: ["text"],
+        output_modalities: ["image"]
+      }));
+  } catch (error) {
+    console.error("❌ Failed to fetch Infip models:", error.message);
+    return [];
+  }
+}
 class PollinationsProvider {
   constructor(config, env) { this.config = config; this.name = config.name; this.env = env; }
   
@@ -360,7 +422,6 @@ class PollinationsProvider {
       qualityMode = 'standard', referenceImages = []
     } = options;
 
-    // 🔥 修改確認: 直連模式，不進行模型 ID 轉換
     let apiModel = model; 
     
     const modelConfig = this.config.models.find(m => m.id === model);
@@ -444,7 +505,6 @@ class PollinationsProvider {
     let baseUrl = this.config.endpoint + pathPrefix + "/" + encodedPrompt;
     
     const params = new URLSearchParams();
-    // 這裡直接使用 apiModel (即 nanobanana-pro)
     params.append('model', apiModel); 
     params.append('width', finalWidth.toString());
     params.append('height', finalHeight.toString());
@@ -495,6 +555,163 @@ class PollinationsProvider {
   }
 }
 
+// 🔥 新增：Infip Provider (OpenAI 兼容格式)
+class InfipProvider {
+  constructor(config, env) { 
+    this.config = config; 
+    this.name = config.name; 
+    this.env = env; 
+  }
+  
+  async generate(prompt, options, logger) {
+    const { 
+      model = "flux-pro", width = 1024, height = 1024, negativePrompt = "", 
+      style = "none", autoOptimize = true, autoHD = true, qualityMode = 'standard'
+    } = options;
+
+    let basePrompt = prompt;
+    let translationLog = { translated: false };
+
+    if (/[\u4e00-\u9fa5]/.test(prompt)) {
+      logger.add("🌐 Pre-translation", { message: "Detecting Chinese, translating first..." });
+      const translation = await translateToEnglish(prompt, this.env);
+      if (translation.translated) {
+        basePrompt = translation.text;
+        translationLog = translation;
+        logger.add("✅ Translation Success", { original: prompt, translated: basePrompt });
+      }
+    }
+
+    const promptComplexity = PromptAnalyzer.analyzeComplexity(basePrompt);
+    logger.add("🧠 Prompt Analysis", { complexity: (promptComplexity * 100).toFixed(1) + '%', selected_quality: qualityMode });
+    
+    let hdOptimization = null;
+    let optimizedPrompt = basePrompt;
+    let finalNegative = negativePrompt;
+    let finalWidth = width;
+    let finalHeight = height;
+    
+    if (autoHD) {
+      hdOptimization = HDOptimizer.optimize(basePrompt, negativePrompt, model, width, height, qualityMode, autoHD);
+      optimizedPrompt = hdOptimization.prompt;
+      finalNegative = hdOptimization.negativePrompt;
+      finalWidth = hdOptimization.width;
+      finalHeight = hdOptimization.height;
+      if (hdOptimization.optimized) {
+        logger.add("🎨 HD Optimization", { mode: qualityMode, original: width + "x" + height, optimized: finalWidth + "x" + finalHeight });
+      }
+    }
+    
+    const { enhancedPrompt, enhancedNegative } = StyleProcessor.applyStyle(optimizedPrompt, style, finalNegative);
+    logger.add("🎨 Style Processing", { selected_style: style, style_name: CONFIG.STYLE_PRESETS[style]?.name || style });
+    
+    const authConfig = CONFIG.INFIP_AUTH;
+    if (!authConfig.enabled || !authConfig.token) {
+      throw new Error("Infip API Key not configured. Please set INFIP_API_KEY environment variable.");
+    }
+
+    const payload = {
+      model: model,
+      prompt: enhancedPrompt,
+      size: `${finalWidth}x${finalHeight}`,
+      n: 1,
+      response_format: "url"
+    };
+
+    if (enhancedNegative && enhancedNegative.trim()) {
+      payload.negative_prompt = enhancedNegative;
+    }
+
+    const headers = {
+      'Authorization': `Bearer ${authConfig.token}`,
+      'Content-Type': 'application/json'
+    };
+
+    logger.add("📡 API Request", { 
+      endpoint: this.config.endpoint, 
+      model: model, 
+      size: `${finalWidth}x${finalHeight}`,
+      authenticated: true 
+    });
+
+    for (let retry = 0; retry < CONFIG.MAX_RETRIES; retry++) {
+      try {
+        const response = await fetchWithTimeout(
+          this.config.endpoint + this.config.pathPrefix,
+          { 
+            method: 'POST', 
+            headers: headers,
+            body: JSON.stringify(payload)
+          }, 
+          120000
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          if (response.status === 401) throw new Error("Invalid Infip API Key");
+          if (response.status === 403) throw new Error("Access forbidden");
+          throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+        }
+
+        const data = await response.json();
+        logger.add("✅ Response Received", { model: model, images_count: data.data?.length || 0 });
+
+        if (!data.data || data.data.length === 0) {
+          throw new Error("No image data in response");
+        }
+
+        const imageUrl = data.data[0].url;
+        
+        // 下載圖像
+        const imageResponse = await fetchWithTimeout(imageUrl, { method: 'GET' }, 60000);
+        if (!imageResponse.ok) throw new Error("Failed to download image from URL");
+
+        const imageBlob = await imageResponse.blob();
+        const imageBuffer = await imageBlob.arrayBuffer();
+
+        logger.add("✅ Success", { 
+          provider: "Infip.pro",
+          model: model, 
+          size: `${finalWidth}x${finalHeight}`,
+          quality_mode: qualityMode,
+          style: style,
+          auto_translated: translationLog.translated
+        });
+
+        return { 
+          imageData: imageBuffer, 
+          contentType: 'image/png',
+          url: imageUrl,
+          provider: this.name, 
+          model: model,
+          seed: -1, // Infip 不返回 seed
+          style: style, 
+          style_name: CONFIG.STYLE_PRESETS[style]?.name || style,
+          width: finalWidth, 
+          height: finalHeight, 
+          quality_mode: qualityMode,
+          auto_translated: translationLog.translated,
+          authenticated: true,
+          cost: "CREDITS"
+        };
+
+      } catch (e) {
+        logger.add("❌ Request Failed", { 
+          error: e.message, 
+          model: model, 
+          retry: retry + 1, 
+          max_retries: CONFIG.MAX_RETRIES 
+        });
+        if (retry < CONFIG.MAX_RETRIES - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retry + 1)));
+        } else {
+          throw new Error("Generation failed: " + e.message);
+        }
+      }
+    }
+  }
+}
+
 class MultiProviderRouter {
   constructor(apiKeys = {}, env = null) {
     this.providers = {};
@@ -503,27 +720,58 @@ class MultiProviderRouter {
     for (const [key, config] of Object.entries(CONFIG.PROVIDERS)) {
       if (config.enabled) {
         if (key === 'pollinations') this.providers[key] = new PollinationsProvider(config, env);
+        if (key === 'infip') this.providers[key] = new InfipProvider(config, env);
       }
     }
   }
+  
   getProvider(providerName = null) {
-    if (providerName && this.providers[providerName]) return { name: providerName, instance: this.providers[providerName] };
+    if (providerName && this.providers[providerName]) {
+      return { name: providerName, instance: this.providers[providerName] };
+    }
     const defaultName = CONFIG.DEFAULT_PROVIDER;
-    if (this.providers[defaultName]) return { name: defaultName, instance: this.providers[defaultName] };
+    if (this.providers[defaultName]) {
+      return { name: defaultName, instance: this.providers[defaultName] };
+    }
     const firstProvider = Object.keys(this.providers)[0];
-    if (firstProvider) return { name: firstProvider, instance: this.providers[firstProvider] };
+    if (firstProvider) {
+      return { name: firstProvider, instance: this.providers[firstProvider] };
+    }
     throw new Error('No available provider');
   }
+  
   async generate(prompt, options, logger) {
     const { provider: requestedProvider = null, numOutputs = 1 } = options;
     const { name: providerName, instance: provider } = this.getProvider(requestedProvider);
+    
+    logger.add("🚀 Provider Selection", { 
+      requested: requestedProvider || 'default', 
+      selected: providerName,
+      num_outputs: numOutputs 
+    });
+    
     const results = [];
     for (let i = 0; i < numOutputs; i++) {
-      const currentOptions = { ...options, seed: options.seed === -1 ? -1 : options.seed + i };
+      const currentOptions = { 
+        ...options, 
+        seed: options.seed === -1 ? -1 : options.seed + i 
+      };
       const result = await provider.generate(prompt, currentOptions, logger);
       results.push(result);
     }
     return results;
+  }
+  
+  getAvailableProviders() {
+    return Object.entries(CONFIG.PROVIDERS)
+      .filter(([key, config]) => config.enabled)
+      .map(([key, config]) => ({
+        id: key,
+        name: config.name,
+        endpoint: config.endpoint,
+        authenticated: key === 'pollinations' ? CONFIG.POLLINATIONS_AUTH.enabled : CONFIG.INFIP_AUTH.enabled,
+        models_count: config.models.length
+      }));
   }
 }
 export default {
@@ -531,14 +779,45 @@ export default {
     const url = new URL(request.url);
     const startTime = Date.now();
     const clientIP = getClientIP(request);
-    if (env.POLLINATIONS_API_KEY) { CONFIG.POLLINATIONS_AUTH.enabled = true; CONFIG.POLLINATIONS_AUTH.token = env.POLLINATIONS_API_KEY; } 
-    else { console.warn("⚠️ POLLINATIONS_API_KEY not set - requests may fail on new API endpoint"); CONFIG.POLLINATIONS_AUTH.enabled = false; CONFIG.POLLINATIONS_AUTH.token = ""; }
+    
+    // 🔥 初始化 API Keys
+    if (env.POLLINATIONS_API_KEY) { 
+      CONFIG.POLLINATIONS_AUTH.enabled = true; 
+      CONFIG.POLLINATIONS_AUTH.token = env.POLLINATIONS_API_KEY; 
+    } else { 
+      console.warn("⚠️ POLLINATIONS_API_KEY not set");
+      CONFIG.POLLINATIONS_AUTH.enabled = false; 
+      CONFIG.POLLINATIONS_AUTH.token = ""; 
+    }
+    
+    // 🔥 新增：初始化 Infip API
+    if (env.INFIP_API_KEY) {
+      CONFIG.INFIP_AUTH.enabled = true;
+      CONFIG.INFIP_AUTH.token = env.INFIP_API_KEY;
+      CONFIG.PROVIDERS.infip.enabled = true;
+      
+      // 自動獲取模型列表
+      try {
+        const models = await fetchInfipModels(env.INFIP_API_KEY);
+        if (models.length > 0) {
+          CONFIG.PROVIDERS.infip.models = models;
+          console.log(`✅ Loaded ${models.length} Infip models`);
+        }
+      } catch (e) {
+        console.error("❌ Failed to load Infip models:", e.message);
+      }
+    } else {
+      CONFIG.INFIP_AUTH.enabled = false;
+      CONFIG.PROVIDERS.infip.enabled = false;
+      console.log("ℹ️ INFIP_API_KEY not set, Infip provider disabled");
+    }
     
     console.log("=== Request Info ===");
     console.log("IP:", clientIP);
     console.log("Path:", url.pathname);
     console.log("Method:", request.method);
-    console.log("API Endpoint:", CONFIG.PROVIDERS.pollinations.endpoint);
+    console.log("Pollinations:", CONFIG.PROVIDERS.pollinations.endpoint, "Auth:", CONFIG.POLLINATIONS_AUTH.enabled);
+    console.log("Infip:", CONFIG.PROVIDERS.infip.enabled ? "Enabled" : "Disabled", "Models:", CONFIG.PROVIDERS.infip.models.length);
     console.log("===================");
     
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
@@ -555,26 +834,56 @@ export default {
         response = await handleInternalGenerate(request, env, ctx); 
       } 
       else if (url.pathname === '/health') {
+        const availableProviders = Object.entries(CONFIG.PROVIDERS)
+          .filter(([key, config]) => config.enabled)
+          .map(([key, config]) => ({
+            id: key,
+            name: config.name,
+            endpoint: config.endpoint,
+            authenticated: key === 'pollinations' ? CONFIG.POLLINATIONS_AUTH.enabled : CONFIG.INFIP_AUTH.enabled,
+            models_count: config.models.length,
+            models: config.models.map(m => ({ id: m.id, name: m.name, category: m.category }))
+          }));
+        
         response = new Response(JSON.stringify({
-          status: 'ok', version: CONFIG.PROJECT_VERSION, timestamp: new Date().toISOString(),
+          status: 'ok', 
+          version: CONFIG.PROJECT_VERSION, 
+          timestamp: new Date().toISOString(),
+          providers: availableProviders,
           styles_count: Object.keys(CONFIG.STYLE_PRESETS).length,
-          api_auth: { enabled: CONFIG.POLLINATIONS_AUTH.enabled, method: CONFIG.POLLINATIONS_AUTH.method, has_token: !!CONFIG.POLLINATIONS_AUTH.token, endpoint: CONFIG.PROVIDERS.pollinations.endpoint },
-          models: CONFIG.PROVIDERS.pollinations.models.map(m => ({ id: m.id, name: m.name, category: m.category, supports_reference_images: m.supports_reference_images || false })),
-          style_categories: Object.keys(CONFIG.STYLE_CATEGORIES).map(key => ({ id: key, name: CONFIG.STYLE_CATEGORIES[key].name, icon: CONFIG.STYLE_CATEGORIES[key].icon, count: Object.values(CONFIG.STYLE_PRESETS).filter(s => s.category === key).length }))
+          total_models: availableProviders.reduce((sum, p) => sum + p.models_count, 0),
+          style_categories: Object.keys(CONFIG.STYLE_CATEGORIES).map(key => ({ 
+            id: key, 
+            name: CONFIG.STYLE_CATEGORIES[key].name, 
+            icon: CONFIG.STYLE_CATEGORIES[key].icon, 
+            count: Object.values(CONFIG.STYLE_PRESETS).filter(s => s.category === key).length 
+          }))
         }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       } else {
-        response = new Response(JSON.stringify({ error: 'Not Found', message: '此 Worker 僅提供 Web UI 界面', available_paths: ['/', '/health', '/_internal/generate', '/nano'] }), { status: 404, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+        response = new Response(JSON.stringify({ 
+          error: 'Not Found', 
+          message: '此 Worker 僅提供 Web UI 界面', 
+          available_paths: ['/', '/health', '/_internal/generate', '/nano'] 
+        }), { status: 404, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       }
+      
       const duration = Date.now() - startTime;
       const headers = new Headers(response.headers);
       headers.set('X-Response-Time', duration + 'ms');
       headers.set('X-Worker-Version', CONFIG.PROJECT_VERSION);
-      headers.set('X-API-Endpoint', CONFIG.PROVIDERS.pollinations.endpoint);
+      headers.set('X-Providers-Enabled', Object.entries(CONFIG.PROVIDERS).filter(([k,v]) => v.enabled).map(([k]) => k).join(','));
       return new Response(response.body, { status: response.status, headers: headers });
     } catch (error) {
       const duration = Date.now() - startTime;
       console.error('Worker error:', error);
-      return new Response(JSON.stringify({ error: { message: error.message, type: 'worker_error', timestamp: new Date().toISOString(), duration_ms: duration } }), { status: 500, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+      return new Response(JSON.stringify({ 
+        error: { 
+          message: error.message, 
+          type: 'worker_error', 
+          timestamp: new Date().toISOString(), 
+          duration_ms: duration 
+        } 
+      }), { status: 500, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
     }
   }
 };
@@ -589,8 +898,7 @@ async function handleInternalGenerate(request, env, ctx) {
     const prompt = body.prompt;
     if (!prompt || !prompt.trim()) throw new Error("Prompt is required");
 
-    // ====== NanoBanana Pro 來源與限流檢查 ======
-    // 直接檢查 nanobanana-pro
+    // NanoBanana Pro 限流檢查
     if (body.model === 'nanobanana-pro') {
         const source = request.headers.get('X-Source');
         if (source !== 'nano-page') {
@@ -610,7 +918,6 @@ async function handleInternalGenerate(request, env, ctx) {
             }), { status: 429, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
         }
     }
-    // ===============================================
     
     let width = 1024, height = 1024;
     if (body.width) width = body.width;
@@ -618,7 +925,9 @@ async function handleInternalGenerate(request, env, ctx) {
     
     let referenceImages = [];
     if (body.reference_images && Array.isArray(body.reference_images)) {
-      referenceImages = body.reference_images.filter(url => { try { new URL(url); return true; } catch { return false; } });
+      referenceImages = body.reference_images.filter(url => { 
+        try { new URL(url); return true; } catch { return false; } 
+      });
     }
     
     const seedInput = body.seed !== undefined ? body.seed : -1;
@@ -659,523 +968,81 @@ async function handleInternalGenerate(request, env, ctx) {
     if (results.length === 1 && results[0].imageData) {
       const result = results[0];
       return new Response(result.imageData, {
-        headers: { 'Content-Type': result.contentType || 'image/png', 'Content-Disposition': `inline; filename="flux-ai-${result.seed}.png"`, 'X-Model': result.model, 'X-Model-Name': result.style_name || result.model, 'X-Seed': result.seed.toString(), 'X-Width': result.width.toString(), 'X-Height': result.height.toString(), 'X-Generation-Time': duration + 'ms', 'X-Quality-Mode': result.quality_mode, 'X-Style': result.style, 'X-Style-Name': result.style_name || result.style, 'X-Style-Category': result.style_category || 'unknown', 'X-Generation-Mode': result.generation_mode || '文生圖', 'X-Authenticated': result.authenticated ? 'true' : 'false', 'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint, ...corsHeaders() }
+        headers: { 
+          'Content-Type': result.contentType || 'image/png', 
+          'Content-Disposition': `inline; filename="flux-ai-${result.seed}.png"`, 
+          'X-Provider': result.provider,
+          'X-Model': result.model, 
+          'X-Model-Name': result.style_name || result.model, 
+          'X-Seed': result.seed.toString(), 
+          'X-Width': result.width.toString(), 
+          'X-Height': result.height.toString(), 
+          'X-Generation-Time': duration + 'ms', 
+          'X-Quality-Mode': result.quality_mode, 
+          'X-Style': result.style, 
+          'X-Style-Name': result.style_name || result.style, 
+          'X-Authenticated': result.authenticated ? 'true' : 'false',
+          ...corsHeaders() 
+        }
       });
     }
+    
     const imagesData = await Promise.all(results.map(async (r) => {
       if (r.imageData) {
         const uint8Array = new Uint8Array(r.imageData);
         let binary = '';
         const len = uint8Array.byteLength;
         for (let i = 0; i < len; i++) binary += String.fromCharCode(uint8Array[i]);
-        return { image: `data:${r.contentType};base64,${btoa(binary)}`, model: r.model, seed: r.seed, width: r.width, height: r.height, quality_mode: r.quality_mode, style: r.style, style_name: r.style_name || r.style, style_category: r.style_category || 'unknown', generation_mode: r.generation_mode, authenticated: r.authenticated };
+        return { 
+          image: `data:${r.contentType};base64,${btoa(binary)}`, 
+          provider: r.provider,
+          model: r.model, 
+          seed: r.seed, 
+          width: r.width, 
+          height: r.height, 
+          quality_mode: r.quality_mode, 
+          style: r.style, 
+          style_name: r.style_name || r.style, 
+          authenticated: r.authenticated 
+        };
       }
       return null;
     }));
-    return new Response(JSON.stringify({ created: Math.floor(Date.now() / 1000), data: imagesData.filter(d => d !== null), generation_time_ms: duration, api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint, authenticated: CONFIG.POLLINATIONS_AUTH.enabled, styles_available: Object.keys(CONFIG.STYLE_PRESETS).length }), { headers: corsHeaders({ 'Content-Type': 'application/json', 'X-Generation-Time': duration + 'ms', 'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint, 'X-Styles-Count': Object.keys(CONFIG.STYLE_PRESETS).length.toString() }) });
+    
+    return new Response(JSON.stringify({ 
+      created: Math.floor(Date.now() / 1000), 
+      data: imagesData.filter(d => d !== null), 
+      generation_time_ms: duration,
+      providers_available: router.getAvailableProviders(),
+      styles_available: Object.keys(CONFIG.STYLE_PRESETS).length 
+    }), { 
+      headers: corsHeaders({ 
+        'Content-Type': 'application/json', 
+        'X-Generation-Time': duration + 'ms',
+        'X-Styles-Count': Object.keys(CONFIG.STYLE_PRESETS).length.toString() 
+      }) 
+    });
   } catch (e) {
     logger.add("❌ Error", e.message);
-    return new Response(JSON.stringify({ error: { message: e.message, debug_logs: logger.get(), api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint, authenticated: CONFIG.POLLINATIONS_AUTH.enabled } }), { status: 400, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+    return new Response(JSON.stringify({ 
+      error: { 
+        message: e.message, 
+        debug_logs: logger.get()
+      } 
+    }), { status: 400, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
   }
 }
-// 🔥 Cyber-Banana UI: 包含每小時限額(5張)、Pro模型、燈箱、下載功能
-function handleNanoPage(request) {
-  const html = `<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🍌 NanoBanana Pro - 控制台</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍌</text></svg>">
-<style>
-:root {
-    --primary: #FACC15;
-    --primary-dim: #cca400;
-    --bg-dark: #0f0f11;
-    --panel-bg: rgba(30, 30, 35, 0.7);
-    --border: rgba(255, 255, 255, 0.1);
-    --text: #ffffff;
-    --text-muted: #9ca3af;
-    --glass: blur(20px) saturate(180%);
-}
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body {
-    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: var(--bg-dark);
-    background-image: radial-gradient(circle at 10% 20%, rgba(250, 204, 21, 0.05) 0%, transparent 40%);
-    color: var(--text);
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-}
-.app-container { display: flex; width: 100%; height: 100%; }
-.sidebar {
-    width: 380px;
-    background: var(--panel-bg);
-    backdrop-filter: var(--glass);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    padding: 24px;
-    overflow-y: auto;
-    z-index: 10;
-    position: relative;
-}
-.main-stage {
-    flex: 1;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle at center, #1a1a1d 0%, #000 100%);
-    overflow: hidden;
-}
-.logo-area { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
-.logo-icon { font-size: 28px; animation: float 3s ease-in-out infinite; }
-.logo-text h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-.logo-text .badge { background: var(--primary); color: #000; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px; vertical-align: top; }
-.control-group { margin-bottom: 24px; }
-.label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-textarea, input[type="text"], input[type="number"] {
-    width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; padding: 14px; color: #fff; font-size: 14px; transition: 0.2s; font-family: inherit; resize: none;
-}
-textarea:focus, input:focus { border-color: var(--primary); outline: none; background: rgba(0,0,0,0.5); }
-.ratio-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-.ratio-item {
-    background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; position: relative;
-}
-.ratio-item:hover { background: rgba(255,255,255,0.1); }
-.ratio-item.active { border-color: var(--primary); background: rgba(250, 204, 21, 0.1); color: var(--primary); }
-.ratio-shape { border: 2px solid currentColor; opacity: 0.7; }
-select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 12px; border-radius: 12px; color: white; appearance: none; cursor: pointer; }
-.gen-btn {
-    width: 100%; background: var(--primary); color: #000; border: none; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 20px rgba(250, 204, 21, 0.2); position: relative; overflow: hidden;
-}
-.gen-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(250, 204, 21, 0.4); }
-.gen-btn:active { transform: scale(0.98); }
-.gen-btn:disabled { opacity: 0.7; cursor: not-allowed; filter: grayscale(1); }
-.tool-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; transition: 0.2s; font-size: 14px; }
-.tool-btn:hover { color: var(--primary); }
-.tool-btn.active { color: var(--primary); }
-.quota-box {
-    margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);
-}
-.quota-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
-.quota-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
-.quota-fill { height: 100%; background: var(--primary); width: 100%; transition: width 0.5s ease; }
-.quota-text { font-weight: bold; color: var(--primary); }
-#resultImg {
-    max-width: 90%; max-height: 85%; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: none; object-fit: contain; transition: 0.3s; cursor: zoom-in;
-}
-.placeholder-text { color: rgba(255,255,255,0.1); font-size: 80px; font-weight: 900; user-select: none; }
-.history-dock {
-    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(20, 20, 23, 0.8); backdrop-filter: blur(15px); border: 1px solid var(--border); padding: 10px; border-radius: 20px; display: flex; gap: 10px; max-width: 90%; overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 20;
-}
-.history-item {
-    width: 50px; height: 50px; border-radius: 10px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: 0.2s; flex-shrink: 0;
-}
-.history-item img { width: 100%; height: 100%; object-fit: cover; }
-.history-item:hover { transform: scale(1.1); z-index: 10; }
-.history-item.active { border-color: var(--primary); }
-.lightbox {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: none; flex-direction: column; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s;
-}
-.lightbox.show { display: flex; opacity: 1; }
-.lightbox img { max-width: 95%; max-height: 85vh; border-radius: 8px; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
-.lightbox-close { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 40px; cursor: pointer; opacity: 0.7; transition: 0.2s; }
-.lightbox-close:hover { opacity: 1; color: var(--primary); }
-.lightbox-actions { margin-top: 20px; display: flex; gap: 15px; }
-.action-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: none; transition: 0.2s; }
-.action-btn:hover { background: var(--primary); color: #000; border-color: var(--primary); }
-.loading-overlay {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 50;
-}
-.banana-loader { font-size: 60px; animation: spin-bounce 1.5s infinite; margin-bottom: 20px; }
-.loading-text { color: var(--primary); font-weight: bold; letter-spacing: 2px; text-transform: uppercase; font-size: 14px; }
-@media (max-width: 900px) {
-    body { flex-direction: column; overflow-y: auto; height: auto; }
-    .sidebar { width: 100%; height: auto; padding-bottom: 100px; border-right: none; }
-    .main-stage { height: 50vh; order: -1; border-bottom: 1px solid var(--border); }
-    #resultImg { max-height: 90%; }
-    .history-dock { bottom: 10px; }
-}
-@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-@keyframes spin-bounce { 0% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.2) rotate(10deg); } 100% { transform: scale(1) rotate(0deg); } }
-.toast { position: fixed; top: 20px; right: 20px; background: #333; border-left: 4px solid var(--primary); color: #fff; padding: 15px 25px; border-radius: 8px; display: none; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-size: 14px; animation: slideIn 0.3s forwards; }
-@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-</style>
-</head>
-<body>
-    <div id="toast" class="toast"></div>
-
-    <div class="app-container">
-        <!-- Sidebar Controls -->
-        <div class="sidebar">
-            <div class="logo-area">
-                <div class="logo-icon">🍌</div>
-                <div class="logo-text">
-                    <h1>Nano Pro <span class="badge">V10.6</span></h1>
-                    <p style="color:#666; font-size:12px">Flux Engine • Pro Model</p>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <div class="label-row">
-                    <label>Prompt</label>
-                    <button class="tool-btn" id="randomBtn" title="隨機靈感">🎲 靈感骰子</button>
-                </div>
-                <textarea id="prompt" rows="4" placeholder="描述你想像中的畫面... (支援中文)"></textarea>
-            </div>
-
-            <div class="control-group">
-                <label style="margin-bottom:10px; display:block">畫布比例</label>
-                <div class="ratio-grid">
-                    <div class="ratio-item active" data-w="1024" data-h="1024" title="1:1 方形">
-                        <div class="ratio-shape" style="width:14px; height:14px;"></div>
-                    </div>
-                    <div class="ratio-item" data-w="1080" data-h="1350" title="4:5 IG">
-                        <div class="ratio-shape" style="width:12px; height:15px;"></div>
-                    </div>
-                    <div class="ratio-item" data-w="1080" data-h="1920" title="9:16 限動">
-                        <div class="ratio-shape" style="width:9px; height:16px;"></div>
-                    </div>
-                    <div class="ratio-item" data-w="1920" data-h="1080" title="16:9 桌布">
-                        <div class="ratio-shape" style="width:16px; height:9px;"></div>
-                    </div>
-                    <div class="ratio-item" data-w="2048" data-h="858" title="21:9 電影">
-                        <div class="ratio-shape" style="width:18px; height:7px;"></div>
-                    </div>
-                </div>
-                <input type="hidden" id="width" value="1024">
-                <input type="hidden" id="height" value="1024">
-            </div>
-
-            <div class="control-group">
-                <div class="label-row">
-                    <label>風格 & 設定</label>
-                </div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <select id="style">
-                        <option value="none">✨ 智能無風格</option>
-                        <option value="photorealistic">📷 寫實照片</option>
-                        <option value="anime">🌸 日系動漫</option>
-                        <option value="3d-render">🧊 3D 渲染</option>
-                        <option value="cyberpunk">🌃 賽博龐克</option>
-                        <option value="manga">📖 黑白漫畫</option>
-                        <option value="oil-painting">🎨 古典油畫</option>
-                    </select>
-                    <div style="position:relative">
-                         <input type="number" id="seed" placeholder="Seed" value="-1" disabled style="padding-right:30px">
-                         <button id="lockSeedBtn" class="tool-btn" style="position:absolute; right:10px; top:50%; transform:translateY(-50%)">🎲</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>排除 (Negative)</label>
-                <input type="text" id="negative" value="nsfw, ugly, text, watermark, low quality, bad anatomy" style="font-size:12px; color:#aaa">
-            </div>
-
-            <button id="genBtn" class="gen-btn">
-                <span>生成圖像</span>
-                <span style="font-size:12px; opacity:0.6; font-weight:400; display:block; margin-top:4px">消耗 1 香蕉能量 🍌</span>
-            </button>
-            
-            <div class="quota-box">
-                <div class="quota-info">
-                    <span>每小時能量</span>
-                    <span id="quotaText" class="quota-text">5 / 5</span>
-                </div>
-                <div class="quota-bar">
-                    <div id="quotaFill" class="quota-fill"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="main-stage">
-            <div class="placeholder-text">NANOPRO</div>
-            <img id="resultImg" alt="Generated Image" title="點擊放大">
-            
-            <div class="loading-overlay">
-                <div class="banana-loader">🍌</div>
-                <div class="loading-text">正在注入 AI 能量...</div>
-            </div>
-
-            <div class="history-dock" id="historyStrip">
-                <!-- History Items -->
-            </div>
-        </div>
-    </div>
-    
-    <div class="lightbox" id="lightbox">
-        <div class="lightbox-close" id="lbClose">×</div>
-        <img id="lbImg" src="">
-        <div class="lightbox-actions">
-            <a id="lbDownload" class="action-btn" download="nano-banana-art.png" href="#">
-                📥 保存圖片
-            </a>
-            <button class="action-btn" onclick="document.getElementById('lbClose').click()">
-                ❌ 關閉
-            </button>
-        </div>
-    </div>
-
-<script>
-    const els = {
-        prompt: document.getElementById('prompt'),
-        negative: document.getElementById('negative'),
-        style: document.getElementById('style'),
-        seed: document.getElementById('seed'),
-        width: document.getElementById('width'),
-        height: document.getElementById('height'),
-        genBtn: document.getElementById('genBtn'),
-        img: document.getElementById('resultImg'),
-        loader: document.querySelector('.loading-overlay'),
-        history: document.getElementById('historyStrip'),
-        lockSeed: document.getElementById('lockSeedBtn'),
-        randomBtn: document.getElementById('randomBtn'),
-        ratios: document.querySelectorAll('.ratio-item'),
-        quotaText: document.getElementById('quotaText'),
-        quotaFill: document.getElementById('quotaFill'),
-        lightbox: document.getElementById('lightbox'),
-        lbImg: document.getElementById('lbImg'),
-        lbClose: document.getElementById('lbClose'),
-        lbDownload: document.getElementById('lbDownload')
-    };
-    
-    // UI Quota Logic (Syncs with server limit of 5)
-    let currentQuota = 5;
-    const maxQuota = 5;
-    
-    // Cooldown Logic
-    const COOLDOWN_KEY = 'nano_cooldown_timestamp';
-    const COOLDOWN_SEC = 180;
-    let cooldownInterval = null;
-
-    function checkAndStartCooldown() {
-        const lastTime = localStorage.getItem(COOLDOWN_KEY);
-        if(!lastTime) return;
-
-        const now = Date.now();
-        const diff = Math.floor((now - parseInt(lastTime)) / 1000);
-        
-        if (diff < COOLDOWN_SEC) {
-            startCooldownTimer(COOLDOWN_SEC - diff);
-        }
-    }
-
-    function startCooldownTimer(seconds) {
-        if(cooldownInterval) clearInterval(cooldownInterval);
-        
-        els.genBtn.disabled = true;
-        updateCooldownText(seconds);
-        
-        let left = seconds;
-        cooldownInterval = setInterval(() => {
-            left--;
-            if(left <= 0) {
-                clearInterval(cooldownInterval);
-                localStorage.removeItem(COOLDOWN_KEY);
-                if(currentQuota > 0) {
-                    els.genBtn.disabled = false;
-                    els.genBtn.innerHTML = '<span>生成圖像</span><span style="font-size:12px; opacity:0.6; font-weight:400; display:block; margin-top:4px">消耗 1 香蕉能量 🍌</span>';
-                } else {
-                    updateQuotaUI();
-                }
-            } else {
-                updateCooldownText(left);
-            }
-        }, 1000);
-    }
-
-    function updateCooldownText(sec) {
-        els.genBtn.innerHTML = \`<span>⚡ 能量回充中... (\${sec}s)</span>\`;
-    }
-    
-    const now = new Date();
-    const currentHourStr = now.toDateString() + '-' + now.getHours();
-    const stored = localStorage.getItem('nano_quota_hourly_v2'); 
-    
-    if(stored) {
-        const data = JSON.parse(stored);
-        if(data.hour === currentHourStr) {
-            currentQuota = data.val;
-        } else {
-            localStorage.setItem('nano_quota_hourly_v2', JSON.stringify({hour: currentHourStr, val: maxQuota}));
-            currentQuota = maxQuota;
-        }
-    } else {
-        localStorage.setItem('nano_quota_hourly_v2', JSON.stringify({hour: currentHourStr, val: maxQuota}));
-    }
-    updateQuotaUI();
-    
-    // Check cooldown on load
-    checkAndStartCooldown();
-    
-    function updateQuotaUI() {
-        els.quotaText.textContent = \`\${currentQuota} / \${maxQuota}\`;
-        const pct = (currentQuota / maxQuota) * 100;
-        els.quotaFill.style.width = pct + '%';
-        if(currentQuota <= 0) {
-            els.quotaFill.style.background = '#ef4444';
-            els.genBtn.disabled = true;
-            els.genBtn.innerHTML = '<span>本小時能量已耗盡</span><span style="display:block;font-size:12px;font-weight:400;margin-top:4px">請稍後再來</span>';
-        }
-    }
-    
-    function consumeQuota() {
-        if(currentQuota > 0) {
-            currentQuota--;
-            const n = new Date();
-            const h = n.toDateString() + '-' + n.getHours();
-            localStorage.setItem('nano_quota_hourly_v2', JSON.stringify({hour: h, val: currentQuota}));
-            updateQuotaUI();
-        }
-    }
-
-    els.ratios.forEach(r => {
-        r.onclick = () => {
-            els.ratios.forEach(i => i.classList.remove('active'));
-            r.classList.add('active');
-            els.width.value = r.dataset.w;
-            els.height.value = r.dataset.h;
-        }
-    });
-
-    let isSeedRandom = true;
-    els.lockSeed.onclick = () => {
-        isSeedRandom = !isSeedRandom;
-        if(isSeedRandom) {
-            els.seed.value = '-1';
-            els.seed.disabled = true;
-            els.lockSeed.textContent = '🎲';
-            els.lockSeed.classList.remove('active');
-        } else {
-            if(els.seed.value == '-1') els.seed.value = Math.floor(Math.random() * 1000000);
-            els.seed.disabled = false;
-            els.lockSeed.textContent = '🔒';
-            els.lockSeed.classList.add('active');
-        }
-    };
-
-    const prompts = [
-        "Cyberpunk street vendor making noodles, neon rain, detailed, 8k",
-        "A translucent glass banana floating in space, nebula background",
-        "Cute isometric room, gaming setup, pastel colors, 3d render",
-        "Portrait of a futuristic warrior, gold and black armor, cinematic lighting",
-        "Traditional Japanese village in winter, snow, ukiyo-e style",
-        "Macro shot of a mechanical eye, gears, steampunk"
-    ];
-    els.randomBtn.onclick = () => {
-        els.prompt.value = prompts[Math.floor(Math.random() * prompts.length)];
-        els.prompt.focus();
-    };
-    
-    function openLightbox(url) {
-        els.lbImg.src = url;
-        els.lbDownload.href = url;
-        els.lightbox.classList.add('show');
-    }
-    els.lbClose.onclick = () => els.lightbox.classList.remove('show');
-    els.img.onclick = () => { if(els.img.src) openLightbox(els.img.src); };
-
-    function toast(msg) {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 3000);
-    }
-
-    function addHistory(url) {
-        const div = document.createElement('div');
-        div.className = 'history-item';
-        div.innerHTML = \`<img src="\${url}">\`;
-        div.onclick = () => {
-            els.img.src = url;
-            document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
-            div.classList.add('active');
-        };
-        els.history.prepend(div);
-        if(els.history.children.length > 10) els.history.lastChild.remove();
-        document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
-        div.classList.add('active');
-    }
-
-    els.genBtn.onclick = async () => {
-        const p = els.prompt.value.trim();
-        if(!p) return toast("⚠️ 請輸入提示詞");
-        if(currentQuota <= 0) return toast("🚫 本小時能量已耗盡，請稍後再來！");
-
-        els.genBtn.disabled = true;
-        els.loader.style.display = 'flex';
-        els.img.style.opacity = '0.5';
-
-        try {
-            const res = await fetch('/_internal/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Source': 'nano-page' },
-                body: JSON.stringify({
-                    prompt: p,
-                    negative_prompt: els.negative.value,
-                    model: 'nanobanana-pro',
-                    width: parseInt(els.width.value),
-                    height: parseInt(els.height.value),
-                    style: els.style.value,
-                    seed: parseInt(els.seed.value),
-                    n: 1,
-                    nologo: true
-                })
-            });
-
-            if(res.status === 429) {
-                const err = await res.json();
-                currentQuota = 0;
-                const n = new Date();
-                const h = n.toDateString() + '-' + n.getHours();
-                localStorage.setItem('nano_quota_hourly_v2', JSON.stringify({hour: h, val: 0}));
-                updateQuotaUI();
-                throw new Error(err.error?.message || '限額已滿');
-            }
-
-            if(!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error?.message || '生成失敗');
-            }
-
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            
-            els.img.src = url;
-            els.img.style.display = 'block';
-            els.img.style.opacity = '1';
-            document.querySelector('.placeholder-text').style.display = 'none';
-            
-            const realSeed = res.headers.get('X-Seed');
-            if(!isSeedRandom) els.seed.value = realSeed;
-
-            addHistory(url);
-            consumeQuota();
-            
-            // Start Cooldown
-            localStorage.setItem(COOLDOWN_KEY, Date.now().toString());
-            startCooldownTimer(COOLDOWN_SEC);
-
-        } catch(e) {
-            toast("❌ " + e.message);
-            // On error, re-enable button if quota exists (unless rate limited)
-            if(currentQuota > 0 && !e.message.includes('限額')) els.genBtn.disabled = false;
-        } finally {
-            els.loader.style.display = 'none';
-        }
-    };
-</script>
-</body>
-</html>`;
-  
-  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', ...corsHeaders() } });
-}
 function handleUI() {
-  const authStatus = CONFIG.POLLINATIONS_AUTH.enabled ? '<span style="color:#22c55e;font-weight:600;font-size:12px">🔐 已認證</span>' : '<span style="color:#f59e0b;font-weight:600;font-size:12px">⚠️ 需要 API Key</span>';
+  // 🔥 動態生成 Provider 狀態顯示
+  const providerStatusHTML = Object.entries(CONFIG.PROVIDERS)
+    .filter(([key, config]) => config.enabled)
+    .map(([key, config]) => {
+      const authEnabled = key === 'pollinations' ? CONFIG.POLLINATIONS_AUTH.enabled : CONFIG.INFIP_AUTH.enabled;
+      const statusColor = authEnabled ? '#22c55e' : '#f59e0b';
+      const statusIcon = authEnabled ? '🔐' : '⚠️';
+      const statusText = authEnabled ? '已認證' : '需要 API Key';
+      return `<div style="font-size:11px;color:${statusColor};font-weight:600;margin-left:8px">${statusIcon} ${config.name}: ${statusText}</div>`;
+    }).join('');
   
   // 生成樣式選單 HTML
   const styleCategories = CONFIG.STYLE_CATEGORIES;
@@ -1201,15 +1068,15 @@ function handleUI() {
 <title>Flux AI Pro v${CONFIG.PROJECT_VERSION}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
 <style>
-/* 完整版 CSS 樣式 - Flux Pro 主界面 */
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#0a0a0a 0%,#1a1a2e 100%);color:#fff;min-height:100vh}
 .container{max-width:100%;margin:0;padding:0;height:100vh;display:flex;flex-direction:column}
 .top-nav{background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.1);padding:15px 25px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.nav-left{display:flex;align-items:center;gap:20px}
+.nav-left{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 .logo{color:#f59e0b;font-size:24px;font-weight:800;text-shadow:0 0 20px rgba(245,158,11,0.6);display:flex;align-items:center;gap:10px}
 .badge{background:linear-gradient(135deg,#10b981 0%,#059669 100%);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600}
-.nav-menu{display:flex;gap:10px;align-items:center}
+.api-status{display:flex;gap:5px;flex-wrap:wrap}
+.nav-menu{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .nav-btn{padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#9ca3af;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s;display:flex;align-items:center;gap:6px;text-decoration:none}
 .nav-btn:hover{border-color:#f59e0b;color:#fff}
 .nav-btn.active{background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;border-color:#f59e0b}
@@ -1236,7 +1103,8 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
 .gallery-item img{width:100%;height:280px;object-fit:cover;display:block;cursor:pointer}
 .gallery-info{padding:15px}
 .gallery-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:5px}
-.model-badge,.seed-badge,.style-badge{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.1)}
+.model-badge,.seed-badge,.style-badge,.provider-badge{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.1)}
+.provider-badge{background:rgba(16,185,129,0.2);color:#10b981}
 .gallery-actions{display:flex;gap:8px;margin-top:10px}
 .action-btn{padding:6px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:12px;color:#fff;cursor:pointer;flex:1}
 .action-btn:hover{background:rgba(255,255,255,0.2)}
@@ -1249,6 +1117,8 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
 .modal.show{display:flex}
 .modal-content img{max-width:90vw;max-height:90vh;border-radius:8px}
 .modal-close{position:absolute;top:20px;right:20px;color:#fff;font-size:32px;cursor:pointer}
+.empty-state{text-align:center;padding:80px 20px;color:#6b7280}
+.empty-state p{font-size:18px;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -1256,7 +1126,7 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
 <div class="top-nav">
     <div class="nav-left">
         <div class="logo">🎨 Flux AI Pro <span class="badge">v${CONFIG.PROJECT_VERSION}</span></div>
-        <div><div class="api-status">${authStatus}</div></div>
+        <div class="api-status">${providerStatusHTML}</div>
     </div>
     <div class="nav-menu">
         <a href="/nano" target="_blank" class="nav-btn nano-btn" style="border-color:rgba(250,204,21,0.5);color:#FACC15;margin-right:5px">
@@ -1270,33 +1140,24 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
 <div id="generatePage" class="page active">
 <div class="main-content">
 <div class="left-panel">
-<div class="section-title" data-t="settings_title">⚙️ 生成參數</div>
+<div class="section-title" data-t="settings_title" style="font-size:16px;font-weight:700;margin-bottom:20px;color:#f59e0b">⚙️ 生成參數</div>
 <form id="generateForm">
 <div class="form-group">
-    <label data-t="model_label">模型選擇</label>
-    <select id="model">
-        <optgroup label="🤖 GPT-Image Series">
-        <option value="gptimage" selected>GPT-Image 🎨</option>
-        <option value="gptimage-large">GPT-Image Large 🌟</option>
-        </optgroup>
-        <optgroup label="⚡ Z-Image Series">
-        <option value="zimage">Z-Image Turbo ⚡ (6B)</option>
-        </optgroup>
-        <optgroup label="🎨 Flux Series">
-        <option value="flux">Flux Standard</option>
-        <option value="turbo">Flux Turbo ⚡</option>
-        </optgroup>
-        <optgroup label="🖼️ Kontext Series">
-        <option value="kontext">Kontext 🎨 (Img2Img)</option>
-        </optgroup>
-    </select>
+    <label data-t="provider_label">🌐 API 供應商</label>
+    <select id="provider"></select>
 </div>
-<div class="form-group"><label data-t="size_label">尺寸預設</label><select id="size"><option value="square-1k" selected>Square 1024x1024</option><option value="square-1.5k">Square 1536x1536</option><option value="portrait-9-16-hd">Portrait 1080x1920</option><option value="landscape-16-9-hd">Landscape 1920x1080</option></select></div>
-<div class="form-group"><label data-t="style_label">藝術風格 🎨</label><select id="style">${styleOptionsHTML}</select></div>
-<div class="form-group"><label data-t="quality_label">質量模式</label><select id="qualityMode"><option value="economy">Economy</option><option value="standard" selected>Standard</option><option value="ultra">Ultra HD</option></select></div>
 
 <div class="form-group">
-    <label data-t="seed_label">Seed (種子碼)</label>
+    <label data-t="model_label">🤖 模型選擇</label>
+    <select id="model"></select>
+</div>
+
+<div class="form-group"><label data-t="size_label">📐 尺寸預設</label><select id="size"><option value="square-1k" selected>Square 1024x1024</option><option value="square-1.5k">Square 1536x1536</option><option value="portrait-9-16-hd">Portrait 1080x1920</option><option value="landscape-16-9-hd">Landscape 1920x1080</option></select></div>
+<div class="form-group"><label data-t="style_label">🎨 藝術風格</label><select id="style">${styleOptionsHTML}</select></div>
+<div class="form-group"><label data-t="quality_label">⚡ 質量模式</label><select id="qualityMode"><option value="economy">Economy</option><option value="standard" selected>Standard</option><option value="ultra">Ultra HD</option></select></div>
+
+<div class="form-group">
+    <label data-t="seed_label">🎲 Seed (種子碼)</label>
     <div style="display:flex; gap:10px;">
         <input type="number" id="seed" value="-1" placeholder="Random (-1)" disabled style="flex:1; opacity: 0.7; cursor: not-allowed; font-family: monospace;">
         <button type="button" id="seedToggleBtn" class="btn" style="width:auto; padding:0 15px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);">🎲</button>
@@ -1331,24 +1192,24 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
 </form>
 </div>
 <div class="center-panel">
-<div id="results"><div class="empty-state"><p data-t="empty_title">尚未生成任何圖像</p></div></div>
+<div id="results"><div class="empty-state"><p data-t="empty_title">尚未生成任何圖像</p><p style="font-size:14px;color:#4b5563">選擇供應商和模型，輸入提示詞後點擊生成</p></div></div>
 </div>
 <div class="right-panel">
-<div class="form-group"><label data-t="pos_prompt">正面提示詞</label><textarea id="prompt" placeholder="Describe your image..." required></textarea></div>
-<div class="form-group"><label data-t="neg_prompt">負面提示詞 (可選)</label><textarea id="negativePrompt" placeholder="What to avoid..." rows="4"></textarea></div>
-<div class="form-group"><label data-t="ref_img">參考圖像 URL (Kontext 專用)</label><textarea id="referenceImages" placeholder="Image URLs separated by comma" rows="3"></textarea></div>
+<div class="form-group"><label data-t="pos_prompt">💬 正面提示詞</label><textarea id="prompt" placeholder="Describe your image..." required rows="6"></textarea></div>
+<div class="form-group"><label data-t="neg_prompt">🚫 負面提示詞 (可選)</label><textarea id="negativePrompt" placeholder="What to avoid..." rows="4"></textarea></div>
+<div class="form-group"><label data-t="ref_img">🖼️ 參考圖像 URL (Kontext 專用)</label><textarea id="referenceImages" placeholder="Image URLs separated by comma" rows="3"></textarea></div>
 </div></div></div>
 <div id="historyPage" class="page">
 <div class="main-content" style="flex-direction:column;padding:20px">
 <div class="history-header">
 <div class="history-stats"><div class="stat-item"><div class="label" data-t="stat_total">📊 總記錄數</div><div class="value" id="historyTotal">0</div></div><div class="stat-item"><div class="label" data-t="stat_storage">💾 存儲空間 (永久)</div><div class="value" id="storageSize">0 KB</div></div></div>
-<div class="history-actions"><button class="btn btn-secondary" id="exportBtn" style="width:auto;padding:10px 20px" data-t="btn_export">📥 導出</button><button class="btn btn-danger" id="clearBtn" style="width:auto;padding:10px 20px" data-t="btn_clear">🗑️ 清空</button></div>
+<div class="history-actions"><button class="btn btn-secondary" id="exportBtn" style="width:auto;padding:10px 20px;background:rgba(59,130,246,0.2);color:#60a5fa" data-t="btn_export">📥 導出</button><button class="btn btn-danger" id="clearBtn" style="width:auto;padding:10px 20px;background:rgba(239,68,68,0.2);color:#f87171" data-t="btn_clear">🗑️ 清空</button></div>
 </div>
 <div id="historyList" style="padding:0 20px"><p>Loading history...</p></div>
 </div></div>
 <div id="imageModal" class="modal"><span class="modal-close" id="modalCloseBtn">×</span><div class="modal-content"><img id="modalImage" src=""></div></div>
 <script>
-// ====== IndexedDB 管理核心 (解決死圖) ======
+// ====== IndexedDB 管理核心 ======
 const DB_NAME='FluxAI_DB',STORE_NAME='images',DB_VERSION=1;
 const dbPromise=new Promise((resolve,reject)=>{
     const req=indexedDB.open(DB_NAME,DB_VERSION);
@@ -1395,12 +1256,10 @@ async function clearDB(){
 // ====== I18N 與 UI 邏輯 ======
 const I18N={
     zh:{
-        nav_gen:"🎨 生成圖像", nav_his:"📚 歷史記錄", settings_title:"⚙️ 生成參數", model_label:"模型選擇", size_label:"尺寸預設", style_label:"藝術風格 🎨", quality_label:"質量模式", seed_label:"Seed (種子碼)", seed_random:"🎲 隨機", seed_lock:"🔒 鎖定", auto_opt_label:"✨ 自動優化", auto_opt_desc:"自動調整 Steps 與 Guidance", adv_settings:"🛠️ 進階參數", steps_label:"生成步數 (Steps)", guidance_label:"引導係數 (Guidance)", gen_btn:"🎨 開始生成", empty_title:"尚未生成任何圖像", pos_prompt:"正面提示詞", neg_prompt:"負面提示詞 (可選)", ref_img:"參考圖像 URL (Kontext 專用)", stat_total:"📊 總記錄數", stat_storage:"💾 存儲空間 (永久)", btn_export:"📥 導出", btn_clear:"🗑️ 清空", no_history:"暫無歷史記錄", btn_reuse:"🔄 重用", btn_dl:"💾 下載",
-        cooldown_msg: "⏳ 請等待冷卻時間..."
+        nav_gen:"🎨 生成圖像", nav_his:"📚 歷史記錄", settings_title:"⚙️ 生成參數", provider_label:"🌐 API 供應商", model_label:"🤖 模型選擇", size_label:"📐 尺寸預設", style_label:"🎨 藝術風格", quality_label:"⚡ 質量模式", seed_label:"🎲 Seed (種子碼)", seed_random:"🎲 隨機", seed_lock:"🔒 鎖定", auto_opt_label:"✨ 自動優化", auto_opt_desc:"自動調整 Steps 與 Guidance", adv_settings:"🛠️ 進階參數", steps_label:"生成步數 (Steps)", guidance_label:"引導係數 (Guidance)", gen_btn:"🎨 開始生成", empty_title:"尚未生成任何圖像", pos_prompt:"💬 正面提示詞", neg_prompt:"🚫 負面提示詞 (可選)", ref_img:"🖼️ 參考圖像 URL (Kontext 專用)", stat_total:"📊 總記錄數", stat_storage:"💾 存儲空間 (永久)", btn_export:"📥 導出", btn_clear:"🗑️ 清空", no_history:"暫無歷史記錄", btn_reuse:"🔄 重用", btn_dl:"💾 下載", cooldown_msg: "⏳ 請等待冷卻時間..."
     },
     en:{
-        nav_gen:"🎨 Create", nav_his:"📚 History", settings_title:"⚙️ Settings", model_label:"Model", size_label:"Size", style_label:"Art Style 🎨", quality_label:"Quality", seed_label:"Seed", seed_random:"🎲 Random", seed_lock:"🔒 Lock", auto_opt_label:"✨ Auto Optimize", auto_opt_desc:"Auto adjust Steps & Guidance", adv_settings:"🛠️ Advanced", steps_label:"Steps", guidance_label:"Guidance Scale", gen_btn:"🎨 Generate", empty_title:"No images yet", pos_prompt:"Positive Prompt", neg_prompt:"Negative Prompt", ref_img:"Reference Image URL", stat_total:"📊 Total", stat_storage:"💾 Storage", btn_export:"📥 Export", btn_clear:"🗑️ Clear", no_history:"No history found", btn_reuse:"🔄 Reuse", btn_dl:"💾 Save",
-        cooldown_msg: "⏳ Cooldown..."
+        nav_gen:"🎨 Create", nav_his:"📚 History", settings_title:"⚙️ Settings", provider_label:"🌐 API Provider", model_label:"🤖 Model", size_label:"📐 Size", style_label:"🎨 Art Style", quality_label:"⚡ Quality", seed_label:"🎲 Seed", seed_random:"🎲 Random", seed_lock:"🔒 Lock", auto_opt_label:"✨ Auto Optimize", auto_opt_desc:"Auto adjust Steps & Guidance", adv_settings:"🛠️ Advanced", steps_label:"Steps", guidance_label:"Guidance Scale", gen_btn:"🎨 Generate", empty_title:"No images yet", pos_prompt:"💬 Positive Prompt", neg_prompt:"🚫 Negative Prompt", ref_img:"🖼️ Reference Image URL", stat_total:"📊 Total", stat_storage:"💾 Storage", btn_export:"📥 Export", btn_clear:"🗑️ Clear", no_history:"No history found", btn_reuse:"🔄 Reuse", btn_dl:"💾 Save", cooldown_msg: "⏳ Cooldown..."
     }
 };
 let curLang='zh';
@@ -1460,6 +1319,104 @@ autoOptCheckbox.addEventListener('change', () => { advParamsDiv.style.display = 
 const PRESET_SIZES=${JSON.stringify(CONFIG.PRESET_SIZES)};
 const STYLE_PRESETS=${JSON.stringify(CONFIG.STYLE_PRESETS)};
 
+// 🔥 新增：Provider 和 Model 數據
+const ENABLED_PROVIDERS = ${JSON.stringify(
+  Object.entries(CONFIG.PROVIDERS)
+    .filter(([id, p]) => p.enabled)
+    .map(([id, p]) => ({ 
+      id, 
+      name: p.name,
+      supports_seed: id !== 'infip'
+    }))
+)};
+
+// 🔥 漂亮的模型分組映射（Pollinations 精美分類 + Infip 動態）
+const MODEL_CATEGORIES = {
+  pollinations: {
+    'gptimage': { label: '🤖 GPT-Image Series', icon: '🎨' },
+    'zimage': { label: '⚡ Z-Image Series', icon: '⚡' },
+    'flux': { label: '🎨 Flux Series', icon: '🔥' },
+    'kontext': { label: '🖼️ Kontext Series', icon: '🎭' }
+  },
+  infip: {
+    'default': { label: '🌐 Infip Models', icon: '✨' }
+  }
+};
+
+const MODELS_BY_PROVIDER = ${JSON.stringify(
+  Object.fromEntries(
+    Object.entries(CONFIG.PROVIDERS)
+      .filter(([id, p]) => p.enabled)
+      .map(([id, p]) => {
+        const models = (p.models || []).filter(m => m.id !== "nanobanana-pro");
+        return [id, models.map(m => ({ 
+          id: m.id, 
+          name: m.name || m.id, 
+          category: m.category || 'default'
+        }))];
+      })
+  )
+)};
+
+function renderProviderOptions() {
+  const sel = document.getElementById('provider');
+  sel.innerHTML = ENABLED_PROVIDERS
+    .map(p => \`<option value="\${p.id}" \${p.id === "${CONFIG.DEFAULT_PROVIDER}" ? "selected" : ""}>\${p.name}</option>\`)
+    .join('');
+}
+
+function renderModelOptions(providerId) {
+  const sel = document.getElementById('model');
+  const models = MODELS_BY_PROVIDER[providerId] || [];
+
+  if (!models.length) {
+    sel.innerHTML = \`<option value="" disabled selected>（此供應商沒有可用模型）</option>\`;
+    return;
+  }
+
+  // 🔥 按分類分組顯示
+  const categoryMap = MODEL_CATEGORIES[providerId] || { 'default': { label: '可用模型', icon: '📦' } };
+  const groups = {};
+  
+  for (const m of models) {
+    const cat = m.category || 'default';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(m);
+  }
+
+  const html = Object.entries(groups).map(([cat, arr]) => {
+    const catInfo = categoryMap[cat] || categoryMap['default'] || { label: cat, icon: '📦' };
+    const opts = arr.map(m => \`<option value="\${m.id}">\${m.name}</option>\`).join('');
+    return \`<optgroup label="\${catInfo.label}">\${opts}</optgroup>\`;
+  }).join('');
+
+  sel.innerHTML = html;
+}
+
+renderProviderOptions();
+renderModelOptions(document.getElementById('provider').value);
+
+document.getElementById('provider').addEventListener('change', (e) => {
+  const providerId = e.target.value;
+  renderModelOptions(providerId);
+
+  // 🔥 Infip 不支援 seed，自動鎖定
+  const providerInfo = ENABLED_PROVIDERS.find(p => p.id === providerId);
+  if (providerInfo && !providerInfo.supports_seed) {
+    isSeedRandom = true;
+    seedInput.value = "-1";
+    seedInput.disabled = true;
+    seedToggleBtn.disabled = true;
+    seedToggleBtn.style.opacity = '0.5';
+    seedToggleBtn.style.cursor = 'not-allowed';
+  } else {
+    seedToggleBtn.disabled = false;
+    seedToggleBtn.style.opacity = '1';
+    seedToggleBtn.style.cursor = 'pointer';
+    updateSeedUI();
+  }
+});
+
 async function addToHistory(item){
     let base64Data = item.image;
     if(!base64Data && item.url){
@@ -1470,7 +1427,14 @@ async function addToHistory(item){
         }catch(e){console.error("Image convert failed",e);}
     }
     const record={
-        id: Date.now()+Math.random(), timestamp: new Date().toISOString(), prompt: item.prompt, model: item.model, style: item.style, seed: item.seed, base64: base64Data || item.url
+        id: Date.now()+Math.random(), 
+        timestamp: new Date().toISOString(), 
+        prompt: item.prompt, 
+        provider: item.provider || 'unknown',
+        model: item.model, 
+        style: item.style, 
+        seed: item.seed, 
+        base64: base64Data || item.url
     };
     await saveToDB(record);
 }
@@ -1483,19 +1447,37 @@ async function updateHistoryDisplay(){
     const size = JSON.stringify(history).length;
     document.getElementById('storageSize').textContent = (size/1024/1024).toFixed(2)+' MB';
 
-    if(history.length===0){ list.innerHTML='<div class="empty-state"><p>'+I18N[curLang].no_history+'</p></div>'; return; }
+    if(history.length===0){ 
+        list.innerHTML='<div class="empty-state"><p>'+I18N[curLang].no_history+'</p></div>'; 
+        return; 
+    }
+    
     const div=document.createElement('div');div.className='gallery';
     history.forEach(item=>{
         const imgSrc = item.base64 || item.url;
         const d=document.createElement('div'); d.className='gallery-item';
-        d.innerHTML=\`<img src="\${imgSrc}" loading="lazy"><div class="gallery-info"><div class="gallery-meta"><span class="model-badge">\${item.model}</span><span class="seed-badge">#\${item.seed}</span></div><div class="gallery-actions"><button class="action-btn reuse-btn">\${I18N[curLang].btn_reuse}</button><button class="action-btn download-btn">\${I18N[curLang].btn_dl}</button><button class="action-btn delete delete-btn">🗑️</button></div></div>\`;
+        d.innerHTML=\`<img src="\${imgSrc}" loading="lazy"><div class="gallery-info"><div class="gallery-meta"><span class="provider-badge">\${item.provider || 'unknown'}</span><span class="model-badge">\${item.model}</span><span class="seed-badge">#\${item.seed}</span></div><div class="gallery-actions"><button class="action-btn reuse-btn">\${I18N[curLang].btn_reuse}</button><button class="action-btn download-btn">\${I18N[curLang].btn_dl}</button><button class="action-btn delete delete-btn">🗑️</button></div></div>\`;
         d.querySelector('img').onclick=()=>openModal(imgSrc);
         d.querySelector('.reuse-btn').onclick=()=>{
             document.getElementById('prompt').value=item.prompt||'';
+            
+            // 🔥 切換到對應的 provider
+            const providerSel = document.getElementById('provider');
+            if(item.provider && ENABLED_PROVIDERS.find(p => p.id === item.provider)) {
+                providerSel.value = item.provider;
+                renderModelOptions(item.provider);
+            }
+            
             document.getElementById('model').value=item.model||'gptimage';
             document.getElementById('style').value=item.style||'none';
             const savedSeed = item.seed;
-            if (savedSeed && savedSeed !== -1 && savedSeed !== '-1') { isSeedRandom = false; seedInput.value = savedSeed; } else { isSeedRandom = true; seedInput.value = '-1'; }
+            if (savedSeed && savedSeed !== -1 && savedSeed !== '-1') { 
+                isSeedRandom = false; 
+                seedInput.value = savedSeed; 
+            } else { 
+                isSeedRandom = true; 
+                seedInput.value = '-1'; 
+            }
             updateSeedUI();
             document.querySelector('[data-page="generate"]').click();
         };
@@ -1518,12 +1500,11 @@ document.getElementById('exportBtn').onclick=async()=>{
 
 // ====== 生成邏輯與 60秒冷卻 ======
 let cooldownTimer = null;
-const COOLDOWN_SEC = 60; // 60秒冷卻
+const COOLDOWN_SEC = 60;
 
 document.getElementById('generateForm').addEventListener('submit',async(e)=>{
     e.preventDefault();
     
-    // 檢查冷卻狀態
     const btn=document.getElementById('generateBtn');
     if(btn.disabled && btn.classList.contains('cooldown-active')) return;
 
@@ -1533,21 +1514,27 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
     
     if(!prompt)return;
     
-    // 開始生成，鎖定按鈕
     btn.disabled=true; 
     btn.textContent=curLang==='zh'?'生成中...':'Generating...';
     resDiv.innerHTML='<div class="loading"><div class="spinner"></div></div>';
     
     const currentSeed = isSeedRandom ? -1 : parseInt(seedInput.value);
     const isAutoOpt = autoOptCheckbox.checked;
+    const selectedProvider = document.getElementById('provider').value;
 
     try{
         const res=await fetch('/_internal/generate',{
             method:'POST', headers:{'Content-Type':'application/json'},
             body:JSON.stringify({
-                prompt, model:document.getElementById('model').value, width:sizeConfig.width, height:sizeConfig.height,
-                style:document.getElementById('style').value, quality_mode:document.getElementById('qualityMode').value,
-                seed: currentSeed, auto_optimize: isAutoOpt,
+                provider: selectedProvider,
+                prompt, 
+                model:document.getElementById('model').value, 
+                width:sizeConfig.width, 
+                height:sizeConfig.height,
+                style:document.getElementById('style').value, 
+                quality_mode:document.getElementById('qualityMode').value,
+                seed: currentSeed, 
+                auto_optimize: isAutoOpt,
                 steps: isAutoOpt ? null : parseInt(document.getElementById('steps').value),
                 guidance_scale: isAutoOpt ? null : parseFloat(document.getElementById('guidanceScale').value),
                 negative_prompt:document.getElementById('negativePrompt').value,
@@ -1564,21 +1551,32 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
             reader.onloadend=async()=>{
                 const base64=reader.result;
                 const realSeed = res.headers.get('X-Seed');
-                const item={ image:base64, prompt, model:res.headers.get('X-Model'), seed: realSeed, style:res.headers.get('X-Style') };
+                const provider = res.headers.get('X-Provider');
+                const item={ 
+                    image:base64, 
+                    prompt, 
+                    provider: provider || selectedProvider,
+                    model:res.headers.get('X-Model'), 
+                    seed: realSeed, 
+                    style:res.headers.get('X-Style') 
+                };
                 await addToHistory(item);
                 displayResult([item]);
-                startCooldown(); // 成功後啟動冷卻
+                startCooldown();
             };
         }else{
             const data=await res.json();
             if(data.error) throw new Error(data.error.message);
-            for(const d of data.data){ const item={...d, prompt}; await addToHistory(item); items.push(item); }
+            for(const d of data.data){ 
+                const item={...d, prompt, provider: d.provider || selectedProvider}; 
+                await addToHistory(item); 
+                items.push(item); 
+            }
             displayResult(items);
-            startCooldown(); // 成功後啟動冷卻
+            startCooldown();
         }
     }catch(err){ 
         resDiv.innerHTML='<p style="color:red;text-align:center">'+err.message+'</p>'; 
-        // 失敗時不冷卻，直接解鎖
         btn.disabled=false; 
         btn.textContent=I18N[curLang].gen_btn;
     }
@@ -1590,7 +1588,6 @@ function startCooldown() {
     btn.disabled = true;
     let secondsLeft = COOLDOWN_SEC;
     
-    // 立即更新 UI
     updateBtnText(secondsLeft);
     
     cooldownTimer = setInterval(() => {
@@ -1616,7 +1613,7 @@ function displayResult(items){
     const div=document.createElement('div');div.className='gallery';
     items.forEach(item=>{
         const d=document.createElement('div');d.className='gallery-item';
-        d.innerHTML=\`<img src="\${item.image||item.url}" onclick="openModal(this.src)">\`;
+        d.innerHTML=\`<img src="\${item.image||item.url}" onclick="openModal(this.src)"><div class="gallery-info"><div class="gallery-meta"><span class="provider-badge">\${item.provider || 'unknown'}</span><span class="model-badge">\${item.model}</span></div></div>\`;
         div.appendChild(d);
     });
     document.getElementById('results').innerHTML='';
