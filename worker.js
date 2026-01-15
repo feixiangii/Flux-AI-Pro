@@ -42,7 +42,6 @@ const CONFIG = {
         private_mode: true, custom_size: true, seed_control: true, negative_prompt: true, enhance: true, nologo: true, style_presets: true, auto_hd: true, quality_modes: true, auto_translate: true, reference_images: true, image_to_image: true, batch_generation: true, api_key_auth: true
       },
       models: [
-        { id: "nanobanana-pro", name: "Nano Banana Pro 🍌", confirmed: true, category: "special", description: "Nano Banana Pro 風格模型 (每小時限額 5 張)", max_size: 2048, pricing: { image_price: 0, currency: "free" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "gptimage", name: "GPT-Image 🎨", confirmed: true, category: "gptimage", description: "通用 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "gptimage-large", name: "GPT-Image Large 🌟", confirmed: true, category: "gptimage", description: "高質量 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "zimage", name: "Z-Image Turbo ⚡", confirmed: true, category: "zimage", description: "快速 6B 參數圖像生成 (Alpha)", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
@@ -520,7 +519,10 @@ class InfipProvider {
   async generate(prompt, options, logger) {
     const { model = "img4", width = 1024, height = 1024, apiKey = "" } = options;
     
-    if (!apiKey) throw new Error("Infip API Key is required");
+    // Prefer environment variable if available
+    const finalApiKey = this.env.INFIP_API_KEY || apiKey;
+
+    if (!finalApiKey) throw new Error("Infip API Key is required (Set INFIP_API_KEY env var or provide via UI)");
 
     let basePrompt = prompt;
     let translationLog = { translated: false };
@@ -537,7 +539,7 @@ class InfipProvider {
     const url = `${this.config.endpoint}/v1/images/generations`;
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${finalApiKey}`,
       'User-Agent': 'Flux-AI-Pro-Worker'
     };
     
@@ -658,7 +660,7 @@ export default {
         response = handleNanoPage(request); 
       } 
       else if (url.pathname === '/' || url.pathname === '') { 
-        response = handleUI(request); 
+        response = handleUI(request, env); 
       } 
       else if (url.pathname === '/_internal/generate') { 
         response = await handleInternalGenerate(request, env, ctx); 
@@ -1284,7 +1286,8 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
   
   return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', ...corsHeaders() } });
 }
-function handleUI() {
+function handleUI(request, env) {
+  const hasInfipServerKey = !!(env && env.INFIP_API_KEY);
   const authStatus = CONFIG.POLLINATIONS_AUTH.enabled ? '<span style="color:#22c55e;font-weight:600;font-size:12px">🔐 已認證</span>' : '<span style="color:#f59e0b;font-weight:600;font-size:12px">⚠️ 需要 API Key</span>';
   
   // 生成樣式選單 HTML
@@ -1578,9 +1581,14 @@ function updateModelOptions() {
     const config = PROVIDERS[p];
     if(!config) return;
     
+    // Logic: Show API Key input only if required AND not provided by server
     if(config.requires_key && config.auth_mode === 'bearer') {
-        apiKeyGroup.style.display = 'block';
-        apiKeyInput.value = localStorage.getItem('infip_api_key') || '';
+        if (config.has_server_key) {
+            apiKeyGroup.style.display = 'none';
+        } else {
+            apiKeyGroup.style.display = 'block';
+            apiKeyInput.value = localStorage.getItem('infip_api_key') || '';
+        }
     } else {
         apiKeyGroup.style.display = 'none';
     }
@@ -1612,7 +1620,12 @@ apiKeyInput.addEventListener('input', (e) => localStorage.setItem('infip_api_key
 
 const PRESET_SIZES=${JSON.stringify(CONFIG.PRESET_SIZES)};
 const STYLE_PRESETS=${JSON.stringify(CONFIG.STYLE_PRESETS)};
-const PROVIDERS=${JSON.stringify(CONFIG.PROVIDERS)};
+// Inject server-side key status
+const frontendProviders = ${JSON.stringify(CONFIG.PROVIDERS)};
+if (${hasInfipServerKey} && frontendProviders.infip) {
+    frontendProviders.infip.has_server_key = true;
+}
+const PROVIDERS=frontendProviders;
 
 async function addToHistory(item){
     let base64Data = item.image;
