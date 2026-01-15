@@ -517,7 +517,7 @@ class InfipProvider {
   constructor(config, env) { this.config = config; this.name = config.name; this.env = env; }
   
   async generate(prompt, options, logger) {
-    const { model = "img4", width = 1024, height = 1024, apiKey = "", nsfw = false } = options;
+    const { model = "img4", width = 1024, height = 1024, apiKey = "", nsfw = false, style = "none", negativePrompt = "" } = options;
     
     // Prefer environment variable if available
     const finalApiKey = this.env.INFIP_API_KEY || apiKey;
@@ -536,6 +536,10 @@ class InfipProvider {
       }
     }
 
+    // Apply Style
+    const { enhancedPrompt } = StyleProcessor.applyStyle(basePrompt, style, negativePrompt);
+    logger.add("🎨 Style Processing", { selected_style: style, style_applied: style !== 'none', original: basePrompt, enhanced: enhancedPrompt });
+
     const url = `${this.config.endpoint}/v1/images/generations`;
     const headers = {
       'Content-Type': 'application/json',
@@ -548,10 +552,13 @@ class InfipProvider {
     if (width > height && width >= 1500) sizeStr = "1792x1024";
     else if (height > width && height >= 1500) sizeStr = "1024x1792";
     
+    // Infip supports up to 4 images per request
+    const batchSize = Math.min(Math.max(options.numOutputs || 1, 1), 4);
+
     const body = {
       model: model,
-      prompt: basePrompt,
-      n: 1,
+      prompt: enhancedPrompt,
+      n: batchSize,
       size: sizeStr,
       response_format: "url"
     };
@@ -579,7 +586,52 @@ class InfipProvider {
          throw new Error("Async models (task_id) are not supported in this version. Please use Sync models like img4.");
       }
       
-      if (data.data && data.data.length > 0 && data.data[0].url) {
+      if (data.data && data.data.length > 0) {
+        // Handle multiple images response
+        if (data.data.length > 1) {
+            const results = [];
+            for(const item of data.data) {
+                if(item.url) {
+                    const imgUrl = item.url;
+                    // For batch results, we return simplified objects
+                    // Note: The caller (MultiProviderRouter) expects a single result object if called once, 
+                    // but here we are inside generate().
+                    // Since MultiProviderRouter loops numOutputs, we need to be careful.
+                    // However, for Infip we are now doing batching INSIDE generate().
+                    // To support this, we need to return an array or change how MultiProviderRouter works.
+                    // BUT, to keep compatibility, let's just return the FIRST image here if called via standard loop,
+                    // OR if we want to support true batching, we should return an array.
+                    // Let's modify MultiProviderRouter to handle array returns from provider.generate().
+                    
+                    // Actually, simpler approach: Return the first image as main, and others as extra_images
+                    // But that complicates the flow. 
+                    
+                    // Let's fetch all images in parallel
+                    const imgResp = await fetch(imgUrl);
+                    const imageBuffer = await imgResp.arrayBuffer();
+                    results.push({
+                        imageData: imageBuffer,
+                        contentType: imgResp.headers.get('content-type') || 'image/png',
+                        url: imgUrl,
+                        provider: this.name,
+                        model: model,
+                        seed: -1,
+                        width: width,
+                        height: height,
+                        authenticated: true
+                    });
+                }
+            }
+            // Return array of results (Special case handled by router/caller?)
+            // No, the router expects a single object. 
+            // We will return a special object that contains "batch_results"
+            return {
+                batch_results: results,
+                provider: this.name,
+                cost: "QUOTA"
+            };
+        }
+
         const imgUrl = data.data[0].url;
         logger.add("⬇️ Downloading Image", { url: imgUrl });
         
@@ -635,6 +687,25 @@ class MultiProviderRouter {
     const { provider: requestedProvider = null, numOutputs = 1 } = options;
     const { name: providerName, instance: provider } = this.getProvider(requestedProvider);
     const results = [];
+    
+    // Optimization for Infip: Use native batching if available
+    if (providerName === 'infip' && numOutputs > 1) {
+         const batchOptions = { ...options, numOutputs: numOutputs, seed: options.seed };
+         try {
+             const result = await provider.generate(prompt, batchOptions, logger);
+             if (result.batch_results) {
+                 results.push(...result.batch_results);
+                 return results;
+             } else {
+                 results.push(result);
+             }
+         } catch (e) {
+             logger.add("❌ Batch Generation Failed", { error: e.message });
+             throw e;
+         }
+         return results;
+    }
+
     for (let i = 0; i < numOutputs; i++) {
       const currentOptions = { ...options, seed: options.seed === -1 ? -1 : options.seed + i };
       const result = await provider.generate(prompt, currentOptions, logger);
@@ -1603,8 +1674,11 @@ function updateModelOptions() {
             apiKeyGroup.style.display = 'none';
         } else {
             apiKeyGroup.style.display = 'block';
+            let storedKey = '';
+            if (p === 'infip') storedKey = localStorage.getItem('infip_api_key');
+            
+            apiKeyInput.value = storedKey || '';
             apiKeyInput.placeholder = "Paste your API Key here";
-            apiKeyInput.value = localStorage.getItem('infip_api_key') || '';
         }
     } else {
         apiKeyGroup.style.display = 'none';
@@ -1711,7 +1785,8 @@ document.getElementById('exportBtn').onclick=async()=>{
 
 // ====== 生成邏輯與 60秒冷卻 ======
 let cooldownTimer = null;
-const COOLDOWN_SEC = 60; // 60秒冷卻
+const COOLDOWN_SEC = 60; // Default cooldown
+const INFIP_COOLDOWN_SEC = 30; // Infip specific cooldown
 
 document.getElementById('generateForm').addEventListener('submit',async(e)=>{
     e.preventDefault();
@@ -1778,14 +1853,22 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
                 const item={ image:base64, prompt, model:res.headers.get('X-Model'), seed: realSeed, style:res.headers.get('X-Style') };
                 await addToHistory(item);
                 displayResult([item]);
-                startCooldown(); // 成功後啟動冷卻
+                
+                // Determine cooldown based on provider
+                const provider = document.getElementById('provider').value;
+                const cooldownTime = provider === 'infip' ? INFIP_COOLDOWN_SEC : COOLDOWN_SEC;
+                startCooldown(cooldownTime);
             };
         }else{
             const data=await res.json();
             if(data.error) throw new Error(data.error.message);
             for(const d of data.data){ const item={...d, prompt}; await addToHistory(item); items.push(item); }
             displayResult(items);
-            startCooldown(); // 成功後啟動冷卻
+            
+            // Determine cooldown based on provider
+            const provider = document.getElementById('provider').value;
+            const cooldownTime = provider === 'infip' ? INFIP_COOLDOWN_SEC : COOLDOWN_SEC;
+            startCooldown(cooldownTime); 
         }
     }catch(err){ 
         resDiv.innerHTML='<p style="color:red;text-align:center">'+err.message+'</p>'; 
@@ -1795,11 +1878,11 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
     }
 });
 
-function startCooldown() {
+function startCooldown(duration = COOLDOWN_SEC) {
     const btn = document.getElementById('generateBtn');
     btn.classList.add('cooldown-active');
     btn.disabled = true;
-    let secondsLeft = COOLDOWN_SEC;
+    let secondsLeft = duration;
     
     // 立即更新 UI
     updateBtnText(secondsLeft);
