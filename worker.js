@@ -1,12 +1,12 @@
 // =================================================================================
 //  項目: Flux AI Pro - NanoBanana Edition
-//  版本: 11.1.0 (Whos.amung.us Stats)
-//  更新: 使用 whos.amung.us 進行第三方流量統計
+//  版本: 11.2.0 (UI Overhaul & Klein Model)
+//  更新: 深空紫主題、FLUX.2 Klein 4B 模型、自動 Ultra 畫質、頁腳優化
 // =================================================================================
 
 const CONFIG = {
   PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "11.1.0",
+  PROJECT_VERSION: "11.2.0",
   API_MASTER_KEY: "1",
   FETCH_TIMEOUT: 120000,
   MAX_RETRIES: 3,
@@ -49,7 +49,8 @@ const CONFIG = {
         { id: "turbo", name: "Flux Turbo ⚡", confirmed: true, category: "flux", description: "超快速圖像生成", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "kontext", name: "Kontext 🎨", confirmed: true, category: "kontext", description: "上下文感知圖像生成（支持圖生圖）", max_size: 2048, pricing: { image_price: 0.04, currency: "pollen" }, supports_reference_images: true, max_reference_images: 1, input_modalities: ["text", "image"], output_modalities: ["image"] },
         { id: "seedream", name: "SeeDream 🌈", confirmed: true, category: "seedream", description: "夢幻般的圖像生成", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "seedream-pro", name: "SeeDream Pro 🌟", confirmed: true, category: "seedream", description: "高品質夢幻圖像生成", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] }
+        { id: "seedream-pro", name: "SeeDream Pro 🌟", confirmed: true, category: "seedream", description: "高品質夢幻圖像生成", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
+        { id: "klein", name: "FLUX.2 Klein 4B", confirmed: true, category: "flux", description: "Advanced Flux 2 model", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] }
       ],
       rate_limit: null,
       max_size: { width: 2048, height: 2048 }
@@ -143,6 +144,7 @@ const CONFIG = {
       "gptimage-large": { min: 15, optimal: 25, max: 35 },
       "zimage": { min: 8, optimal: 15, max: 25 }, 
       "flux": { min: 15, optimal: 20, max: 30 }, 
+      "klein": { min: 20, optimal: 25, max: 35 }, 
       "turbo": { min: 4, optimal: 8, max: 12 }, 
       "kontext": { min: 18, optimal: 25, max: 35 } 
     },
@@ -165,6 +167,7 @@ const CONFIG = {
       "gptimage-large": { min_resolution: 1280, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.05, recommended_quality: "ultra" },
       "zimage": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "economy" },
       "flux": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.1, guidance_boost: 1.0, recommended_quality: "standard" },
+      "klein": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
       "turbo": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 0.9, guidance_boost: 0.95, recommended_quality: "economy" },
       "kontext": { min_resolution: 1280, max_resolution: 2048, optimal_steps_boost: 1.2, guidance_boost: 1.1, recommended_quality: "ultra" }
     }
@@ -1945,6 +1948,14 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
     const isNSFW = document.getElementById('nsfwToggle').checked;
     const batchSize = parseInt(document.getElementById('batchSize').value) || 1;
     
+    // Auto-Set Quality to ULTRA for ALL models (Best Quality Policy)
+    let qualityMode = 'ultra'; 
+    console.log("Auto-switching to ULTRA quality for optimal results");
+    // Also update UI to reflect this if needed, but for now just send it to API
+    // If the element exists, we can try to update it visually:
+    const qualityEl = document.getElementById('qualityMode');
+    if(qualityEl) qualityEl.value = 'ultra';
+    
     let finalNegative = document.getElementById('negativePrompt').value;
     if (isNSFW && document.getElementById('provider').value === 'infip') {
         // Filter out common NSFW keywords from negative prompt
@@ -1959,7 +1970,7 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
             method:'POST', headers:{'Content-Type':'application/json'},
             body:JSON.stringify({
                 prompt, model:document.getElementById('model').value, width:sizeConfig.width, height:sizeConfig.height,
-                style:document.getElementById('style').value, quality_mode:document.getElementById('qualityMode').value,
+                style:document.getElementById('style').value, quality_mode:qualityMode,
                 seed: currentSeed, auto_optimize: isAutoOpt,
                 steps: isAutoOpt ? null : parseInt(document.getElementById('steps').value),
                 guidance_scale: isAutoOpt ? null : parseFloat(document.getElementById('guidanceScale').value),
