@@ -1,7 +1,7 @@
 // =================================================================================
 //  項目: Flux AI Pro - NanoBanana Edition
-//  版本: 11.3.0 (Quality Boost)
-//  更新: 獨立圖生圖介面、生圖質量增強 (HD Prompts + Klein Tuning)
+//  版本: 11.3.0 (Img2Img Pro)
+//  更新: 獨立圖生圖介面、圖片上傳修復、模型精簡與優化
 // =================================================================================
 
 const CONFIG = {
@@ -31,8 +31,7 @@ const CONFIG = {
     "landscape-3-2": { name: "橫屏 3:2", width: 1200, height: 800 },
     "cinematic-21-9": { name: "電影感 21:9", width: 1920, height: 822 },
     "double-screen": { name: "雙屏 32:9", width: 2048, height: 576 },
-    "ultrawide": { name: "超寬 18:9", width: 2048, height: 1024 },
-    "custom": { name: "自定義尺寸...", width: 0, height: 0 }
+    "ultrawide": { name: "超寬 18:9", width: 2048, height: 1024 }
   },
   
   PROVIDERS: {
@@ -1495,13 +1494,6 @@ function handleUI(request, env) {
       styleOptionsHTML += '</optgroup>';
     }
   }
-
-  // Generate Size Options HTML
-  let sizeOptionsHTML = '';
-  for (const [key, config] of Object.entries(CONFIG.PRESET_SIZES)) {
-      const selected = key === 'square-1k' ? ' selected' : '';
-      sizeOptionsHTML += `<option value="${key}"${selected}>${config.name}</option>`;
-  }
   
   const html = `<!DOCTYPE html>
 <html lang="zh-TW">
@@ -1672,20 +1664,7 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
         <!-- JS will populate this -->
     </select>
 </div>
-<div class="form-group">
-    <label data-t="size_label">尺寸預設</label>
-    <select id="size">${sizeOptionsHTML}</select>
-</div>
-<div id="customSizeGroup" style="display:none; grid-template-columns: 1fr 1fr; gap:10px; margin-top:-10px; margin-bottom:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
-    <div>
-        <label style="font-size:11px; margin-bottom:2px;">寬度 (Width)</label>
-        <input type="number" id="customWidth" value="1024" min="64" max="2048" step="64">
-    </div>
-    <div>
-        <label style="font-size:11px; margin-bottom:2px;">高度 (Height)</label>
-        <input type="number" id="customHeight" value="1024" min="64" max="2048" step="64">
-    </div>
-</div>
+<div class="form-group"><label data-t="size_label">尺寸預設</label><select id="size"><option value="square-1k" selected>Square 1024x1024</option><option value="square-1.5k">Square 1536x1536</option><option value="portrait-9-16-hd">Portrait 1080x1920</option><option value="landscape-16-9-hd">Landscape 1920x1080</option></select></div>
 <div class="form-group"><label data-t="style_label">藝術風格 🎨</label><select id="style">${styleOptionsHTML}</select></div>
 <div class="form-group"><label data-t="quality_label">質量模式</label><select id="qualityMode"><option value="economy">Economy</option><option value="standard" selected>Standard</option><option value="ultra">Ultra HD</option></select></div>
 
@@ -2059,17 +2038,6 @@ imageUpload.addEventListener('change', async (e) => {
     }
 });
 
-const sizeSelect = document.getElementById('size');
-const customSizeGroup = document.getElementById('customSizeGroup');
-
-sizeSelect.addEventListener('change', () => {
-    if (sizeSelect.value === 'custom') {
-        customSizeGroup.style.display = 'grid';
-    } else {
-        customSizeGroup.style.display = 'none';
-    }
-});
-
 providerSelect.addEventListener('change', updateModelOptions);
 apiKeyInput.addEventListener('input', (e) => localStorage.setItem('infip_api_key', e.target.value));
 
@@ -2191,15 +2159,9 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
     const curKey = document.getElementById('apiKey').value;
     if(curProvider === 'infip') localStorage.setItem('infip_api_key', curKey);
 
-    const sizeSelect = document.getElementById('size');
-    let sizeConfig = PRESET_SIZES[sizeSelect.value];
-    
-    // Handle Custom Size
-    if (sizeSelect.value === 'custom') {
-        const cw = parseInt(document.getElementById('customWidth').value) || 1024;
-        const ch = parseInt(document.getElementById('customHeight').value) || 1024;
-        sizeConfig = { width: cw, height: ch };
-    }
+    const prompt=document.getElementById('prompt').value;
+    const resDiv=document.getElementById('results');
+    const sizeConfig=PRESET_SIZES[document.getElementById('size').value];
     
     if(!prompt)return;
     
