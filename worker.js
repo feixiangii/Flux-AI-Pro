@@ -811,9 +811,16 @@ async function handleUpload(request) {
     // ImgBB 免費 API Key (用於測試，生產環境建議使用自己的 API Key)
     const IMGBB_API_KEY = 'c4a9c3b4f5e6d7a8b9c0d1e2f3a4b5c6'; // 免費測試用 API Key
     
-    // 將文件轉換為 Base64
+    // 將文件轉換為 Base64（使用分塊處理避免堆疊溢出）
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const uint8Array = new Uint8Array(arrayBuffer);
+    let binary = '';
+    const chunkSize = 65536; // 每次處理 64KB
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    const base64 = btoa(binary);
     
     // 構建 ImgBB API 請求
     const imgbbFormData = new FormData();
