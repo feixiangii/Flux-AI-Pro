@@ -33,6 +33,39 @@ export class ServerStyleManager {
     };
   }
 
+  // 獲取本地化的風格名稱
+  getStyleName(styleKey, lang = 'zh') {
+    const style = this.styles[styleKey];
+    if (!style) return styleKey;
+    
+    if (typeof style.name === 'object') {
+      return style.name[lang] || style.name['en'] || style.name['zh'] || styleKey;
+    }
+    return style.name || styleKey;
+  }
+
+  // 獲取本地化的風格描述
+  getStyleDescription(styleKey, lang = 'zh') {
+    const style = this.styles[styleKey];
+    if (!style) return '';
+    
+    if (typeof style.description === 'object') {
+      return style.description[lang] || style.description['en'] || style.description['zh'] || '';
+    }
+    return style.description || '';
+  }
+
+  // 獲取本地化的分類名稱
+  getCategoryName(categoryKey, lang = 'zh') {
+    const category = this.categories[categoryKey];
+    if (!category) return categoryKey;
+    
+    if (typeof category.name === 'object') {
+      return category.name[lang] || category.name['en'] || category.name['zh'] || categoryKey;
+    }
+    return category.name || categoryKey;
+  }
+
   merge() {
     return {
       styles: this.styles,

@@ -2550,10 +2550,14 @@ function handleUI(request, env) {
   for (const [categoryKey, categoryInfo] of sortedCategories) {
     const stylesInCategory = Object.entries(stylePresets).filter(([key, style]) => style.category === categoryKey);
     if (stylesInCategory.length > 0) {
-      styleOptionsHTML += `<optgroup label="${categoryInfo.icon} ${categoryInfo.name}">`;
+      // Get translated category name
+      const categoryName = typeof categoryInfo.name === 'object' ? (categoryInfo.name[currentLang] || categoryInfo.name.zh || categoryInfo.name) : categoryInfo.name;
+      styleOptionsHTML += `<optgroup label="${categoryInfo.icon} ${categoryName}">`;
       for (const [styleKey, styleConfig] of stylesInCategory) {
         const selected = styleKey === 'none' ? ' selected' : '';
-        styleOptionsHTML += `<option value="${styleKey}"${selected}>${styleConfig.icon} ${styleConfig.name}</option>`;
+        // Get translated style name
+        const styleName = typeof styleConfig.name === 'object' ? (styleConfig.name[currentLang] || styleConfig.name.zh || styleConfig.name) : styleConfig.name;
+        styleOptionsHTML += `<option value="${styleKey}"${selected}>${styleConfig.icon} ${styleName}</option>`;
       }
       styleOptionsHTML += '</optgroup>';
     }
