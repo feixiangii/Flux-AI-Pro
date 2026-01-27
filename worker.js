@@ -1348,6 +1348,72 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
 [dir="rtl"] .quota-info{flex-direction:row-reverse}
 [dir="rtl"] .history-dock{direction:rtl}
 [dir="rtl"] .lightbox-actions{flex-direction:row-reverse}
+/* 拖放區域樣式 - Nano Pro 版本 */
+.nano-drag-drop-zone {
+    border: 2px dashed rgba(250, 204, 21, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.2);
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.nano-drag-drop-zone:hover {
+    border-color: rgba(250, 204, 21, 0.6);
+    background: rgba(250, 204, 21, 0.08);
+}
+.nano-drag-drop-zone.drag-over {
+    border-color: #FACC15;
+    background: rgba(250, 204, 21, 0.2);
+    transform: scale(1.02);
+}
+.nano-drag-drop-zone .drag-icon {
+    font-size: 28px;
+    opacity: 0.7;
+}
+.nano-drag-drop-zone .drag-text {
+    font-size: 12px;
+    color: #9ca3af;
+}
+.nano-drag-drop-zone .drag-subtext {
+    font-size: 10px;
+    color: #6b7280;
+}
+/* Nano Pro 上傳進度條樣式 */
+.nano-upload-progress-container {
+    width: 100%;
+    margin-top: 8px;
+    display: none;
+}
+.nano-upload-progress-container.show {
+    display: block;
+}
+.nano-upload-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.nano-upload-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #FACC15, #fde047);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 2px;
+}
+.nano-upload-progress-text {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-top: 3px;
+    text-align: center;
+}
 </style>
 </head>
 <body>
@@ -1461,18 +1527,22 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
                 
                 <div style="margin-bottom: 8px;">
                     <label id="promptGeneratorUploadLabel" style="font-size: 10px; color: #9ca3af; margin-bottom: 4px; display: block;">上傳參考圖片 (可選)</label>
-                    <div style="display: flex; gap: 6px;">
-                        <input type="file" id="nanoPromptImageUpload" accept="image/*" style="display:none">
-                        <button type="button" id="nanoPromptImageUploadBtn"
-                                style="flex: 1; background: rgba(250, 204, 21, 0.2); color: var(--primary); border: 1px solid rgba(250, 204, 21, 0.4); padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                            <span>📷</span>
-                            <span id="promptGeneratorSelectText">選擇圖片</span>
-                        </button>
-                        <button type="button" id="nanoPromptImageClearBtn"
-                                style="flex: 0 0 auto; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; display: none;">
-                            <span>✕</span>
-                        </button>
+                    <input type="file" id="nanoPromptImageUpload" accept="image/*" style="display:none">
+                    <div id="nanoPromptImageDropZone" class="nano-drag-drop-zone">
+                        <div class="drag-icon">📷</div>
+                        <div class="drag-text" id="promptGeneratorSelectText">拖放圖片或點擊選擇</div>
+                        <div class="drag-subtext">支援 JPG, PNG, GIF (最大 5MB)</div>
+                        <div id="nanoPromptImageUploadProgress" class="nano-upload-progress-container">
+                            <div class="nano-upload-progress-bar">
+                                <div class="nano-upload-progress-fill" id="nanoPromptImageUploadProgressFill"></div>
+                            </div>
+                            <div class="nano-upload-progress-text" id="nanoPromptImageUploadProgressText">上傳中... 0%</div>
+                        </div>
                     </div>
+                    <button type="button" id="nanoPromptImageClearBtn"
+                            style="width: 100%; margin-top: 6px; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; display: none;">
+                        <span>✕ 清除圖片</span>
+                    </button>
                     <div id="nanoPromptImagePreview" style="display: none; margin-top: 6px;">
                         <img id="nanoPromptImagePreviewImg" src="" alt="預覽" style="max-width: 100%; max-height: 80px; border-radius: 6px; border: 1px solid rgba(250, 204, 21, 0.3);">
                     </div>
@@ -2495,11 +2565,61 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
         }
     };
     
+    // ====== Nano Pro 拖放功能模塊 ======
+    const NanoDragDropHandler = {
+        initDropZone(dropZoneId, fileInputId, onFileDrop) {
+            const dropZone = document.getElementById(dropZoneId);
+            const fileInput = document.getElementById(fileInputId);
+            
+            if (!dropZone || !fileInput) return;
+
+            // 點擊區域觸發文件選擇
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // 阻止默認拖放行為
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            // 拖入效果
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.add('drag-over');
+                }, false);
+            });
+
+            // 拖離效果
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.remove('drag-over');
+                }, false);
+            });
+
+            // 處理文件放置
+            dropZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    onFileDrop(files[0]);
+                }
+            }, false);
+        }
+    };
+
+    // 初始化 Nano Pro 提示詞生成器拖放區域
+    NanoDragDropHandler.initDropZone('nanoPromptImageDropZone', 'nanoPromptImageUpload', (file) => {
+        NanoPromptGenerator.handleImageUpload(file);
+    });
+
     // 綁定 Nano Pro 提示詞生成器事件
     document.getElementById('nanoGeneratePromptBtn').addEventListener('click', () => NanoPromptGenerator.generate());
     document.getElementById('nanoApplyPromptBtn').addEventListener('click', () => NanoPromptGenerator.applyToPrompt());
     
-    // 圖片上傳按鈕事件
+    // 圖片上傳按鈕事件（保留原有功能作為後備）
     document.getElementById('nanoPromptImageUploadBtn').addEventListener('click', () => {
         document.getElementById('nanoPromptImageUpload').click();
     });
@@ -2797,6 +2917,72 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
 .modal-content img{max-width:90vw;max-height:90vh;border-radius:8px}
 .modal-close{position:absolute;top:20px;right:20px;color:#fff;font-size:32px;cursor:pointer}
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+/* 拖放區域樣式 - 主頁面版本 */
+.drag-drop-zone {
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.2);
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.drag-drop-zone:hover {
+    border-color: rgba(245, 158, 11, 0.5);
+    background: rgba(245, 158, 11, 0.05);
+}
+.drag-drop-zone.drag-over {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.15);
+    transform: scale(1.02);
+}
+.drag-drop-zone .drag-icon {
+    font-size: 32px;
+    opacity: 0.7;
+}
+.drag-drop-zone .drag-text {
+    font-size: 13px;
+    color: #9ca3af;
+}
+.drag-drop-zone .drag-subtext {
+    font-size: 11px;
+    color: #6b7280;
+}
+/* 上傳進度條樣式 */
+.upload-progress-container {
+    width: 100%;
+    margin-top: 10px;
+    display: none;
+}
+.upload-progress-container.show {
+    display: block;
+}
+.upload-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.upload-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+.upload-progress-text {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+    text-align: center;
+}
 </style>
 </head>
 <body>
@@ -2945,11 +3131,19 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
 <div class="form-group"><label data-t="pos_prompt">正面提示詞</label><textarea id="prompt" placeholder="Describe your image..." required></textarea></div>
 <div class="form-group"><label data-t="neg_prompt">負面提示詞 (可選)</label><textarea id="negativePrompt" placeholder="What to avoid..." rows="4">nsfw, ugly, text, watermark, low quality, bad anatomy, distortion, blurry</textarea></div>
 <div class="form-group"><label data-t="ref_img">參考圖像 (Img2Img) 📸</label>
-    <div style="margin-bottom:10px;">
-        <input type="file" id="imageUpload" accept="image/*" style="display:none">
-        <button type="button" class="btn" onclick="document.getElementById('imageUpload').click()" style="background:rgba(255,255,255,0.1); width:100%;">📤 上傳參考圖</button>
+    <input type="file" id="imageUpload" accept="image/*" style="display:none">
+    <div id="imageDropZone" class="drag-drop-zone">
+        <div class="drag-icon">📷</div>
+        <div class="drag-text">拖放圖片或點擊選擇</div>
+        <div class="drag-subtext">支援 JPG, PNG, GIF (最大 5MB)</div>
+        <div id="imageUploadProgress" class="upload-progress-container">
+            <div class="upload-progress-bar">
+                <div class="upload-progress-fill" id="imageUploadProgressFill"></div>
+            </div>
+            <div class="upload-progress-text" id="imageUploadProgressText">上傳中... 0%</div>
+        </div>
     </div>
-    <textarea id="referenceImages" placeholder="Image URL (or upload above)" rows="3"></textarea>
+    <textarea id="referenceImages" placeholder="Image URL (or upload above)" rows="3" style="margin-top:10px;"></textarea>
     <div style="font-size:11px; color:#9ca3af; margin-top:4px;">* 支援模型: Kontext, Flux, Klein</div>
 </div>
 
@@ -2963,18 +3157,22 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
     
     <div style="margin-bottom: 12px;">
         <label style="font-size: 11px; color: #9ca3af; margin-bottom: 6px; display: block;" data-t="prompt_generator_upload_ref">上傳參考圖片 (可選 - 用於圖片分析)</label>
-        <div style="display: flex; gap: 8px;">
-            <input type="file" id="promptImageUpload" accept="image/*" style="display:none">
-            <button type="button" id="promptImageUploadBtn"
-                    style="flex: 1; background: rgba(139, 92, 246, 0.2); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.4); padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                <span>📷</span>
-                <span data-t="prompt_generator_select_image">選擇圖片</span>
-            </button>
-            <button type="button" id="promptImageClearBtn"
-                    style="flex: 0 0 auto; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; display: none;">
-                <span>✕</span>
-            </button>
+        <input type="file" id="promptImageUpload" accept="image/*" style="display:none">
+        <div id="promptImageDropZone" class="drag-drop-zone">
+            <div class="drag-icon">📷</div>
+            <div class="drag-text" data-t="prompt_generator_select_image">拖放圖片或點擊選擇</div>
+            <div class="drag-subtext">支援 JPG, PNG, GIF (最大 5MB)</div>
+            <div id="promptImageUploadProgress" class="upload-progress-container">
+                <div class="upload-progress-bar">
+                    <div class="upload-progress-fill" id="promptImageUploadProgressFill"></div>
+                </div>
+                <div class="upload-progress-text" id="promptImageUploadProgressText">上傳中... 0%</div>
+            </div>
         </div>
+        <button type="button" id="promptImageClearBtn"
+                style="width: 100%; margin-top: 6px; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; display: none;">
+            <span>✕ 清除圖片</span>
+        </button>
         <div id="promptImagePreview" style="display: none; margin-top: 8px;">
             <img id="promptImagePreviewImg" src="" alt="預覽" style="max-width: 100%; max-height: 120px; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.3);">
         </div>
@@ -3582,6 +3780,126 @@ function updateModelOptions() {
     }
 }
 
+// ====== 拖放功能模塊 ======
+const DragDropHandler = {
+    // 初始化拖放區域
+    initDropZone(dropZoneId, fileInputId, onFileDrop) {
+        const dropZone = document.getElementById(dropZoneId);
+        const fileInput = document.getElementById(fileInputId);
+        
+        if (!dropZone || !fileInput) return;
+
+        // 點擊區域觸發文件選擇
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 阻止默認拖放行為
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        // 拖入效果
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.add('drag-over');
+            }, false);
+        });
+
+        // 拖離效果
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('drag-over');
+            }, false);
+        });
+
+        // 處理文件放置
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                onFileDrop(files[0]);
+            }
+        }, false);
+    },
+
+    // 驗證圖片文件
+    validateImageFile(file) {
+        // 檢查文件類型
+        if (!file.type.startsWith('image/')) {
+            return { valid: false, error: '請選擇圖片文件' };
+        }
+        
+        // 檢查文件大小 (最大 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            return { valid: false, error: '圖片太大！最大 5MB' };
+        }
+        
+        return { valid: true };
+    },
+
+    // 讀取文件為 Base64
+    readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => reject(new Error('文件讀取失敗'));
+            reader.readAsDataURL(file);
+        });
+    }
+};
+
+// 初始化主頁面參考圖像拖放區域
+DragDropHandler.initDropZone('imageDropZone', 'imageUpload', async (file) => {
+    const validation = DragDropHandler.validateImageFile(file);
+    if (!validation.valid) {
+        alert(validation.error);
+        return;
+    }
+
+    const dropZone = document.getElementById('imageDropZone');
+    const originalContent = dropZone.innerHTML;
+    dropZone.innerHTML = '<div class="drag-icon">⏳</div><div class="drag-text">上傳中...</div>';
+
+    try {
+        const base64 = await DragDropHandler.readFileAsBase64(file);
+        
+        const formData = new FormData();
+        formData.append('fileToUpload', file);
+        
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.url && data.url.startsWith('http')) {
+                const textarea = document.getElementById('referenceImages');
+                const currentVal = textarea.value.trim();
+                textarea.value = currentVal ? currentVal + ', ' + data.url : data.url;
+                dropZone.innerHTML = '<div class="drag-icon">✅</div><div class="drag-text">上傳成功！</div>';
+                setTimeout(() => {
+                    dropZone.innerHTML = originalContent;
+                }, 2000);
+            } else {
+                throw new Error("Invalid response from server");
+            }
+        } else {
+            const errData = await response.json().catch(()=>({}));
+            throw new Error("Upload failed: " + (errData.error || response.status));
+        }
+    } catch (error) {
+        console.error("Upload error:", error);
+        dropZone.innerHTML = '<div class="drag-icon">❌</div><div class="drag-text">上傳失敗</div>';
+        setTimeout(() => {
+            dropZone.innerHTML = originalContent;
+        }, 2000);
+    }
+});
+
 const imageUpload = document.getElementById('imageUpload');
 imageUpload.addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -3593,10 +3911,9 @@ imageUpload.addEventListener('change', async (e) => {
         return;
     }
 
-    const btn = e.target.nextElementSibling;
-    const originalText = btn.textContent;
-    btn.textContent = "⏳ Uploading...";
-    btn.disabled = true;
+    const dropZone = document.getElementById('imageDropZone');
+    const originalContent = dropZone.innerHTML;
+    dropZone.innerHTML = '<div class="drag-icon">⏳</div><div class="drag-text">上傳中...</div>';
 
     try {
         // Convert to Base64
@@ -3608,7 +3925,7 @@ imageUpload.addEventListener('change', async (e) => {
             // For now, let's use a simple cors-proxy trick or just assume direct base64 support if API allows
             // Pollinations supports base64 in some endpoints but URL is safer.
             
-            // Using a free image host upload via backend proxy would be best, 
+            // Using a free image host upload via backend proxy would be best,
             // but for a static-like worker, we can try to use the image directly if the model supports it.
             // However, 'reference_images' usually expects URLs.
             // Let's use a reliable temporary host service.
@@ -3629,7 +3946,8 @@ imageUpload.addEventListener('change', async (e) => {
                          const textarea = document.getElementById('referenceImages');
                          const currentVal = textarea.value.trim();
                          textarea.value = currentVal ? currentVal + ', ' + data.url : data.url;
-                         btn.textContent = "✅ Uploaded!";
+                         dropZone.innerHTML = '<div class="drag-icon">✅</div><div class="drag-text">上傳成功！</div>';
+                         setTimeout(() => { dropZone.innerHTML = originalContent; }, 2000);
                     } else {
                         throw new Error("Invalid response from server");
                     }
@@ -3639,16 +3957,15 @@ imageUpload.addEventListener('change', async (e) => {
                 }
             } catch (proxyError) {
                 console.error("Upload error:", proxyError);
-                alert("Upload failed: " + proxyError.message);
+                dropZone.innerHTML = '<div class="drag-icon">❌</div><div class="drag-text">上傳失敗</div>';
+                setTimeout(() => { dropZone.innerHTML = originalContent; }, 2000);
             }
-
-            setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
         };
         reader.readAsDataURL(file);
     } catch (err) {
         console.error(err);
-        btn.textContent = "❌ Error";
-        setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+        dropZone.innerHTML = '<div class="drag-icon">❌</div><div="drag-text">上傳失敗</div>';
+        setTimeout(() => { dropZone.innerHTML = originalContent; }, 2000);
     }
 });
 
@@ -4103,18 +4420,50 @@ document.addEventListener('DOMContentLoaded', () => {
         applyBtn.addEventListener('click', () => PromptGenerator.applyToPrompt());
     }
     
-    // 圖片上傳按鈕事件
-    const imageUploadBtn = document.getElementById('promptImageUploadBtn');
-    if (imageUploadBtn) {
-        imageUploadBtn.addEventListener('click', () => {
-            document.getElementById('promptImageUpload').click();
+    // ====== 主頁面提示詞生成器拖放功能 ======
+    const promptImageDropZone = document.getElementById('promptImageDropZone');
+    const promptImageUpload = document.getElementById('promptImageUpload');
+    
+    if (promptImageDropZone && promptImageUpload) {
+        // 點擊區域觸發文件選擇
+        promptImageDropZone.addEventListener('click', () => {
+            promptImageUpload.click();
         });
+        
+        // 阻止默認拖放行為
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            promptImageDropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+        
+        // 拖入效果
+        ['dragenter', 'dragover'].forEach(eventName => {
+            promptImageDropZone.addEventListener(eventName, () => {
+                promptImageDropZone.classList.add('drag-over');
+            }, false);
+        });
+        
+        // 拖離效果
+        ['dragleave', 'drop'].forEach(eventName => {
+            promptImageDropZone.addEventListener(eventName, () => {
+                promptImageDropZone.classList.remove('drag-over');
+            }, false);
+        });
+        
+        // 處理文件放置
+        promptImageDropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                PromptGenerator.handleImageUpload(files[0]);
+            }
+        }, false);
     }
     
-    // 圖片選擇事件
-    const imageUpload = document.getElementById('promptImageUpload');
-    if (imageUpload) {
-        imageUpload.addEventListener('change', (e) => {
+    // 圖片選擇事件（保留原有功能作為後備）
+    if (promptImageUpload) {
+        promptImageUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 PromptGenerator.handleImageUpload(file);
