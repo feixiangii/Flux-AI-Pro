@@ -18,7 +18,7 @@ preview_id = "your-preview-kv-namespace-id"
 [[d1_databases]]
 binding = "FLUX_DB"
 database_name = "flux_ai_pro_db"
-database_id = "1ede3d4d-6927-47db-9ff6-a00b3479f340"
+database_id = "4c291b20-04b7-4b1c-be0f-2eb06de22ca9"
 
 # 環境變量
 [vars]
