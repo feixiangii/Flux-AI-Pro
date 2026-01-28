@@ -4371,16 +4371,36 @@ function displayResult(items){
     const div=document.createElement('div');div.className='gallery';
     items.forEach(item=>{
         const d=document.createElement('div');d.className='gallery-item';
-        // 使用 onclick 觸發 openModal
+        // 修正：使用 addEventListener 而不是直接賦值 onclick
         const img = document.createElement('img');
         img.src = item.image || item.url;
-        img.onclick = function() { openModal(this.src); };
+        img.addEventListener('click', function() {
+            openModal(this.src);
+        });
         d.appendChild(img);
         div.appendChild(d);
     });
     document.getElementById('results').innerHTML='';
     document.getElementById('results').appendChild(div);
 }
+
+// Helper function for inline download
+window.downloadImage = function(url, model, seed) {
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = formatFilenameTimestampFrontend(new Date());
+    a.download = model + '-' + timestamp + '-' + seed + '.png';
+    a.click();
+};
+
+// Helper function for inline reuse (simplified)
+window.reuseSettings = function(id) {
+    // This is a placeholder as we don't have easy access to the full item data here without looking it up
+    // But since this is a quick fix, we'll just log it.
+    // In a real app, we'd look up the item in history or pass the full object.
+    console.log('Reuse requested for', id);
+    nanoToast('toast_error', 'Please use History tab to reuse settings');
+};
 
 // Online Count (whos.amung.us widget handled in HTML)
 window.onload=()=>{
