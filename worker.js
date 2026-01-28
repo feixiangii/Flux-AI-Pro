@@ -1,49 +1,8 @@
 // =================================================================================
 //  項目: Flux AI Pro - NanoBanana Edition
-//  版本: 11.9.0
+//  版本: 11.7.0 (多語言擴展 & 自動偵測)
+//  更新: 多語言支援 (zh, en, ja, ko, ar)、自動語言偵測、RTL 支援、UI 翻譯修復
 // =================================================================================
-
-// 時間戳格式化函數
-function formatTimestamp(date) {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    const seconds = String(d.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
-}
-
-// 格式化文件名時間戳（用於下載文件名）
-function formatFilenameTimestamp(date) {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    const seconds = String(d.getSeconds()).padStart(2, '0');
-    return `${year}${month}${day}_${hours}${minutes}${seconds}`;
-}
-
-// 前端時間戳格式化函數（用於下載文件名）
-const formatFilenameTimestampFrontend = (date) => {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    const seconds = String(d.getSeconds()).padStart(2, '0');
-    return `${year}${month}${day}_${hours}${minutes}${seconds}`;
-};
-
-// 格式化下載文件名（包含時間戳）
-function formatDownloadFilename(model, timestamp, seed) {
-    const timeStr = formatFilenameTimestampFrontend(new Date(timestamp));
-    return `${model}-${timeStr}-${seed}.png`;
-}
 
 // 導入風格適配器（僅在服務器端使用）
 import { ServerStyleManager } from './utils/style-adapter.js';
@@ -54,7 +13,7 @@ const mergedStyles = styleManager.merge();
 
 const CONFIG = {
   PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "11.9.0 (Lite)",
+  PROJECT_VERSION: "11.7.0",
   API_MASTER_KEY: "1",
   FETCH_TIMEOUT: 120000,
   MAX_RETRIES: 3,
@@ -750,7 +709,6 @@ class MultiProviderRouter {
     return results;
   }
 }
-
 // Global Cache for Online Count (To save KV List operations)
 export default {
   async fetch(request, env, ctx) {
@@ -758,7 +716,7 @@ export default {
     const startTime = Date.now();
 
     const clientIP = getClientIP(request);
-    if (env.POLLINATIONS_API_KEY) { CONFIG.POLLINATIONS_AUTH.enabled = true; CONFIG.POLLINATIONS_AUTH.token = env.POLLINATIONS_API_KEY; }
+    if (env.POLLINATIONS_API_KEY) { CONFIG.POLLINATIONS_AUTH.enabled = true; CONFIG.POLLINATIONS_AUTH.token = env.POLLINATIONS_API_KEY; } 
     else { console.warn("⚠️ POLLINATIONS_API_KEY not set - requests may fail on new API endpoint"); CONFIG.POLLINATIONS_AUTH.enabled = false; CONFIG.POLLINATIONS_AUTH.token = ""; }
     
     console.log("=== Request Info ===");
@@ -1145,7 +1103,7 @@ async function handleInternalGenerate(request, env, ctx) {
   const logger = new Logger();
   const startTime = Date.now();
   const clientIP = getClientIP(request);
-
+  
   try {
     const body = await request.json();
     const prompt = body.prompt;
@@ -1663,13 +1621,10 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
                 <div id="nanoPromptGeneratorStatus" style="font-size: 10px; color: #9ca3af; margin-top: 6px; display: none;"></div>
             </div>
 
-            <div style="display:flex; align-items:center; gap:12px;">
-                <button id="genBtn" class="gen-btn">
-                    <span id="genBtnText">生成圖像</span>
-                    <span id="genBtnCost" style="font-size:12px; opacity:0.6; font-weight:400; display:block; margin-top:4px">消耗 1 香蕉能量 🍌</span>
-                </button>
-                <div id="liveTimer" style="display:none; color:#FACC15; font-weight:700; font-size:16px; min-width:50px; text-align:center;">0.0s</div>
-            </div>
+            <button id="genBtn" class="gen-btn">
+                <span id="genBtnText">生成圖像</span>
+                <span id="genBtnCost" style="font-size:12px; opacity:0.6; font-weight:400; display:block; margin-top:4px">消耗 1 香蕉能量 🍌</span>
+            </button>
             
             <div class="quota-box">
                 <div class="quota-info">
@@ -1685,10 +1640,6 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
         <div class="main-stage">
             <div id="placeholderText" class="placeholder-text">NANOPRO</div>
             <img id="resultImg" alt="Generated Image" title="點擊放大">
-            <div id="imageInfo" class="image-info" style="display:none; margin-top:15px; padding:12px; background:rgba(0,0,0,0.5); backdrop-filter:blur(10px); border-radius:12px; border:1px solid rgba(250,204,21,0.2); text-align:center;">
-                <span style="color:#FACC15; font-weight:700; font-size:13px;">📊 生成耗時</span>
-                <span id="generationTime" style="color:#fff; font-weight:600; margin-left:8px;">--</span>
-            </div>
             
             <div class="loading-overlay">
                 <div class="banana-loader">🍌</div>
@@ -1704,9 +1655,6 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     <div class="lightbox" id="lightbox">
         <div class="lightbox-close" id="lbClose">×</div>
         <img id="lbImg" src="">
-        <div style="text-align:center; margin-top:15px;">
-            <div id="lightboxTime" style="color:#FACC15; font-weight:700; font-size:14px; background:rgba(0,0,0,0.5); padding:8px 16px; border-radius:20px; display:inline-block;">生成時間: --</div>
-        </div>
         <div class="lightbox-actions">
             <a id="lbDownload" class="action-btn" download="nano-banana-art.png" href="#">
                 <span id="lightboxSaveText">📥 保存圖片</span>
@@ -2344,10 +2292,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
         lightbox: document.getElementById('lightbox'),
         lbImg: document.getElementById('lbImg'),
         lbClose: document.getElementById('lbClose'),
-        lbDownload: document.getElementById('lbDownload'),
-        liveTimer: document.getElementById('liveTimer'),
-        imageInfo: document.getElementById('imageInfo'),
-        generationTime: document.getElementById('generationTime')
+        lbDownload: document.getElementById('lbDownload')
     };
     
     // UI Quota Logic (Syncs with server limit of 5)
@@ -2398,7 +2343,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     }
 
     function updateCooldownText(sec) {
-        els.genBtn.innerHTML = '<span>' + nanoT('gen_btn_charging').replace('{s}', sec) + '</span>';
+        els.genBtn.innerHTML = \`<span>\${nanoT('gen_btn_charging').replace('{s}', sec)}</span>\`;
     }
     
     const now = new Date();
@@ -2488,16 +2433,6 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     function openLightbox(url) {
         els.lbImg.src = url;
         els.lbDownload.href = url;
-        
-        // 顯示生成時間
-        const timeDisplay = document.getElementById('lightboxTime');
-        const generationTime = els.img.dataset.generationTime;
-        if (generationTime) {
-            timeDisplay.textContent = '生成時間: ' + generationTime;
-        } else {
-            timeDisplay.textContent = '生成時間: --';
-        }
-        
         els.lightbox.classList.add('show');
     }
     els.lbClose.onclick = () => els.lightbox.classList.remove('show');
@@ -2793,17 +2728,6 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
         if(!p) return nanoToast('toast_no_prompt', "⚠️ 請輸入提示詞");
         if(currentQuota <= 0) return nanoToast('toast_energy_depleted', "🚫 本小時能量已耗盡，請稍後再來！");
 
-        // 開始計時
-        let timerInterval;
-        let startTime = Date.now();
-        const timerDisplay = document.getElementById('liveTimer');
-        timerDisplay.style.display = 'block';
-        timerDisplay.textContent = '0.0s';
-        timerInterval = setInterval(() => {
-            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-            timerDisplay.textContent = elapsed + 's';
-        }, 100);
-
         els.genBtn.disabled = true;
         els.loader.style.display = 'flex';
         els.img.style.opacity = '0.5';
@@ -2864,10 +2788,6 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
             const blob = await res.blob();
             console.log("🍌 Nano Pro: 圖片生成成功", blob.size, "bytes");
             
-            // 停止計時器
-            clearInterval(timerInterval);
-            timerDisplay.style.display = 'none';
-            
             // 檢查是否為有效的圖片數據
             if (blob.size === 0) {
                 throw new Error("生成的圖片為空，請稍後再試");
@@ -2879,18 +2799,6 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
             els.img.style.display = 'block';
             els.img.style.opacity = '1';
             document.querySelector('.placeholder-text').style.display = 'none';
-            
-            // 顯示生成時間
-            const generationTime = res.headers.get('X-Generation-Time');
-            const timeDisplay = document.getElementById('imageInfo');
-            const timeText = document.getElementById('generationTime');
-            if (generationTime) {
-                timeDisplay.style.display = 'block';
-                timeText.textContent = generationTime;
-            }
-            
-            // 記錄時間用於燈箱
-            els.img.dataset.generationTime = generationTime;
             
             const realSeed = res.headers.get('X-Seed');
             if(!isSeedRandom && realSeed) els.seed.value = realSeed;
@@ -2905,9 +2813,6 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
         } catch(e) {
             console.error("🍌 Nano Pro: 生成錯誤", e);
             nanoToast('toast_error', "❌ " + e.message);
-            // 停止計時器
-            clearInterval(timerInterval);
-            timerDisplay.style.display = 'none';
             // On error, re-enable button if quota exists (unless rate limited)
             if(currentQuota > 0 && !e.message.includes('限額')) els.genBtn.disabled = false;
         } finally {
@@ -3363,9 +3268,9 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
 <div id="historyList" style="padding:0 20px"><p>Loading history...</p></div>
 </div></div>
 <div id="imageModal" class="modal">
-    <div class="modal-content" style="position:relative; display:flex; flex-direction:column; align-items:center; overflow:auto; max-height:100vh; max-width:100vw;">
-        <img id="modalImage" src="" style="max-height:85vh; margin-bottom:15px; transform-origin: center center;">
-        <div style="display:flex; gap:15px; position:sticky; bottom:20px; z-index:100;">
+    <div class="modal-content" style="position:relative; display:flex; flex-direction:column; align-items:center;">
+        <img id="modalImage" src="" style="max-height:85vh; margin-bottom:15px;">
+        <div style="display:flex; gap:15px;">
             <a id="modalDownload" href="#" class="btn btn-primary" download="image.png" style="text-decoration:none; width:auto; padding:10px 25px;">
                 📥 保存圖片
             </a>
@@ -4188,8 +4093,7 @@ async function updateHistoryDisplay(){
         d.querySelector('.download-btn').onclick=()=>{
             const a=document.createElement('a');
             a.href=imgSrc;
-            const timestamp = formatFilenameTimestampFrontend(new Date(item.timestamp || Date.now()));
-            a.download=\`\${item.model}-\${timestamp}-\${item.seed}.png\`;
+            a.download=\`\${item.model}-\${item.seed}.png\`;
             a.click();
         };
         d.querySelector('.delete-btn').onclick=()=>deleteFromDB(item.id);
@@ -4205,23 +4109,7 @@ function openModal(src){
     
     // Auto set download filename
     downloadBtn.href = src;
-    const timestamp = formatFilenameTimestampFrontend(new Date());
-    downloadBtn.download = 'flux-pro-' + timestamp + '.png';
-    
-    // 放大功能：切換 CSS class
-    modalImg.style.cursor = 'zoom-in';
-    modalImg.onclick = function() {
-        if (this.style.transform === 'scale(2)') {
-            this.style.transform = 'scale(1)';
-            this.style.cursor = 'zoom-in';
-        } else {
-            this.style.transform = 'scale(2)';
-            this.style.cursor = 'zoom-out';
-        }
-    };
-    // 重置縮放
-    modalImg.style.transform = 'scale(1)';
-    modalImg.style.transition = 'transform 0.3s ease';
+    downloadBtn.download = \`flux-pro-\${Date.now()}.png\`;
     
     document.getElementById('imageModal').classList.add('show');
 }
@@ -4371,36 +4259,12 @@ function displayResult(items){
     const div=document.createElement('div');div.className='gallery';
     items.forEach(item=>{
         const d=document.createElement('div');d.className='gallery-item';
-        // 修正：使用 addEventListener 而不是直接賦值 onclick
-        const img = document.createElement('img');
-        img.src = item.image || item.url;
-        img.addEventListener('click', function() {
-            openModal(this.src);
-        });
-        d.appendChild(img);
+        d.innerHTML=\`<img src="\${item.image||item.url}" onclick="openModal(this.src)">\`;
         div.appendChild(d);
     });
     document.getElementById('results').innerHTML='';
     document.getElementById('results').appendChild(div);
 }
-
-// Helper function for inline download
-window.downloadImage = function(url, model, seed) {
-    const a = document.createElement('a');
-    a.href = url;
-    const timestamp = formatFilenameTimestampFrontend(new Date());
-    a.download = model + '-' + timestamp + '-' + seed + '.png';
-    a.click();
-};
-
-// Helper function for inline reuse (simplified)
-window.reuseSettings = function(id) {
-    // This is a placeholder as we don't have easy access to the full item data here without looking it up
-    // But since this is a quick fix, we'll just log it.
-    // In a real app, we'd look up the item in history or pass the full object.
-    console.log('Reuse requested for', id);
-    nanoToast('toast_error', 'Please use History tab to reuse settings');
-};
 
 // Online Count (whos.amung.us widget handled in HTML)
 window.onload=()=>{
