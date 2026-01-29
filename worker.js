@@ -2665,33 +2665,49 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     });
 
     // 綁定 Nano Pro 提示詞生成器事件
-    document.getElementById('nanoGeneratePromptBtn').addEventListener('click', () => NanoPromptGenerator.generate());
-    document.getElementById('nanoApplyPromptBtn').addEventListener('click', () => NanoPromptGenerator.applyToPrompt());
+    const nanoGenBtn = document.getElementById('nanoGeneratePromptBtn');
+    if(nanoGenBtn) nanoGenBtn.addEventListener('click', () => NanoPromptGenerator.generate());
+    
+    const nanoApplyBtn = document.getElementById('nanoApplyPromptBtn');
+    if(nanoApplyBtn) nanoApplyBtn.addEventListener('click', () => NanoPromptGenerator.applyToPrompt());
     
     // 圖片上傳按鈕事件（保留原有功能作為後備）
-    document.getElementById('nanoPromptImageUploadBtn').addEventListener('click', () => {
-        document.getElementById('nanoPromptImageUpload').click();
-    });
+    const nanoUploadBtn = document.getElementById('nanoPromptImageUploadBtn');
+    if(nanoUploadBtn) {
+        nanoUploadBtn.addEventListener('click', () => {
+            const uploadInput = document.getElementById('nanoPromptImageUpload');
+            if(uploadInput) uploadInput.click();
+        });
+    }
     
     // 圖片選擇事件
-    document.getElementById('nanoPromptImageUpload').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            NanoPromptGenerator.handleImageUpload(file);
-        }
-    });
+    const nanoUploadInput = document.getElementById('nanoPromptImageUpload');
+    if(nanoUploadInput) {
+        nanoUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                NanoPromptGenerator.handleImageUpload(file);
+            }
+        });
+    }
     
     // 清除圖片按鈕事件
-    document.getElementById('nanoPromptImageClearBtn').addEventListener('click', () => {
-        NanoPromptGenerator.clearImage();
-    });
+    const nanoClearBtn = document.getElementById('nanoPromptImageClearBtn');
+    if(nanoClearBtn) {
+        nanoClearBtn.addEventListener('click', () => {
+            NanoPromptGenerator.clearImage();
+        });
+    }
     
     // Ctrl + Enter 快捷鍵
-    document.getElementById('nanoPromptInput').addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'Enter') {
-            NanoPromptGenerator.generate();
-        }
-    });
+    const nanoInput = document.getElementById('nanoPromptInput');
+    if(nanoInput) {
+        nanoInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                NanoPromptGenerator.generate();
+            }
+        });
+    }
 
     function toast(msg) {
         const t = document.getElementById('toast');
