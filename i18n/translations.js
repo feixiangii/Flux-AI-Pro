@@ -86,6 +86,7 @@ export const TRANSLATIONS = {
     // 供應商
     provider_pollinations: "Pollinations.ai (Free)",
     provider_infip: "Ghostbot (Infip) 🌟",
+    provider_aqua: "Aqua API 💧",
     
     // API Key
     api_key_label: "API Key",
@@ -256,6 +257,7 @@ export const TRANSLATIONS = {
     // Providers
     provider_pollinations: "Pollinations.ai (Free)",
     provider_infip: "Ghostbot (Infip) 🌟",
+    provider_aqua: "Aqua API 💧",
     
     // API Key
     api_key_label: "API Key",
@@ -426,6 +428,7 @@ export const TRANSLATIONS = {
     // プロバイダー
     provider_pollinations: "Pollinations.ai (無料)",
     provider_infip: "Ghostbot (Infip) 🌟",
+    provider_aqua: "Aqua API 💧",
     
     // API Key
     api_key_label: "APIキー",
@@ -596,6 +599,7 @@ export const TRANSLATIONS = {
     // 공급자
     provider_pollinations: "Pollinations.ai (무료)",
     provider_infip: "Ghostbot (Infip) 🌟",
+    provider_aqua: "Aqua API 💧",
     
     // API Key
     api_key_label: "API 키",
@@ -766,6 +770,7 @@ export const TRANSLATIONS = {
     // المزودون
     provider_pollinations: "Pollinations.ai (مجاني)",
     provider_infip: "Ghostbot (Infip) 🌟",
+    provider_aqua: "Aqua API 💧",
     
     // مفتاح API
     api_key_label: "مفتاح API",

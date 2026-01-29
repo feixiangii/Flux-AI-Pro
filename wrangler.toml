@@ -40,7 +40,9 @@ ENVIRONMENT = "production"
 # 🔐 推薦設置:
 # 1. POLLINATIONS_API_KEY (Pollinations)
 # 2. INFIP_API_KEY (Ghostbot/Infip)
+# 3. AQUA_API_KEY (Aqua API)
 # ============================================
 # 設置命令範例：
 # npx wrangler secret put POLLINATIONS_API_KEY
 # npx wrangler secret put INFIP_API_KEY
+# npx wrangler secret put AQUA_API_KEY

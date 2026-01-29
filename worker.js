@@ -90,6 +90,27 @@ const CONFIG = {
       ],
       rate_limit: { requests: 30, interval: 60 },
       max_size: { width: 1792, height: 1792 }
+    },
+    aqua: {
+      name: "Aqua API",
+      endpoint: "https://api.aquadevs.com",
+      type: "openai_compatible",
+      auth_mode: "bearer",
+      requires_key: true,
+      enabled: true,
+      default: false,
+      description: "AquaDevs Premium API",
+      features: {
+        private_mode: true, custom_size: true, seed_control: false, negative_prompt: false, enhance: false, nologo: false, style_presets: true, auto_hd: true, quality_modes: false, auto_translate: true, reference_images: false, image_to_image: false, batch_generation: true, api_key_auth: true
+      },
+      models: [
+        { id: "flux-2", name: "Flux 2 ⚡", category: "flux", description: "Flux 2 Generation", max_size: 1024 },
+        { id: "zimage", name: "Z-Image", category: "other", description: "Z-Image Model", max_size: 1024 },
+        { id: "nanobanana", name: "NanoBanana 🍌", category: "flux", description: "NanoBanana Model", max_size: 1024 },
+        { id: "imagen4", name: "Imagen 4", category: "google", description: "Google Imagen 4", max_size: 1024 }
+      ],
+      rate_limit: { requests: 50, interval: 60 },
+      max_size: { width: 2048, height: 2048 }
     }
   },
   
@@ -2877,6 +2898,7 @@ function handleUI(request, env) {
   const now = Math.floor(Date.now() / 1000);
   const key = `ratelimit:${ip}`;
     const hasInfipServerKey = !!(env && env.INFIP_API_KEY);
+    const hasAquaServerKey = !!(env && env.AQUA_API_KEY);
     const authStatus = CONFIG.POLLINATIONS_AUTH.enabled ? '<span style="color:#22c55e;font-weight:600;font-size:12px">🔐 已認證</span>' : '<span style="color:#f59e0b;font-weight:600;font-size:12px">⚠️ 需要 API Key</span>';
     
     // 生成樣式選單 HTML
@@ -2895,7 +2917,11 @@ function handleUI(request, env) {
       for (const [styleKey, styleConfig] of stylesInCategory) {
         const selected = styleKey === 'none' ? ' selected' : '';
         // Get translated style name
-        const styleName = typeof styleConfig.name === 'object' ? (styleConfig.name[currentLang] || styleConfig.name.zh || styleConfig.name) : styleConfig.name;
+        let styleName = typeof styleConfig.name === 'object' ? (styleConfig.name[currentLang] || styleConfig.name.zh || styleConfig.name) : styleConfig.name;
+        const enName = typeof styleConfig.name === 'object' ? (styleConfig.name.en || styleConfig.name) : styleConfig.name;
+        if (styleName !== enName && enName) {
+            styleName = `${styleName} (${enName})`;
+        }
         styleOptionsHTML += `<option value="${styleKey}"${selected}>${styleConfig.icon} ${styleName}</option>`;
       }
       styleOptionsHTML += '</optgroup>';
@@ -3116,6 +3142,7 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
     <select id="provider">
         <option value="pollinations" selected>Pollinations.ai (Free)</option>
         <option value="infip">Ghostbot (Infip) 🌟</option>
+        <option value="aqua">Aqua API 💧</option>
     </select>
 </div>
 <div class="form-group" id="apiKeyGroup" style="display:none; background:rgba(245, 158, 11, 0.1); padding:10px; border-radius:8px; border:1px solid rgba(245, 158, 11, 0.3);">
@@ -3694,8 +3721,44 @@ function setLanguage(lang) {
     updateLangButton();
 }
 
+// 更新風格選單
+function updateStyleOptions() {
+    const styleSelect = document.getElementById('style');
+    if (!styleSelect) return;
+    
+    const currentVal = styleSelect.value;
+    styleSelect.innerHTML = '';
+    
+    const sortedCategories = Object.entries(STYLE_CATEGORIES).sort((a, b) => a[1].order - b[1].order);
+    
+    for (const [categoryKey, categoryInfo] of sortedCategories) {
+        const stylesInCategory = Object.entries(STYLE_PRESETS).filter(([key, style]) => style.category === categoryKey);
+        
+        if (stylesInCategory.length > 0) {
+            const categoryName = typeof categoryInfo.name === 'object' ? (categoryInfo.name[curLang] || categoryInfo.name.zh || categoryInfo.name) : categoryInfo.name;
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = categoryInfo.icon + ' ' + categoryName;
+            
+            for (const [styleKey, styleConfig] of stylesInCategory) {
+                let styleName = typeof styleConfig.name === 'object' ? (styleConfig.name[curLang] || styleConfig.name.zh || styleConfig.name) : styleConfig.name;
+                const enName = typeof styleConfig.name === 'object' ? (styleConfig.name.en || styleConfig.name) : styleConfig.name;
+                if (styleName !== enName && enName) {
+                    styleName = styleName + ' (' + enName + ')';
+                }
+                const option = document.createElement('option');
+                option.value = styleKey;
+                option.textContent = styleConfig.icon + ' ' + styleName;
+                if (styleKey === currentVal) option.selected = true;
+                optgroup.appendChild(option);
+            }
+            styleSelect.appendChild(optgroup);
+        }
+    }
+}
+
 // 更新所有翻譯
 function updateLang(){
+    updateStyleOptions();
     document.querySelectorAll('[data-t]').forEach(el=>{
         const k=el.getAttribute('data-t');
         if(I18N[curLang][k]){
@@ -3801,6 +3864,7 @@ function updateModelOptions() {
             apiKeyGroup.style.display = 'block';
             let storedKey = '';
             if (p === 'infip') storedKey = sessionStorage.getItem('infip_api_key');
+            if (p === 'aqua') storedKey = sessionStorage.getItem('aqua_api_key');
             
             apiKeyInput.value = storedKey || '';
             apiKeyInput.placeholder = "Paste your API Key here";
@@ -4040,14 +4104,22 @@ imageUpload.addEventListener('change', async (e) => {
 });
 
 providerSelect.addEventListener('change', updateModelOptions);
-apiKeyInput.addEventListener('input', (e) => sessionStorage.setItem('infip_api_key', e.target.value));
+apiKeyInput.addEventListener('input', (e) => {
+    const p = providerSelect.value;
+    if (p === 'infip') sessionStorage.setItem('infip_api_key', e.target.value);
+    if (p === 'aqua') sessionStorage.setItem('aqua_api_key', e.target.value);
+});
 
 const PRESET_SIZES=${JSON.stringify(CONFIG.PRESET_SIZES)};
 const STYLE_PRESETS=${JSON.stringify(CONFIG.STYLE_PRESETS)};
+const STYLE_CATEGORIES=${JSON.stringify(CONFIG.STYLE_CATEGORIES)};
 // Inject server-side key status
 const frontendProviders = ${JSON.stringify(CONFIG.PROVIDERS)};
 if (${hasInfipServerKey} && frontendProviders.infip) {
     frontendProviders.infip.has_server_key = true;
+}
+if (${hasAquaServerKey} && frontendProviders.aqua) {
+    frontendProviders.aqua.has_server_key = true;
 }
 const PROVIDERS=frontendProviders;
 
@@ -4563,7 +4635,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="footer" style="position:relative; z-index:10; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; gap:15px; flex-wrap:wrap;">
     <span>Powered by Flux AI Pro • <a href="https://github.com/kinai9661/Flux-AI-Pro" target="_blank">Engine</a> • <a href="/nano" target="_blank">Nano Version</a></span>
     <span style="opacity:0.5">|</span>
-    <span style="opacity:0.9">友情鏈接: <a href="https://pollinations.ai" target="_blank">Pollinations.ai</a> • <a href="https://infip.pro" target="_blank">Infip</a> • <a href="https://github.com" target="_blank">GitHub</a></span>
+    <span style="opacity:0.9">友情鏈接: <a href="https://pollinations.ai" target="_blank">Pollinations.ai</a> • <a href="https://infip.pro" target="_blank">Infip</a> • <a href="https://aquadevs.com" target="_blank">AquaDevs</a> • <a href="https://github.com" target="_blank">GitHub</a></span>
     <span style="opacity:0.5">|</span>
     <a href="https://showmebest.ai" target="_blank" style="display:flex; align-items:center;"><img src="https://showmebest.ai/badge/feature-badge-dark.webp" alt="Featured on ShowMeBestAI" width="165" height="45"></a>
 </div>
