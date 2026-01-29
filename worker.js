@@ -732,9 +732,20 @@ class AquaProvider {
       }
       
       const data = await response.json();
-      
+      console.log("🌊 [AquaProvider] Response:", JSON.stringify(data));
+
+      let imgUrl = null;
       if (data.data && data.data.length > 0) {
-        const imgUrl = data.data[0].url;
+          imgUrl = data.data[0].url;
+      } else if (data.url) {
+          imgUrl = data.url;
+      } else if (data.output && Array.isArray(data.output) && data.output.length > 0) {
+          imgUrl = data.output[0];
+      } else if (typeof data.output === 'string') {
+          imgUrl = data.output;
+      }
+
+      if (imgUrl) {
         logger.add("⬇️ Downloading Image", { url: imgUrl });
         
         // Download image to return binary
@@ -756,7 +767,7 @@ class AquaProvider {
             cost: "QUOTA"
         };
       } else {
-        throw new Error("Invalid response format from Aqua API");
+        throw new Error("Invalid response format from Aqua API: " + JSON.stringify(data));
       }
     } catch (e) {
       logger.add("❌ Aqua Failed", { error: e.message });
