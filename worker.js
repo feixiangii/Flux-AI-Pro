@@ -737,30 +737,48 @@ class AquaProvider {
             throw new Error(`Aqua Chat API Failed: ${e.message}`);
         }
     } else {
-        // Image API Logic (No Fallback)
-        try {
-          const url = `${this.config.endpoint}/v1/images/generations`;
-          const body = { model, prompt: enhancedPrompt, n: 1, size: `${width}x${height}`, response_format: "url" };
-          logger.add("📡 Aqua Request (Image API)", { url, model });
+        // Image API Logic (No Fallback, but with Retry)
+        const url = `${this.config.endpoint}/v1/images/generations`;
+        const body = { model, prompt: enhancedPrompt, n: 1, size: `${width}x${height}`, response_format: "url" };
+        logger.add("📡 Aqua Request (Image API)", { url, model });
 
-          const response = await fetchWithTimeout(url, { method: 'POST', headers, body: JSON.stringify(body) }, 60000);
-          
-          if (!response.ok) {
-             const errText = await response.text();
-             throw new Error(`Status ${response.status}: ${errText}`);
-          }
-          
-          const data = await response.json();
-          console.log("🌊 [AquaProvider] Image Response:", JSON.stringify(data));
+        let lastError;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const response = await fetchWithTimeout(url, { method: 'POST', headers, body: JSON.stringify(body) }, 60000);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("🌊 [AquaProvider] Image Response:", JSON.stringify(data));
 
-          if (data.data && data.data.length > 0) imgUrl = data.data[0].url;
-          else if (data.url) imgUrl = data.url;
-          else if (data.output) imgUrl = Array.isArray(data.output) ? data.output[0] : data.output;
-          
-          if (!imgUrl) throw new Error("No URL in response: " + JSON.stringify(data));
-        } catch (e) {
-          logger.add("⚠️ Image API Failed", { error: e.message });
-          throw new Error(`Aqua Image API Failed: ${e.message}`);
+                    if (data.data && data.data.length > 0) imgUrl = data.data[0].url;
+                    else if (data.url) imgUrl = data.url;
+                    else if (data.output) imgUrl = Array.isArray(data.output) ? data.output[0] : data.output;
+                    
+                    if (imgUrl) break; // Success
+                    throw new Error("No URL in response: " + JSON.stringify(data));
+                } else {
+                    const errText = await response.text();
+                    const headersObj = {};
+                    response.headers.forEach((v, k) => headersObj[k] = v);
+                    
+                    logger.add(`⚠️ Attempt ${attempt} Failed`, { status: response.status, headers: headersObj, body: errText });
+                    
+                    if (response.status === 502 && attempt < 3) {
+                        await new Promise(r => setTimeout(r, 1000 * attempt));
+                        continue;
+                    }
+                    throw new Error(`Status ${response.status}: ${errText}`);
+                }
+            } catch (e) {
+                lastError = e;
+                if (!e.message.includes("Status 502") || attempt === 3) break;
+                logger.add(`⚠️ Retry ${attempt}/3`, { error: e.message });
+            }
+        }
+
+        if (!imgUrl) {
+             throw new Error(`Aqua Image API Failed: ${lastError?.message}`);
         }
     }
 
