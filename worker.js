@@ -51,21 +51,16 @@ const CONFIG = {
       default: true,
       description: "官方 AI 圖像生成服務",
       features: {
-        private_mode: true, custom_size: true, seed_control: true, negative_prompt: true, enhance: true, nologo: true, style_presets: true, auto_hd: true, quality_modes: true, auto_translate: true, reference_images: true, image_to_image: true, batch_generation: true, api_key_auth: true
+        private_mode: true, custom_size: true, seed_control: true, negative_prompt: true, enhance: true, nologo: true, style_presets: true, auto_hd: true, quality_modes: true, auto_translate: true, reference_images: true, image_to_image: true, batch_generation: true, api_key_auth: true, nsfw_filter: true, task_status: true
       },
       models: [
-        { id: "gptimage", name: "GPT-Image 🎨", confirmed: true, category: "gptimage", description: "通用 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "gptimage-large", name: "GPT-Image Large 🌟", confirmed: true, category: "gptimage", description: "高質量 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "zimage", name: "Z-Image Turbo ⚡", confirmed: true, category: "zimage", description: "快速 6B 參數圖像生成 (Alpha)", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "flux", name: "Flux 標準版", confirmed: true, category: "flux", description: "快速且高質量的圖像生成", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "turbo", name: "Flux Turbo ⚡", confirmed: true, category: "flux", description: "超快速圖像生成", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
+        { id: "flux-realism", name: "Flux Realism 📸", confirmed: true, category: "flux", description: "寫實風格專用模型", max_size: 2048, pricing: { image_price: 0.00015, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"], supports_reference_images: false },
         { id: "kontext", name: "Kontext 🎨", confirmed: true, category: "kontext", description: "上下文感知圖像生成（支持圖生圖）", max_size: 2048, pricing: { image_price: 0.04, currency: "pollen" }, supports_reference_images: true, max_reference_images: 1, input_modalities: ["text", "image"], output_modalities: ["image"] },
-        { id: "seedream", name: "SeeDream 🌈", confirmed: true, category: "seedream", description: "夢幻般的圖像生成", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "seedream-pro", name: "SeeDream Pro 🌟", confirmed: true, category: "seedream", description: "高品質夢幻圖像生成", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "klein", name: "FLUX.2 Klein 4B", confirmed: true, category: "flux", description: "Advanced Flux 2 model", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "klein-large", name: "FLUX.2 Klein 9B 🌟", confirmed: true, category: "flux", description: "Advanced Flux 2 Large model - 9B parameters", max_size: 2048, pricing: { image_price: 0.0004, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "nanobanana-pro", name: "NanoBanana Pro 🍌", confirmed: true, category: "flux", description: "Nano Pro 專用高品質模型", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "flux-pro", name: "Flux Pro 🚀", confirmed: true, category: "flux", description: "Flux Pro 高品質模型", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] }
+        { id: "klein", name: "FLUX.2 Klein 4B", confirmed: true, category: "flux", description: "Advanced Flux 2 model", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"], supports_reference_images: false },
+        { id: "klein-large", name: "FLUX.2 Klein 9B 🌟", confirmed: true, category: "flux", description: "Advanced Flux 2 Large model - 9B parameters", max_size: 2048, pricing: { image_price: 0.0004, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"], supports_reference_images: false },
+        { id: "nanobanana", name: "NanoBanana 🍌", confirmed: true, category: "nanobanana", description: "NanoBanana 高品質模型", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"], supports_reference_images: false, nano_pro_only: true },
+        { id: "seedream", name: "Seedream 💭", confirmed: true, category: "seedream", description: "Seedream 創意模型", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"], supports_reference_images: false },
+        { id: "gptimage", name: "GPTImage 🖼️", confirmed: true, category: "gptimage", description: "GPTImage 智能模型", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"], supports_reference_images: false }
       ],
       rate_limit: null,
       max_size: { width: 2048, height: 2048 }
@@ -121,14 +116,13 @@ const CONFIG = {
   
   OPTIMIZATION_RULES: {
     MODEL_STEPS: {
-      "nanobanana-pro": { min: 20, optimal: 25, max: 40 },
-      "gptimage": { min: 15, optimal: 25, max: 35 },
-      "gptimage-large": { min: 20, optimal: 30, max: 45 },
-      "zimage": { min: 10, optimal: 20, max: 30 },
-      "flux": { min: 20, optimal: 28, max: 40 },
+      "flux-realism": { min: 25, optimal: 35, max: 50 },
+      "kontext": { min: 20, optimal: 28, max: 40 },
       "klein": { min: 25, optimal: 30, max: 50 },
       "klein-large": { min: 30, optimal: 35, max: 55 },
-      "kontext": { min: 20, optimal: 28, max: 40 }
+      "nanobanana": { min: 25, optimal: 30, max: 50 },
+      "seedream": { min: 25, optimal: 30, max: 50 },
+      "gptimage": { min: 25, optimal: 30, max: 50 }
     },
     SIZE_MULTIPLIER: { small: { threshold: 512 * 512, multiplier: 0.8 }, medium: { threshold: 1024 * 1024, multiplier: 1.0 }, large: { threshold: 1536 * 1536, multiplier: 1.15 }, xlarge: { threshold: 2048 * 2048, multiplier: 1.3 } },
     STYLE_ADJUSTMENT: { "photorealistic": 1.1, "oil-painting": 1.05, "watercolor": 0.95, "sketch": 0.9, "manga": 1.0, "pixel-art": 0.85, "3d-render": 1.15, "default": 1.0 }
@@ -148,15 +142,13 @@ const CONFIG = {
     },
     HD_NEGATIVE: "blurry, low quality, distorted, ugly, bad anatomy, low resolution, pixelated, artifacts, noise, jpeg artifacts, watermark, text, signature, mutation, deformed, extra limbs, extra fingers, bad hands, bad feet, poor composition, out of frame, worst quality, normal quality, error, missing fingers, extra digit, fewer digits, cropped",
     MODEL_QUALITY_PROFILES: {
-      "nanobanana-pro": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "standard" },
-      "gptimage": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "standard" },
-      "gptimage-large": { min_resolution: 1280, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.05, recommended_quality: "ultra" },
-      "zimage": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "economy" },
-      "flux": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.1, guidance_boost: 1.0, recommended_quality: "standard" },
+      "flux-realism": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.2, guidance_boost: 1.1, recommended_quality: "ultra" },
+      "kontext": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "standard" },
       "klein": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
       "klein-large": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.2, guidance_boost: 1.15, recommended_quality: "ultra" },
-      "turbo": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 0.9, guidance_boost: 0.95, recommended_quality: "economy" },
-      "kontext": { min_resolution: 1280, max_resolution: 2048, optimal_steps_boost: 1.2, guidance_boost: 1.1, recommended_quality: "ultra" }
+      "nanobanana": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
+      "seedream": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
+      "gptimage": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" }
     }
   }
 };
@@ -372,17 +364,15 @@ class PollinationsProvider {
   
   async generate(prompt, options, logger) {
     const {
-      model = "zimage", width = 1024, height = 1024, seed = -1, negativePrompt = "", guidance = null, steps = null,
+      model = "flux", width = 1024, height = 1024, seed = -1, negativePrompt = "", guidance = null, steps = null,
       enhance = false, nologo = true, privateMode = true, style = "none", autoOptimize = true, autoHD = true,
-      qualityMode = 'standard', referenceImages = []
+      qualityMode = 'standard', referenceImages = [], nsfw = false, n = 1, callbackUrl = null
     } = options;
 
     console.log("🍌 [PollinationsProvider] 開始生成:", { model, prompt: prompt.substring(0, 30) + "..." });
 
     // 🔥 模型映射: 將自定義模型名稱映射到實際的 Pollinations API 模型
     const MODEL_MAPPING = {
-      'nanobanana-pro': 'flux',
-      'flux-pro': 'flux',
       'klein-large': 'klein-large'
     };
     let apiModel = MODEL_MAPPING[model] || model;
@@ -478,8 +468,8 @@ class PollinationsProvider {
     let baseUrl = this.config.endpoint + pathPrefix + "/" + encodedPrompt;
     
     const params = new URLSearchParams();
-    // 這裡直接使用 apiModel (即 nanobanana-pro)
-    params.append('model', apiModel); 
+    // 這裡直接使用 apiModel
+    params.append('model', apiModel);
     params.append('width', finalWidth.toString());
     params.append('height', finalHeight.toString());
     params.append('seed', currentSeed.toString());
@@ -492,8 +482,11 @@ class PollinationsProvider {
     }
     if (finalGuidance !== 7.5) params.append('guidance', finalGuidance.toString());
     if (finalSteps !== 20) params.append('steps', finalSteps.toString());
+    if (nsfw !== false) params.append('nsfw', nsfw.toString());
+    if (n > 1) params.append('n', n.toString());
+    if (callbackUrl) params.append('callback', callbackUrl);
     
-    const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'image/*', 'Referer': 'https://pollinations.ai/' };
+    const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': n > 1 || callbackUrl ? 'application/json' : 'image/*', 'Referer': 'https://pollinations.ai/' };
     const authConfig = CONFIG.POLLINATIONS_AUTH;
     if (authConfig.enabled && authConfig.token) {
       headers['Authorization'] = `Bearer ${authConfig.token}`;
@@ -515,9 +508,41 @@ class PollinationsProvider {
             const imageBlob = await response.blob();
             const imageBuffer = await imageBlob.arrayBuffer();
             return { imageData: imageBuffer, contentType: contentType, url: response.url, provider: this.name, model: model, requested_model: model, seed: currentSeed, style: style, style_name: CONFIG.STYLE_PRESETS[style]?.name || style, style_category: CONFIG.STYLE_PRESETS[style]?.category || 'unknown', steps: finalSteps, guidance: finalGuidance, width: finalWidth, height: finalHeight, quality_mode: qualityMode, prompt_complexity: promptComplexity, hd_optimized: autoHD && hdOptimization?.optimized, hd_details: hdOptimization, auto_translated: translationLog.translated, reference_images: validReferenceImages, reference_images_count: validReferenceImages.length, generation_mode: validReferenceImages.length > 0 ? "圖生圖" : "文生圖", authenticated: authConfig.enabled && !!authConfig.token, cost: "FREE", auto_optimized: autoOptimize };
+          } else if (contentType && contentType.includes('application/json')) {
+            const jsonData = await response.json();
+            logger.add("✅ Task Created", { task_id: jsonData.id, status: jsonData.status, message: "Generation task created. Use the task ID to check status." });
+            return {
+              taskId: jsonData.id,
+              status: jsonData.status,
+              message: "Generation task created. Use the task ID to check status.",
+              provider: this.name,
+              model: model,
+              seed: currentSeed,
+              style: style,
+              style_name: CONFIG.STYLE_PRESETS[style]?.name || style,
+              steps: finalSteps,
+              guidance: finalGuidance,
+              width: finalWidth,
+              height: finalHeight,
+              quality_mode: qualityMode,
+              prompt_complexity: promptComplexity,
+              hd_optimized: autoHD && hdOptimization?.optimized,
+              hd_details: hdOptimization,
+              auto_translated: translationLog.translated,
+              reference_images: validReferenceImages,
+              reference_images_count: validReferenceImages.length,
+              generation_mode: validReferenceImages.length > 0 ? "圖生圖" : "文生圖",
+              authenticated: authConfig.enabled && !!authConfig.token,
+              auto_optimized: autoOptimize
+            };
           } else { throw new Error("Invalid content type: " + contentType); }
-        } else if (response.status === 401) { throw new Error("Authentication failed: Invalid or missing API key. Please set POLLINATIONS_API_KEY"); } 
-        else if (response.status === 403) { throw new Error("Access forbidden: API key may lack required permissions"); } 
+        } else if (response.status === 401) { throw new Error("Authentication failed: Invalid or missing API key. Please set POLLINATIONS_API_KEY"); }
+        else if (response.status === 403) { throw new Error("Access forbidden: API key may lack required permissions"); }
+        else if (response.status === 429) { throw new Error("Rate limit exceeded: Too many requests. Please try again later"); }
+        else if (response.status === 400) {
+          const errorText = await response.text();
+          throw new Error("Bad request: " + errorText);
+        }
         else { throw new Error("HTTP " + response.status + ": " + (await response.text()).substring(0, 200)); }
       } catch (e) {
         logger.add("❌ Request Failed", { error: e.message, model: apiModel, retry: retry + 1, max_retries: CONFIG.MAX_RETRIES, endpoint: this.config.endpoint });
@@ -526,6 +551,35 @@ class PollinationsProvider {
       }
     }
     throw new Error("Model " + model + " failed after " + CONFIG.MAX_RETRIES + " retries");
+  }
+
+  async getTaskStatus(taskId, logger) {
+    const url = `${this.config.endpoint}/task/${taskId}`;
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept': 'application/json'
+    };
+    
+    const authConfig = CONFIG.POLLINATIONS_AUTH;
+    if (authConfig.enabled && authConfig.token) {
+      headers['Authorization'] = `Bearer ${authConfig.token}`;
+    }
+    
+    logger.add("📡 Task Status Request", { task_id: taskId, endpoint: url });
+    
+    try {
+      const response = await fetchWithTimeout(url, { method: 'GET', headers: headers }, 30000);
+      if (response.ok) {
+        const jsonData = await response.json();
+        logger.add("✅ Task Status", { task_id: taskId, status: jsonData.status, progress: jsonData.progress || 'N/A' });
+        return jsonData;
+      } else {
+        throw new Error("Failed to get task status: " + response.status);
+      }
+    } catch (e) {
+      logger.add("❌ Task Status Failed", { error: e.message, task_id: taskId });
+      throw new Error("Failed to get task status: " + e.message);
+    }
   }
 }
 
@@ -1695,10 +1749,19 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
                     <select id="style" id="nanoStyleSelect">
                         <!-- 風格選項將由 JavaScript 動態生成 -->
                     </select>
-                    <div style="position:relative">
-                         <input type="number" id="seed" placeholder="Seed" value="-1" disabled style="padding-right:30px">
-                         <button id="lockSeedBtn" class="tool-btn" style="position:absolute; right:10px; top:50%; transform:translateY(-50%)">🎲</button>
-                    </div>
+                    <select id="nanoModel" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 8px; padding: 10px; color: #fff; font-size: 12px;">
+                        <option value="nanobanana" selected>NanoBanana 🍌</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="label-row">
+                    <label>Seed</label>
+                </div>
+                <div style="position:relative">
+                     <input type="number" id="seed" placeholder="Seed" value="-1" disabled style="padding-right:30px; width: 100%;">
+                     <button id="lockSeedBtn" class="tool-btn" style="position:absolute; right:10px; top:50%; transform:translateY(-50%)">🎲</button>
                 </div>
             </div>
 
@@ -2421,6 +2484,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
         seed: document.getElementById('seed'),
         width: document.getElementById('width'),
         height: document.getElementById('height'),
+        model: document.getElementById('nanoModel'),
         genBtn: document.getElementById('genBtn'),
         img: document.getElementById('resultImg'),
         loader: document.querySelector('.loading-overlay'),
@@ -2892,7 +2956,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
         try {
             console.log("🍌 Nano Pro: 開始生成圖片...", {
                 prompt: p,
-                model: 'nanobanana-pro',
+                model: els.model.value,
                 width: els.width.value,
                 height: els.height.value,
                 style: els.style.value,
@@ -2902,7 +2966,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
             const requestBody = {
                 prompt: p,
                 negative_prompt: els.negative.value,
-                model: 'nanobanana-pro',
+                model: els.model.value,
                 width: parseInt(els.width.value),
                 height: parseInt(els.height.value),
                 style: els.style.value,
@@ -4008,12 +4072,9 @@ function updateModelOptions() {
     }
 
     modelSelect.innerHTML = '';
-    const models = config.models;
+    const models = config.models.filter(m => !m.nano_pro_only);
     const groups = {};
     models.forEach(m => {
-        // 🔥 過濾掉 nanobanana-pro 模型（僅限 Nano Pro 頁面使用）
-        if (m.id === 'nanobanana-pro') return;
-        
         const cat = m.category || 'other';
         if(!groups[cat]) groups[cat] = [];
         groups[cat].push(m);
@@ -4322,7 +4383,7 @@ function openModal(src){
     
     // Auto set download filename
     downloadBtn.href = src;
-    downloadBtn.download = \`flux-pro-\${Date.now()}.png\`;
+    downloadBtn.download = \`flux-\${Date.now()}.png\`;
     
     document.getElementById('imageModal').classList.add('show');
 }
