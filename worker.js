@@ -54,18 +54,13 @@ const CONFIG = {
         private_mode: true, custom_size: true, seed_control: true, negative_prompt: true, enhance: true, nologo: true, style_presets: true, auto_hd: true, quality_modes: true, auto_translate: true, reference_images: true, image_to_image: true, batch_generation: true, api_key_auth: true
       },
       models: [
-        { id: "gptimage", name: "GPT-Image 🎨", confirmed: true, category: "gptimage", description: "通用 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "gptimage-large", name: "GPT-Image Large 🌟", confirmed: true, category: "gptimage", description: "高質量 GPT 圖像生成模型", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "zimage", name: "Z-Image Turbo ⚡", confirmed: true, category: "zimage", description: "快速 6B 參數圖像生成 (Alpha)", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "flux", name: "Flux 標準版", confirmed: true, category: "flux", description: "快速且高質量的圖像生成", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "turbo", name: "Flux Turbo ⚡", confirmed: true, category: "flux", description: "超快速圖像生成", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "kontext", name: "Kontext 🎨", confirmed: true, category: "kontext", description: "上下文感知圖像生成（支持圖生圖）", max_size: 2048, pricing: { image_price: 0.04, currency: "pollen" }, supports_reference_images: true, max_reference_images: 1, input_modalities: ["text", "image"], output_modalities: ["image"] },
+        { id: "nanobanana", name: "NanoBanana 🍌", confirmed: true, category: "flux", description: "NanoBanana 高品質模型", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "seedream", name: "SeeDream 🌈", confirmed: true, category: "seedream", description: "夢幻般的圖像生成", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "seedream-pro", name: "SeeDream Pro 🌟", confirmed: true, category: "seedream", description: "高品質夢幻圖像生成", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
+        { id: "flux-schnell", name: "Flux Schnell ⚡", confirmed: true, category: "flux", description: "快速且高質量的圖像生成", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
+        { id: "zimage", name: "Z-Image Turbo ⚡", confirmed: true, category: "zimage", description: "快速 6B 參數圖像生成 (Alpha)", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
         { id: "klein", name: "FLUX.2 Klein 4B", confirmed: true, category: "flux", description: "Advanced Flux 2 model", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "klein-large", name: "FLUX.2 Klein 9B 🌟", confirmed: true, category: "flux", description: "Advanced Flux 2 Large model - 9B parameters", max_size: 2048, pricing: { image_price: 0.0004, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "nanobanana-pro", name: "NanoBanana Pro 🍌", confirmed: true, category: "flux", description: "Nano Pro 專用高品質模型", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "flux-pro", name: "Flux Pro 🚀", confirmed: true, category: "flux", description: "Flux Pro 高品質模型", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] }
+        { id: "klein-large", name: "FLUX.2 Klein 9B 🌟", confirmed: true, category: "flux", description: "Advanced Flux 2 Large model - 9B parameters", max_size: 2048, pricing: { image_price: 0.0004, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] }
       ],
       rate_limit: null,
       max_size: { width: 2048, height: 2048 }
@@ -121,11 +116,10 @@ const CONFIG = {
   
   OPTIMIZATION_RULES: {
     MODEL_STEPS: {
-      "nanobanana-pro": { min: 20, optimal: 25, max: 40 },
-      "gptimage": { min: 15, optimal: 25, max: 35 },
-      "gptimage-large": { min: 20, optimal: 30, max: 45 },
-      "zimage": { min: 10, optimal: 20, max: 30 },
-      "flux": { min: 20, optimal: 28, max: 40 },
+      "nanobanana": { min: 25, optimal: 30, max: 50 },
+      "seedream": { min: 25, optimal: 30, max: 50 },
+      "flux-schnell": { min: 20, optimal: 25, max: 40 },
+      "zimage": { min: 25, optimal: 30, max: 50 },
       "klein": { min: 25, optimal: 30, max: 50 },
       "klein-large": { min: 30, optimal: 35, max: 55 },
       "kontext": { min: 20, optimal: 28, max: 40 }
@@ -148,14 +142,12 @@ const CONFIG = {
     },
     HD_NEGATIVE: "blurry, low quality, distorted, ugly, bad anatomy, low resolution, pixelated, artifacts, noise, jpeg artifacts, watermark, text, signature, mutation, deformed, extra limbs, extra fingers, bad hands, bad feet, poor composition, out of frame, worst quality, normal quality, error, missing fingers, extra digit, fewer digits, cropped",
     MODEL_QUALITY_PROFILES: {
-      "nanobanana-pro": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "standard" },
-      "gptimage": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "standard" },
-      "gptimage-large": { min_resolution: 1280, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.05, recommended_quality: "ultra" },
-      "zimage": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "economy" },
-      "flux": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.1, guidance_boost: 1.0, recommended_quality: "standard" },
+      "nanobanana": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
+      "seedream": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
+      "flux-schnell": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "standard" },
+      "zimage": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
       "klein": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
       "klein-large": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.2, guidance_boost: 1.15, recommended_quality: "ultra" },
-      "turbo": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 0.9, guidance_boost: 0.95, recommended_quality: "economy" },
       "kontext": { min_resolution: 1280, max_resolution: 2048, optimal_steps_boost: 1.2, guidance_boost: 1.1, recommended_quality: "ultra" }
     }
   }
@@ -323,8 +315,7 @@ class ParameterOptimizer {
     const modeConfig = CONFIG.HD_OPTIMIZATION.QUALITY_MODES[qualityMode];
     const profile = CONFIG.HD_OPTIMIZATION.MODEL_QUALITY_PROFILES[model];
     let baseGuidance = 7.5;
-    if (model.includes('turbo')) baseGuidance = style === 'photorealistic' ? 3.0 : 2.5;
-    else if (style === 'photorealistic') baseGuidance = 8.5;
+    if (style === 'photorealistic') baseGuidance = 8.5;
     else if (['oil-painting', 'watercolor', 'sketch'].includes(style)) baseGuidance = 6.5;
     else if (['manga', 'anime', 'chibi'].includes(style)) baseGuidance = 7.0;
     else if (['pixel-art', 'low-poly'].includes(style)) baseGuidance = 6.0;
@@ -381,8 +372,6 @@ class PollinationsProvider {
 
     // 🔥 模型映射: 將自定義模型名稱映射到實際的 Pollinations API 模型
     const MODEL_MAPPING = {
-      'nanobanana-pro': 'flux',
-      'flux-pro': 'flux',
       'klein-large': 'klein-large'
     };
     let apiModel = MODEL_MAPPING[model] || model;
@@ -478,8 +467,8 @@ class PollinationsProvider {
     let baseUrl = this.config.endpoint + pathPrefix + "/" + encodedPrompt;
     
     const params = new URLSearchParams();
-    // 這裡直接使用 apiModel (即 nanobanana-pro)
-    params.append('model', apiModel); 
+    // 這裡直接使用 apiModel
+    params.append('model', apiModel);
     params.append('width', finalWidth.toString());
     params.append('height', finalHeight.toString());
     params.append('seed', currentSeed.toString());
@@ -1300,9 +1289,9 @@ async function handleInternalGenerate(request, env, ctx) {
     const userSteps = body.steps ? parseInt(body.steps) : null;
     const userGuidance = body.guidance_scale ? parseFloat(body.guidance_scale) : null;
 
-    const options = { 
-      provider: body.provider || null, 
-      model: body.model || "gptimage", 
+    const options = {
+      provider: body.provider || null,
+      model: body.model || "flux-schnell",
       apiKey: request.headers.get('X-API-Key') || body.api_key || "",
       width: Math.min(Math.max(width, 256), 2048), 
       height: Math.min(Math.max(height, 256), 2048), 
@@ -2892,7 +2881,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
         try {
             console.log("🍌 Nano Pro: 開始生成圖片...", {
                 prompt: p,
-                model: 'nanobanana-pro',
+                model: 'nanobanana',
                 width: els.width.value,
                 height: els.height.value,
                 style: els.style.value,
@@ -2902,7 +2891,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
             const requestBody = {
                 prompt: p,
                 negative_prompt: els.negative.value,
-                model: 'nanobanana-pro',
+                model: 'nanobanana',
                 width: parseInt(els.width.value),
                 height: parseInt(els.height.value),
                 style: els.style.value,
@@ -4011,8 +4000,8 @@ function updateModelOptions() {
     const models = config.models;
     const groups = {};
     models.forEach(m => {
-        // 🔥 過濾掉 nanobanana-pro 模型（僅限 Nano Pro 頁面使用）
-        if (m.id === 'nanobanana-pro') return;
+        // Skip nanobanana model - only available in Nano Pro page
+        if (m.id === 'nanobanana') return;
         
         const cat = m.category || 'other';
         if(!groups[cat]) groups[cat] = [];
@@ -4276,7 +4265,7 @@ async function updateHistoryDisplay(){
         d.querySelector('.reuse-btn').onclick=()=>{
             document.getElementById('prompt').value=item.prompt||'';
             const modelSelect = document.getElementById('model');
-            const targetModel = item.model || 'gptimage';
+            const targetModel = item.model || 'flux-schnell';
             
             // Check if model exists in current provider, if not, try to switch provider or just warn
             // Ideally we should switch provider based on model, but we don't store provider in history yet (we should!)
@@ -4322,7 +4311,7 @@ function openModal(src){
     
     // Auto set download filename
     downloadBtn.href = src;
-    downloadBtn.download = \`flux-pro-\${Date.now()}.png\`;
+    downloadBtn.download = \`flux-ai-\${Date.now()}.png\`;
     
     document.getElementById('imageModal').classList.add('show');
 }

@@ -29,7 +29,7 @@ binding = "AI"
 # ============================================
 [vars]
 WORKER_VERSION = "11.8.0"
-DEFAULT_MODEL = "flux"
+DEFAULT_MODEL = "flux-schnell"
 MAX_WIDTH = 2048
 MAX_HEIGHT = 2048
 MAX_TIMEOUT = 120000

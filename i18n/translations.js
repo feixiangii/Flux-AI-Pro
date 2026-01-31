@@ -89,6 +89,15 @@ export const TRANSLATIONS = {
     provider_infip: "Ghostbot (Infip) 🌟",
     provider_aqua: "Aqua Server 🌊",
     
+    // 模型名稱
+    model_kontext: "Kontext",
+    model_nanobanana: "NanoBanana 🍌",
+    model_seedream: "SeeDream",
+    model_flux_schnell: "Flux Schnell",
+    model_zimage: "Z-Image",
+    model_klein: "FLUX.2 Klein",
+    model_klein_large: "FLUX.2 Klein 9B",
+    
     // 供應商統計
     provider_stats_title: "📊 供應商使用統計",
     provider_stats_total: "總生成次數",
@@ -283,6 +292,15 @@ export const TRANSLATIONS = {
     provider_pollinations: "Pollinations.ai (Free)",
     provider_infip: "Ghostbot (Infip) 🌟",
     provider_aqua: "Aqua Server 🌊",
+    
+    // Model Names
+    model_kontext: "Kontext",
+    model_nanobanana: "NanoBanana 🍌",
+    model_seedream: "SeeDream",
+    model_flux_schnell: "Flux Schnell",
+    model_zimage: "Z-Image",
+    model_klein: "FLUX.2 Klein",
+    model_klein_large: "FLUX.2 Klein 9B",
     
     // Provider Stats
     provider_stats_title: "📊 Provider Usage Statistics",
@@ -479,6 +497,15 @@ export const TRANSLATIONS = {
     provider_infip: "Ghostbot (Infip) 🌟",
     provider_aqua: "Aqua Server 🌊",
     
+    // モデル名
+    model_kontext: "Kontext",
+    model_nanobanana: "NanoBanana 🍌",
+    model_seedream: "SeeDream",
+    model_flux_schnell: "Flux Schnell",
+    model_zimage: "Z-Image",
+    model_klein: "FLUX.2 Klein",
+    model_klein_large: "FLUX.2 Klein 9B",
+    
     // プロバイダー統計
     provider_stats_title: "📊 プロバイダー使用統計",
     provider_stats_total: "総生成回数",
@@ -674,6 +701,15 @@ export const TRANSLATIONS = {
     provider_infip: "Ghostbot (Infip) 🌟",
     provider_aqua: "Aqua Server 🌊",
     
+    // 모델 이름
+    model_kontext: "Kontext",
+    model_nanobanana: "NanoBanana 🍌",
+    model_seedream: "SeeDream",
+    model_flux_schnell: "Flux Schnell",
+    model_zimage: "Z-Image",
+    model_klein: "FLUX.2 Klein",
+    model_klein_large: "FLUX.2 Klein 9B",
+    
     // 공급자 통계
     provider_stats_title: "📊 공급자 사용 통계",
     provider_stats_total: "총 생성 횟수",
@@ -868,6 +904,15 @@ export const TRANSLATIONS = {
     provider_pollinations: "Pollinations.ai (مجاني)",
     provider_infip: "Ghostbot (Infip) 🌟",
     provider_aqua: "Aqua Server 🌊",
+    
+    // أسماء النماذج
+    model_kontext: "Kontext",
+    model_nanobanana: "NanoBanana 🍌",
+    model_seedream: "SeeDream",
+    model_flux_schnell: "Flux Schnell",
+    model_zimage: "Z-Image",
+    model_klein: "FLUX.2 Klein",
+    model_klein_large: "FLUX.2 Klein 9B",
     
     // إحصائيات المزود
     provider_stats_title: "📊 إحصائيات استخدام المزود",

@@ -49,7 +49,7 @@
 *   **RTL 支援**：阿拉伯語模式下，介面元素自動鏡像翻轉，符合母語用戶習慣。
 
 ### 3. 多供應商模型庫 (Multi-Model Library)
-*   **Pollinations.ai**：提供 `FLUX.2 Klein`、`Flux Pro`、`Turbo` 等多種免費高品質模型。
+*   **Pollinations.ai**：提供 `Kontext`、`NanoBanana` (Nano Pro 專用)、`SeeDream`、`Flux Schnell`、`Z-Image`、`FLUX.2 Klein`、`FLUX.2 Klein 9B` 等免費高品質模型。
 *   **Infip/Ghostbot**：支援 Google `Imagen 4` 與 `Flux Schnell`，具備更強的併發處理能力。
 *   **Aqua Server**：新增供應商選項，提供額外的生成能力。
 *   **供應商統計追蹤**：自動追蹤各供應商的使用次數與比例，透過 API 端點查詢。
