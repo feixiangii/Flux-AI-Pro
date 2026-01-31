@@ -86,7 +86,9 @@ const CONFIG = {
         { id: "img4", name: "Imagen 4 (Google) 🌟", category: "google", description: "Google 最新高品質繪圖模型", max_size: 1792 },
         { id: "flux-schnell", name: "Flux Schnell ⚡", category: "flux", description: "Flux 極速版", max_size: 1024 },
         { id: "sdxl", name: "SDXL Stable Diffusion", category: "sd", description: "Stable Diffusion XL", max_size: 1024 },
-        { id: "lucid-origin", name: "Lucid Origin", category: "other", description: "Lucid 風格模型", max_size: 1024 }
+        { id: "lucid-origin", name: "Lucid Origin", category: "other", description: "Lucid 風格模型", max_size: 1024 },
+        { id: "z-image-turbo", name: "Z-Image Turbo ⚡", category: "zimage", description: "快速 Z-Image 極速版", max_size: 1024 },
+        { id: "nano-banana", name: "NanoBanana 🍌", category: "flux", description: "NanoBanana 專用模型", max_size: 1024 }
       ],
       rate_limit: { requests: 30, interval: 60 },
       max_size: { width: 1792, height: 1792 }
@@ -563,10 +565,9 @@ class InfipProvider {
       'User-Agent': 'Flux-AI-Pro-Worker'
     };
     
-    // Infip supports 1024x1024, 1792x1024, 1024x1792
+    // Infip supports 1024x1024, 1792x1024 (limited to 1:1 and 16:9)
     let sizeStr = "1024x1024";
     if (width > height && width >= 1500) sizeStr = "1792x1024";
-    else if (height > width && height >= 1500) sizeStr = "1024x1792";
     
     // Infip supports up to 4 images per request
     const batchSize = Math.min(Math.max(options.numOutputs || 1, 1), 4);
