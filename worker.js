@@ -2709,7 +2709,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     }
 
     function updateCooldownText(sec) {
-        els.genBtn.innerHTML = \`<span>\${nanoT('gen_btn_charging').replace('{s}', sec)}</span>\`;
+        els.genBtn.innerHTML = '<span>' + nanoT('gen_btn_charging').replace('{s}', sec) + '</span>';
     }
     
     const now = new Date();
@@ -2733,7 +2733,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     checkAndStartCooldown();
     
     function updateQuotaUI() {
-        els.quotaText.textContent = \`\${currentQuota} / \${maxQuota}\`;
+        els.quotaText.textContent = currentQuota + ' / ' + maxQuota;
         const pct = (currentQuota / maxQuota) * 100;
         els.quotaFill.style.width = pct + '%';
         if(currentQuota <= 0) {
@@ -3093,7 +3093,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     function addHistory(url) {
         const div = document.createElement('div');
         div.className = 'history-item';
-        div.innerHTML = \`<img src="\${url}">\`;
+        div.innerHTML = '<img src="' + url + '">';
         div.onclick = () => {
             els.img.src = url;
             document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
@@ -4297,13 +4297,13 @@ function updateSizeOptions() {
     for (const [key, size] of Object.entries(filteredSizes)) {
         const selected = key === currentSizeValue ? ' selected' : '';
         if (key === currentSizeValue) hasValidSize = true;
-        sizeOptionsHTML += `<option value="${key}"${selected}>${size.name} (${size.width}x${size.height})</option>`;
+        sizeOptionsHTML += '<option value="' + key + '"' + selected + '>' + size.name + ' (' + size.width + 'x' + size.height + ')</option>';
     }
     
     // If current size is not valid, select the first available size
     if (!hasValidSize && Object.keys(filteredSizes).length > 0) {
         const firstKey = Object.keys(filteredSizes)[0];
-        sizeOptionsHTML = sizeOptionsHTML.replace(`value="${firstKey}"`, `value="${firstKey}" selected`);
+        sizeOptionsHTML = sizeOptionsHTML.replace('value="' + firstKey + '"', 'value="' + firstKey + '" selected');
     }
     
     sizeSelect.innerHTML = sizeOptionsHTML;
@@ -4616,7 +4616,7 @@ function openModal(src){
     
     // Auto set download filename
     downloadBtn.href = src;
-    downloadBtn.download = \`flux-ai-\${Date.now()}.png\`;
+    downloadBtn.download = 'flux-ai-' + Date.now() + '.png';
     
     document.getElementById('imageModal').classList.add('show');
 }
@@ -4758,7 +4758,7 @@ function startCooldown(duration = COOLDOWN_SEC) {
 
 function updateBtnText(sec) {
     const btn = document.getElementById('generateBtn');
-    const msg = curLang === 'zh' ? \`⏳ 冷卻中 (\${sec}s)\` : \`⏳ Cooldown (\${sec}s)\`;
+    const msg = curLang === 'zh' ? '⏳ 冷卻中 (' + sec + 's)' : '⏳ Cooldown (' + sec + 's)';
     btn.textContent = msg;
 }
 
@@ -4766,7 +4766,7 @@ function displayResult(items){
     const div=document.createElement('div');div.className='gallery';
     items.forEach(item=>{
         const d=document.createElement('div');d.className='gallery-item';
-        d.innerHTML=\`<img src="\${item.image||item.url}" onclick="openModal(this.src)">\`;
+        d.innerHTML='<img src="' + (item.image||item.url) + '" onclick="openModal(this.src)">';
         div.appendChild(d);
     });
     document.getElementById('results').innerHTML='';
