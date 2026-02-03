@@ -4261,7 +4261,7 @@ class ModelDiscovery {
         console.log('🔍 開始模型發現檢查...');
 
         const existingModels = await this.getDiscoveredModels();
-        const existingIds = new Set(existingModels.map(m => `${m.provider}:${m.id}`));
+        const existingIds = new Set(existingModels.map(m => m.provider + ':' + m.id));
 
         // 並行檢查兩個供應商
         const [infipModels, aquaModels] = await Promise.all([
@@ -4270,14 +4270,14 @@ class ModelDiscovery {
         ]);
 
         const allNewModels = [...infipModels, ...aquaModels];
-        const trulyNewModels = allNewModels.filter(m => !existingIds.has(`${m.provider}:${m.id}`));
+        const trulyNewModels = allNewModels.filter(m => !existingIds.has(m.provider + ':' + m.id));
 
         // 合併並保存
         const allModels = [...existingModels, ...trulyNewModels];
         await this.saveDiscoveredModels(allModels);
         await this.updateLastCheck();
 
-        console.log(`🎉 模型發現完成！本次發現 ${trulyNewModels.length} 個新模型，總共 ${allModels.length} 個已發現模型`);
+        console.log('🎉 模型發現完成！本次發現 ' + trulyNewModels.length + ' 個新模型，總共 ' + allModels.length + ' 個已發現模型');
 
         return {
             newModels: trulyNewModels,
