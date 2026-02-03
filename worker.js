@@ -1,7 +1,7 @@
 // =================================================================================
 //  項目: Flux AI Pro - NanoBanana Edition
-//  版本: 11.9.0 (Aqua Polling Models)
-//  更新: 新增 Aqua API 輪詢模型 (imagen4, nanobanana)、Img2Img 支援、參考圖片動態顯示
+//  版本: 11.12.0 (Model Discovery Enhancement)
+//  更新: 新增模型預覽圖、能力檢測、模型測試功能
 // =================================================================================
 
 // 導入風格適配器（僅在服務器端使用）
@@ -1075,6 +1075,221 @@ class MultiProviderRouter {
     return results;
   }
 }
+
+// ====== ModelDiscovery: 自動模型發現與管理 ======
+class ModelDiscovery {
+  constructor(env) {
+    this.env = env;
+    this.KV = env?.FLUX_KV;
+    this.DISCOVERED_MODELS_KEY = 'discovered_models';
+    this.LAST_CHECK_KEY = 'last_model_check';
+    this.CHECK_INTERVAL = 7 * 24 * 60 * 60 * 1000; // 7天
+  }
+
+  // 生成模型預覽圖 URL
+  generateModelPreviewUrl(modelId, provider) {
+    const prompts = {
+      infip: 'A beautiful landscape, high quality, detailed, professional photography',
+      aqua: 'A portrait of a person, professional photography, high quality'
+    };
+    const prompt = prompts[provider] || 'A beautiful landscape, high quality';
+    return `/api/model-preview?provider=${provider}&model=${modelId}&prompt=${encodeURIComponent(prompt)}`;
+  }
+
+  // 檢測模型能力
+  detectModelCapabilities(model) {
+    const capabilities = {
+      supports_reference_images: false,
+      supports_img2img: false,
+      supports_nsfw: false,
+      max_resolution: 1024,
+      supports_batch: false
+    };
+
+    // 根據模型 ID 檢測能力
+    const modelId = model.id?.toLowerCase() || '';
+    
+    if (modelId.includes('nanobanana')) {
+      capabilities.supports_reference_images = true;
+      capabilities.supports_img2img = true;
+      capabilities.max_resolution = 2048;
+    }
+    
+    if (modelId.includes('imagen4') || modelId.includes('img4')) {
+      capabilities.max_resolution = 1792;
+      capabilities.supports_batch = true;
+    }
+    
+    if (modelId.includes('flux')) {
+      capabilities.max_resolution = 2048;
+      capabilities.supports_batch = true;
+    }
+    
+    if (modelId.includes('sdxl')) {
+      capabilities.max_resolution = 1024;
+      capabilities.supports_batch = true;
+    }
+
+    return capabilities;
+  }
+
+  // 測試模型可用性
+  async testModelAvailability(provider, modelId) {
+    const startTime = Date.now();
+    try {
+      const router = new MultiProviderRouter({}, this.env);
+      const { instance: providerInstance } = router.getProvider(provider);
+      const logger = new Logger();
+      
+      const result = await providerInstance.generate('test', {
+        model: modelId,
+        width: 64,
+        height: 64,
+        seed: 1
+      }, logger);
+      
+      return {
+        available: true,
+        error: null,
+        generationTime: Date.now() - startTime
+      };
+    } catch (error) {
+      return {
+        available: false,
+        error: error.message,
+        generationTime: Date.now() - startTime
+      };
+    }
+  }
+
+  // 檢查 Infip 模型
+  async checkInfipModels() {
+    const logger = new Logger();
+    logger.add("🔍 開始檢查 Infip 模型...");
+    
+    const knownModels = CONFIG.PROVIDERS.infip.models.map(m => m.id);
+    const discovered = [];
+    
+    // 測試已知模型
+    for (const modelId of knownModels) {
+      const model = CONFIG.PROVIDERS.infip.models.find(m => m.id === modelId);
+      const testResult = await this.testModelAvailability('infip', modelId);
+      const capabilities = this.detectModelCapabilities(model);
+      const previewUrl = this.generateModelPreviewUrl(modelId, 'infip');
+      
+      if (testResult.available) {
+        discovered.push({
+          ...model,
+          provider: 'infip',
+          capabilities,
+          previewUrl,
+          lastChecked: Date.now(),
+          available: true
+        });
+        logger.add(`✅ Infip 模型可用: ${modelId}`);
+      } else {
+        logger.add(`❌ Infip 模型不可用: ${modelId} - ${testResult.error}`);
+      }
+    }
+    
+    return discovered;
+  }
+
+  // 檢查 Aqua 模型
+  async checkAquaModels() {
+    const logger = new Logger();
+    logger.add("🔍 開始檢查 Aqua 模型...");
+    
+    const knownModels = CONFIG.PROVIDERS.aqua.models.map(m => m.id);
+    const discovered = [];
+    
+    // 測試已知模型
+    for (const modelId of knownModels) {
+      const model = CONFIG.PROVIDERS.aqua.models.find(m => m.id === modelId);
+      const testResult = await this.testModelAvailability('aqua', modelId);
+      const capabilities = this.detectModelCapabilities(model);
+      const previewUrl = this.generateModelPreviewUrl(modelId, 'aqua');
+      
+      if (testResult.available) {
+        discovered.push({
+          ...model,
+          provider: 'aqua',
+          capabilities,
+          previewUrl,
+          lastChecked: Date.now(),
+          available: true
+        });
+        logger.add(`✅ Aqua 模型可用: ${modelId}`);
+      } else {
+        logger.add(`❌ Aqua 模型不可用: ${modelId} - ${testResult.error}`);
+      }
+    }
+    
+    return discovered;
+  }
+
+  // 執行模型發現
+  async discoverModels() {
+    const logger = new Logger();
+    logger.add("🚀 開始執行模型發現...");
+    
+    const [infipModels, aquaModels] = await Promise.all([
+      this.checkInfipModels(),
+      this.checkAquaModels()
+    ]);
+    
+    const allDiscovered = [...infipModels, ...aquaModels];
+    
+    // 保存到 KV
+    if (this.KV) {
+      await this.KV.put(this.DISCOVERED_MODELS_KEY, JSON.stringify(allDiscovered));
+      await this.KV.put(this.LAST_CHECK_KEY, Date.now().toString());
+      logger.add(`💾 已保存 ${allDiscovered.length} 個已發現模型到 KV`);
+    }
+    
+    logger.add(`✅ 模型發現完成: ${allDiscovered.length} 個可用模型`);
+    return allDiscovered;
+  }
+
+  // 獲取已發現的模型
+  async getDiscoveredModels() {
+    if (!this.KV) return [];
+    
+    try {
+      const data = await this.KV.get(this.DISCOVERED_MODELS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('獲取已發現模型失敗:', error);
+      return [];
+    }
+  }
+
+  // 檢查是否需要執行發現
+  async shouldCheck() {
+    if (!this.KV) return false;
+    
+    try {
+      const lastCheck = await this.KV.get(this.LAST_CHECK_KEY);
+      if (!lastCheck) return true;
+      
+      const lastCheckTime = parseInt(lastCheck);
+      const now = Date.now();
+      return (now - lastCheckTime) >= this.CHECK_INTERVAL;
+    } catch (error) {
+      console.error('檢查發現間隔失敗:', error);
+      return false;
+    }
+  }
+
+  // 自動執行發現（如果需要）
+  async autoDiscover() {
+    if (await this.shouldCheck()) {
+      console.log('⏰ 執行定期模型發現...');
+      await this.discoverModels();
+    }
+  }
+}
+
 // Global Cache for Online Count (To save KV List operations)
 export default {
   async fetch(request, env, ctx) {
@@ -1120,6 +1335,63 @@ export default {
           models: CONFIG.PROVIDERS.pollinations.models.map(m => ({ id: m.id, name: m.name, category: m.category, supports_reference_images: m.supports_reference_images || false })),
           style_categories: Object.keys(CONFIG.STYLE_CATEGORIES).map(key => ({ id: key, name: CONFIG.STYLE_CATEGORIES[key].name, icon: CONFIG.STYLE_CATEGORIES[key].icon, count: Object.values(CONFIG.STYLE_PRESETS).filter(s => s.category === key).length }))
         }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+      }
+      else if (url.pathname === '/api/models/discover') {
+        // 手動觸發模型發現
+        const discovery = new ModelDiscovery(env);
+        const models = await discovery.discoverModels();
+        response = new Response(JSON.stringify({
+          success: true,
+          models: models,
+          count: models.length,
+          timestamp: new Date().toISOString()
+        }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+      }
+      else if (url.pathname === '/api/models/discovered') {
+        // 獲取已發現的模型列表
+        const discovery = new ModelDiscovery(env);
+        const models = await discovery.getDiscoveredModels();
+        response = new Response(JSON.stringify({
+          success: true,
+          models: models,
+          count: models.length
+        }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+      }
+      else if (url.pathname === '/api/model-preview') {
+        // 生成模型預覽圖
+        const provider = url.searchParams.get('provider');
+        const model = url.searchParams.get('model');
+        const prompt = url.searchParams.get('prompt') || 'A beautiful landscape, high quality';
+        
+        if (!provider || !model) {
+          response = new Response(JSON.stringify({ error: 'Missing provider or model parameter' }), {
+            status: 400,
+            headers: corsHeaders({ 'Content-Type': 'application/json' })
+          });
+        } else {
+          try {
+            const router = new MultiProviderRouter({}, env);
+            const { instance: providerInstance } = router.getProvider(provider);
+            const logger = new Logger();
+            
+            const result = await providerInstance.generate(prompt, {
+              model: model,
+              width: 256,
+              height: 256,
+              seed: 42,
+              nologo: true
+            }, logger);
+            
+            response = new Response(result.image, {
+              headers: corsHeaders({ 'Content-Type': result.contentType || 'image/png' })
+            });
+          } catch (error) {
+            response = new Response(JSON.stringify({ error: error.message }), {
+              status: 500,
+              headers: corsHeaders({ 'Content-Type': 'application/json' })
+            });
+          }
+        }
       } else {
         response = new Response(JSON.stringify({ error: 'Not Found', message: '此 Worker 僅提供 Web UI 界面', available_paths: ['/', '/health', '/_internal/generate', '/nano'] }), { status: 404, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       }
@@ -3512,6 +3784,20 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
         <!-- JS will populate this -->
     </select>
 </div>
+
+<!-- 模型預覽與能力顯示區域 -->
+<div id="modelPreviewContainer" style="display:none; background:rgba(255,255,255,0.05); padding:12px; border-radius:8px; margin-top:10px; border:1px solid rgba(255,255,255,0.1);">
+    <div style="display:flex; gap:12px; align-items:flex-start;">
+        <div id="modelPreviewImage" style="width:80px; height:80px; background:rgba(0,0,0,0.3); border-radius:6px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+            <span style="font-size:24px; opacity:0.5;">🖼️</span>
+        </div>
+        <div style="flex:1;">
+            <div id="modelPreviewName" style="font-weight:600; color:#a78bfa; margin-bottom:6px;"></div>
+            <div id="modelPreviewCapabilities" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
+            <div id="modelPreviewDescription" style="font-size:12px; color:#9ca3af; line-height:1.4;"></div>
+        </div>
+    </div>
+</div>
 <div class="form-group"><label data-t="size_label">尺寸預設</label><select id="size">${sizeOptionsHTML}</select></div>
 <div class="form-group"><label data-t="style_label">藝術風格 🎨</label><select id="style">${styleOptionsHTML}</select></div>
 <div class="form-group"><label data-t="quality_label">質量模式</label><select id="qualityMode"><option value="economy">Economy</option><option value="standard" selected>Standard</option><option value="ultra">Ultra HD</option></select></div>
@@ -4197,6 +4483,21 @@ const apiKeyGroup = document.getElementById('apiKeyGroup');
 const apiKeyInput = document.getElementById('apiKey');
 const modelSelect = document.getElementById('model');
 
+// 加載已發現的模型
+async function loadDiscoveredModels() {
+    try {
+        const response = await fetch('/api/models/discovered');
+        const data = await response.json();
+        if (data.success && data.models) {
+            return data.models;
+        }
+        return [];
+    } catch (error) {
+        console.error('加載已發現模型失敗:', error);
+        return [];
+    }
+}
+
 function updateModelOptions() {
     const p = providerSelect.value;
     const config = PROVIDERS[p];
@@ -4236,32 +4537,61 @@ function updateModelOptions() {
     modelSelect.innerHTML = '';
     const models = config.models;
     const groups = {};
-    models.forEach(m => {
-        // Skip nanobanana model - only available in Nano Pro page
-        // imagen4 is available in Professional UI (Aqua polling model)
-        if (m.id === 'nanobanana') return;
+    
+    // 加載已發現的模型並合併到模型列表
+    loadDiscoveredModels().then(discoveredModels => {
+        const allModels = [...models];
         
-        const cat = m.category || 'other';
-        if(!groups[cat]) groups[cat] = [];
-        groups[cat].push(m);
-    });
-    
-    for(const [cat, list] of Object.entries(groups)) {
-        const optgroup = document.createElement('optgroup');
-        optgroup.label = cat.toUpperCase();
-        list.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.id;
-            opt.textContent = m.name;
-            // Set default model to FLUX.2 Klein 9B
-            if (m.id === 'klein-large') opt.selected = true;
-            optgroup.appendChild(opt);
+        // 添加已發現的模型（如果不在配置中）
+        discoveredModels.forEach(dm => {
+            if (!allModels.find(m => m.id === dm.id)) {
+                allModels.push({
+                    id: dm.id,
+                    name: dm.name,
+                    category: 'DISCOVERED',
+                    description: dm.description,
+                    max_size: dm.max_size,
+                    previewUrl: dm.previewUrl,
+                    capabilities: dm.capabilities
+                });
+            }
         });
-        modelSelect.appendChild(optgroup);
-    }
-    
-    // Update reference images visibility after model list is updated
-    updateReferenceImagesVisibility();
+        
+        allModels.forEach(m => {
+            // Skip nanobanana model - only available in Nano Pro page
+            // imagen4 is available in Professional UI (Aqua polling model)
+            if (m.id === 'nanobanana') return;
+            
+            const cat = m.category || 'other';
+            if(!groups[cat]) groups[cat] = [];
+            groups[cat].push(m);
+        });
+        
+        for(const [cat, list] of Object.entries(groups)) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = cat.toUpperCase();
+            list.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.name;
+                // 添加預覽圖 URL 作為 data 屬性
+                if (m.previewUrl) {
+                    opt.dataset.previewUrl = m.previewUrl;
+                }
+                // 添加能力信息作為 data 屬性
+                if (m.capabilities) {
+                    opt.dataset.capabilities = JSON.stringify(m.capabilities);
+                }
+                // Set default model to FLUX.2 Klein 9B
+                if (m.id === 'klein-large') opt.selected = true;
+                optgroup.appendChild(opt);
+            });
+            modelSelect.appendChild(optgroup);
+        }
+        
+        // Update reference images visibility after model list is updated
+        updateReferenceImagesVisibility();
+    });
 }
 
 // ====== 拖放功能模塊 ======
@@ -4474,7 +4804,99 @@ function updateReferenceImagesVisibility() {
     }
 }
 
-modelSelect.addEventListener('change', updateReferenceImagesVisibility);
+// Update model preview display
+function updateModelPreview() {
+    const modelSelect = document.getElementById('model');
+    const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+    const previewContainer = document.getElementById('modelPreviewContainer');
+    const previewImage = document.getElementById('modelPreviewImage');
+    const previewName = document.getElementById('modelPreviewName');
+    const previewCapabilities = document.getElementById('modelPreviewCapabilities');
+    const previewDescription = document.getElementById('modelPreviewDescription');
+    
+    if (!selectedOption) {
+        previewContainer.style.display = 'none';
+        return;
+    }
+    
+    const previewUrl = selectedOption.dataset.previewUrl;
+    const capabilities = selectedOption.dataset.capabilities ? JSON.parse(selectedOption.dataset.capabilities) : null;
+    const modelName = selectedOption.textContent;
+    
+    // Show preview container
+    previewContainer.style.display = 'block';
+    
+    // Update name
+    previewName.textContent = modelName;
+    
+    // Update preview image
+    if (previewUrl) {
+        const img = document.createElement('img');
+        img.src = previewUrl;
+        img.alt = modelName;
+        img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+        img.onerror = function() {
+            previewImage.innerHTML = '<span style="font-size:24px; opacity:0.5;">🖼️</span>';
+        };
+        previewImage.innerHTML = '';
+        previewImage.appendChild(img);
+    } else {
+        previewImage.innerHTML = '<span style="font-size:24px; opacity:0.5;">🖼️</span>';
+    }
+    
+    // Update capabilities badges
+    previewCapabilities.innerHTML = '';
+    if (capabilities) {
+        const badges = [];
+        
+        if (capabilities.supports_reference_images) {
+            const badge = document.createElement('span');
+            badge.textContent = '📸 參考圖';
+            badge.style.cssText = 'background:rgba(139, 92, 246, 0.3); color:#a78bfa; padding:2px 8px; border-radius:10px; font-size:10px;';
+            badges.push(badge);
+        }
+        if (capabilities.supports_img2img) {
+            const badge = document.createElement('span');
+            badge.textContent = '🔄 Img2Img';
+            badge.style.cssText = 'background:rgba(59, 130, 246, 0.3); color:#60a5fa; padding:2px 8px; border-radius:10px; font-size:10px;';
+            badges.push(badge);
+        }
+        if (capabilities.supports_nsfw) {
+            const badge = document.createElement('span');
+            badge.textContent = '🔞 NSFW';
+            badge.style.cssText = 'background:rgba(239, 68, 68, 0.3); color:#f87171; padding:2px 8px; border-radius:10px; font-size:10px;';
+            badges.push(badge);
+        }
+        if (capabilities.supports_batch) {
+            const badge = document.createElement('span');
+            badge.textContent = '📦 批量';
+            badge.style.cssText = 'background:rgba(34, 197, 94, 0.3); color:#4ade80; padding:2px 8px; border-radius:10px; font-size:10px;';
+            badges.push(badge);
+        }
+        const resBadge = document.createElement('span');
+        resBadge.textContent = '📐 ' + capabilities.max_resolution + 'px';
+        resBadge.style.cssText = 'background:rgba(251, 191, 36, 0.3); color:#fbbf24; padding:2px 8px; border-radius:10px; font-size:10px;';
+        badges.push(resBadge);
+        
+        badges.forEach(b => previewCapabilities.appendChild(b));
+    } else {
+        const noInfo = document.createElement('span');
+        noInfo.textContent = '無能力資訊';
+        noInfo.style.cssText = 'color:#6b7280; font-size:11px;';
+        previewCapabilities.appendChild(noInfo);
+    }
+    
+    // Update description
+    const provider = document.getElementById('provider').value;
+    const config = PROVIDERS[provider];
+    const modelConfig = config?.models?.find(m => m.id === selectedOption.value);
+    previewDescription.textContent = modelConfig?.description || '此模型無描述資訊';
+}
+
+modelSelect.addEventListener('change', () => {
+    updateReferenceImagesVisibility();
+    updateModelPreview();
+});
 
 const PRESET_SIZES=${JSON.stringify(CONFIG.PRESET_SIZES)};
 const STYLE_PRESETS=${JSON.stringify(CONFIG.STYLE_PRESETS)};
