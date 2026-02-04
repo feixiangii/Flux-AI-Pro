@@ -335,7 +335,33 @@ export const TRANSLATIONS = {
     video_cooldown_wait: "⏳ 影片生成冷卻中！請等待 {waitSeconds} 秒後再試。",
     video_quota_remaining: "剩餘配額",
     video_quota_max: "每小時配額",
-    video_cooldown_seconds: "冷卻時間"
+    video_cooldown_seconds: "冷卻時間",
+    
+    // 專業級介面
+    video_theme_toggle: "🌓 切換主題",
+    video_theme_light: "淺色模式",
+    video_theme_dark: "深色模式",
+    video_card_basic: "基本參數",
+    video_card_advanced: "進階參數",
+    video_card_prompt: "提示詞輸入",
+    video_card_logs: "生成日誌",
+    video_card_results: "生成結果",
+    video_card_history: "生成歷史",
+    video_clear_logs: "🗑️ 清空日誌",
+    video_clear_results: "🗑️ 清空結果",
+    video_clear_history: "🗑️ 清空歷史",
+    video_no_history_records: "暫無歷史記錄",
+    video_click_to_reuse: "點擊重用此設定",
+    video_copy_link: "🔗 複製連結",
+    video_link_copied: "連結已複製！",
+    video_seed_label: "Seed (種子碼)",
+    video_seed_random: "🎲 隨機",
+    video_negative_prompt: "負面提示詞",
+    video_custom_width: "自定義寬度",
+    video_custom_height: "自定義高度",
+    video_cfg_scale: "CFG Scale",
+    video_advanced_toggle: "🛠️ 進階參數",
+    video_advanced_collapse: "收起進階參數"
   },
   
   // ====== 英文 (en) ======
@@ -549,7 +575,33 @@ export const TRANSLATIONS = {
     video_cooldown_wait: "⏳ Video generation cooldown! Please wait {waitSeconds} seconds before trying again.",
     video_quota_remaining: "Remaining Quota",
     video_quota_max: "Hourly Quota",
-    video_cooldown_seconds: "Cooldown Time"
+    video_cooldown_seconds: "Cooldown Time",
+    
+    // Professional Interface
+    video_theme_toggle: "🌓 Toggle Theme",
+    video_theme_light: "Light Mode",
+    video_theme_dark: "Dark Mode",
+    video_card_basic: "Basic Parameters",
+    video_card_advanced: "Advanced Parameters",
+    video_card_prompt: "Prompt Input",
+    video_card_logs: "Generation Logs",
+    video_card_results: "Generation Results",
+    video_card_history: "Generation History",
+    video_clear_logs: "🗑️ Clear Logs",
+    video_clear_results: "🗑️ Clear Results",
+    video_clear_history: "🗑️ Clear History",
+    video_no_history_records: "No history records",
+    video_click_to_reuse: "Click to reuse these settings",
+    video_copy_link: "🔗 Copy Link",
+    video_link_copied: "Link copied!",
+    video_seed_label: "Seed Value",
+    video_seed_random: "🎲 Random",
+    video_negative_prompt: "Negative Prompt",
+    video_custom_width: "Custom Width",
+    video_custom_height: "Custom Height",
+    video_cfg_scale: "CFG Scale",
+    video_advanced_toggle: "🛠️ Advanced Parameters",
+    video_advanced_collapse: "Collapse Advanced"
   },
   
   // ====== 日文 (ja) ======
@@ -763,7 +815,33 @@ export const TRANSLATIONS = {
     video_cooldown_wait: "⏳ 動画生成のクールダウン中です！{waitSeconds}秒待ってからもう一度お試しください。",
     video_quota_remaining: "残りクォータ",
     video_quota_max: "1時間あたりのクォータ",
-    video_cooldown_seconds: "クールダウン時間"
+    video_cooldown_seconds: "クールダウン時間",
+    
+    // プロフェッショナルインターフェース
+    video_theme_toggle: "🌓 テーマ切り替え",
+    video_theme_light: "ライトモード",
+    video_theme_dark: "ダークモード",
+    video_card_basic: "基本パラメータ",
+    video_card_advanced: "詳細パラメータ",
+    video_card_prompt: "プロンプト入力",
+    video_card_logs: "生成ログ",
+    video_card_results: "生成結果",
+    video_card_history: "生成履歴",
+    video_clear_logs: "🗑️ ログをクリア",
+    video_clear_results: "🗑️ 結果をクリア",
+    video_clear_history: "🗑️ 履歴をクリア",
+    video_no_history_records: "履歴がありません",
+    video_click_to_reuse: "クリックして設定を再利用",
+    video_copy_link: "🔗 リンクをコピー",
+    video_link_copied: "リンクをコピーしました！",
+    video_seed_label: "シード値",
+    video_seed_random: "🎲 ランダム",
+    video_negative_prompt: "ネガティブプロンプト",
+    video_custom_width: "カスタム幅",
+    video_custom_height: "カスタム高さ",
+    video_cfg_scale: "CFGスケール",
+    video_advanced_toggle: "🛠️ 詳細パラメータ",
+    video_advanced_collapse: "詳細パラメータを折りたたむ"
   },
   
   // ====== 韓文 (ko) ======
@@ -975,7 +1053,33 @@ export const TRANSLATIONS = {
     video_cooldown_wait: "⏳ 동영상 생성 쿨다운 중입니다! {waitSeconds}초 후에 다시 시도하세요.",
     video_quota_remaining: "남은 할당량",
     video_quota_max: "시간당 할당량",
-    video_cooldown_seconds: "쿨다운 시간"
+    video_cooldown_seconds: "쿨다운 시간",
+    
+    // 전문 인터페이스
+    video_theme_toggle: "🌓 테마 전환",
+    video_theme_light: "라이트 모드",
+    video_theme_dark: "다크 모드",
+    video_card_basic: "기본 매개변수",
+    video_card_advanced: "고급 매개변수",
+    video_card_prompt: "프롬프트 입력",
+    video_card_logs: "생성 로그",
+    video_card_results: "생성 결과",
+    video_card_history: "생성 기록",
+    video_clear_logs: "🗑️ 로그 지우기",
+    video_clear_results: "🗑️ 결과 지우기",
+    video_clear_history: "🗑️ 기록 지우기",
+    video_no_history_records: "기록이 없습니다",
+    video_click_to_reuse: "클릭하여 설정 재사용",
+    video_copy_link: "🔗 링크 복사",
+    video_link_copied: "링크가 복사되었습니다!",
+    video_seed_label: "시드 값",
+    video_seed_random: "🎲 랜덤",
+    video_negative_prompt: "부정적 프롬프트",
+    video_custom_width: "사용자 정의 너비",
+    video_custom_height: "사용자 정의 높이",
+    video_cfg_scale: "CFG 스케일",
+    video_advanced_toggle: "🛠️ 고급 매개변수",
+    video_advanced_collapse: "고급 매개변수 접기"
   },
   
   // ====== 阿拉伯語 (ar) - RTL ======
@@ -1309,7 +1413,33 @@ export const TRANSLATIONS = {
     video_cooldown_wait: "⏳ فترة تبريد إنشاء الفيديو! يرجى الانتظار {waitSeconds} ثانية قبل المحاولة مرة أخرى.",
     video_quota_remaining: "الحصة المتبقية",
     video_quota_max: "الحصة الساعية",
-    video_cooldown_seconds: "وقت التبريد"
+    video_cooldown_seconds: "وقت التبريد",
+    
+    // واجهة احترافية
+    video_theme_toggle: "🌓 تبديل المظهر",
+    video_theme_light: "الوضع الفاتح",
+    video_theme_dark: "الوضع الداكن",
+    video_card_basic: "المعلمات الأساسية",
+    video_card_advanced: "المعلمات المتقدمة",
+    video_card_prompt: "إدخال الموجه",
+    video_card_logs: "سجلات الإنشاء",
+    video_card_results: "نتائج الإنشاء",
+    video_card_history: "سجل الإنشاء",
+    video_clear_logs: "🗑️ مسح السجلات",
+    video_clear_results: "🗑️ مسح النتائج",
+    video_clear_history: "🗑️ مسح السجل",
+    video_no_history_records: "لا توجد سجلات",
+    video_click_to_reuse: "انقر لإعادة استخدام هذه الإعدادات",
+    video_copy_link: "🔗 نسخ الرابط",
+    video_link_copied: "تم نسخ الرابط!",
+    video_seed_label: "قيمة البذرة",
+    video_seed_random: "🎲 عشوائي",
+    video_negative_prompt: "موجه سلبي",
+    video_custom_width: "عرض مخصص",
+    video_custom_height: "ارتفاع مخصص",
+    video_cfg_scale: "مقياس CFG",
+    video_advanced_toggle: "🛠️ المعلمات المتقدمة",
+    video_advanced_collapse: "طي المعلمات المتقدمة"
   }
 };
 

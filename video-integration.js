@@ -157,6 +157,7 @@ class Logger {
   constructor() { this.logs = []; }
   add(title, data) { this.logs.push({ title, data, timestamp: new Date().toISOString() }); }
   get() { return this.logs; }
+  clear() { this.logs = []; }
 }
 
 /**
@@ -1053,7 +1054,7 @@ function handleVideoPage(request, env) {
   }
 
   const html = `<!DOCTYPE html>
-<html lang="${currentLang}">
+<html lang="${currentLang}" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1061,45 +1062,117 @@ function handleVideoPage(request, env) {
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#0a0a0a 0%,#1a1a2e 100%);color:#fff;min-height:100vh}
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a1a2e;
+  --bg-card: rgba(255,255,255,0.03);
+  --bg-input: rgba(0,0,0,0.3);
+  --border-color: rgba(255,255,255,0.1);
+  --text-primary: #fff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent-color: #f59e0b;
+  --accent-gradient: linear-gradient(135deg,#f59e0b 0%,#d97706 100%);
+  --success-color: #22c55e;
+  --error-color: #ef4444;
+  --shadow-color: rgba(245,158,11,0.3);
+}
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #e2e8f0;
+  --bg-card: rgba(255,255,255,0.8);
+  --bg-input: rgba(0,0,0,0.05);
+  --border-color: rgba(0,0,0,0.1);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --shadow-color: rgba(245,158,11,0.2);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,var(--bg-primary) 0%,var(--bg-secondary) 100%);color:var(--text-primary);min-height:100vh;transition:background 0.3s,color 0.3s}
 .container{max-width:100%;margin:0;padding:0;height:100vh;display:flex;flex-direction:column}
-.top-nav{background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.1);padding:15px 25px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.top-nav{background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border-bottom:1px solid var(--border-color);padding:15px 25px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+[data-theme="light"] .top-nav{background:rgba(255,255,255,0.8)}
 .nav-left{display:flex;align-items:center;gap:20px}
-.logo{color:#f59e0b;font-size:24px;font-weight:800;text-shadow:0 0 20px rgba(245,158,11,0.6);display:flex;align-items:center;gap:10px}
+.logo{color:var(--accent-color);font-size:24px;font-weight:800;text-shadow:0 0 20px var(--shadow-color);display:flex;align-items:center;gap:10px}
 .nav-menu{display:flex;gap:10px;align-items:center}
-.nav-btn{padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#9ca3af;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s;display:flex;align-items:center;gap:6px;text-decoration:none}
-.nav-btn:hover{border-color:#f59e0b;color:#fff}
-.nav-btn.active{background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;border-color:#f59e0b}
-.main-content{flex:1;display:flex;overflow:hidden}
-.left-panel{width:320px;background:rgba(255,255,255,0.03);border-right:1px solid rgba(255,255,255,0.1);overflow-y:auto;padding:20px;flex-shrink:0}
-.center-panel{flex:1;padding:20px;overflow-y:auto}
-.right-panel{width:380px;background:rgba(255,255,255,0.03);border-left:1px solid rgba(255,255,255,0.1);overflow-y:auto;padding:20px;flex-shrink:0}
-@media(max-width:1024px){.main-content{flex-direction:column}.left-panel,.right-panel{width:100%;border:none;border-bottom:1px solid rgba(255,255,255,0.1)}}
-.form-group{margin-bottom:16px}
-label{display:block;margin-bottom:6px;font-weight:600;font-size:13px;color:#e5e7eb}
-input,textarea,select{width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;font-size:13px;transition:all 0.3s}
-input:focus,textarea:focus,select:focus{outline:none;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.1)}
-select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer}
+.nav-btn{padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid var(--border-color);border-radius:8px;color:var(--text-secondary);cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s;display:flex;align-items:center;gap:6px;text-decoration:none}
+[data-theme="light"] .nav-btn{background:rgba(0,0,0,0.05)}
+.nav-btn:hover{border-color:var(--accent-color);color:var(--text-primary)}
+.nav-btn.active{background:var(--accent-gradient);color:#fff;border-color:var(--accent-color)}
+.theme-toggle{padding:8px 12px;background:rgba(255,255,255,0.05);border:1px solid var(--border-color);border-radius:8px;color:var(--text-secondary);cursor:pointer;font-size:18px;transition:all 0.3s}
+[data-theme="light"] .theme-toggle{background:rgba(0,0,0,0.05)}
+.theme-toggle:hover{border-color:var(--accent-color);color:var(--text-primary)}
+.main-content{flex:1;display:flex;overflow:hidden;gap:20px;padding:20px}
+.left-panel{width:340px;overflow-y:auto;flex-shrink:0}
+.center-panel{flex:1;overflow-y:auto}
+.right-panel{width:400px;overflow-y:auto;flex-shrink:0}
+@media(max-width:1200px){.main-content{flex-direction:column}.left-panel,.right-panel{width:100%;max-height:400px}}
+.card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:20px;margin-bottom:20px;backdrop-filter:blur(10px);transition:all 0.3s}
+[data-theme="light"] .card{background:rgba(255,255,255,0.9);box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.card:hover{border-color:rgba(245,158,11,0.3);transform:translateY(-2px)}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border-color)}
+.card-title{font-size:16px;font-weight:700;color:var(--accent-color);display:flex;align-items:center;gap:8px}
+.card-toggle{background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:18px;padding:4px;transition:all 0.3s}
+.card-toggle:hover{color:var(--accent-color);transform:rotate(180deg)}
+.card-content{transition:all 0.3s}
+.card-content.collapsed{display:none}
+.form-group{margin-bottom:14px}
+label{display:block;margin-bottom:6px;font-weight:600;font-size:13px;color:var(--text-primary)}
+input,textarea,select{width:100%;padding:10px;background:var(--bg-input);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;transition:all 0.3s}
+[data-theme="light"] input,[data-theme="light"] textarea,[data-theme="light"] select{background:#fff}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent-color);box-shadow:0 0 0 3px rgba(245,158,11,0.1)}
+select{background-color:var(--bg-secondary)!important;color:var(--text-primary)!important;cursor:pointer}
+[data-theme="light"] select{background-color:#fff!important}
 .btn{padding:12px 24px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.3s;display:inline-flex;align-items:center;gap:8px;justify-content:center;width:100%}
-.btn-primary{background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;box-shadow:0 4px 15px rgba(245,158,11,0.3)}
+.btn-primary{background:var(--accent-gradient);color:#fff;box-shadow:0 4px 15px var(--shadow-color)}
 .btn-primary:disabled{opacity:0.5;cursor:not-allowed}
-.video-container{background:rgba(0,0,0,0.4);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);margin-bottom:20px}
+.btn-secondary{background:rgba(255,255,255,0.1);border:1px solid var(--border-color);color:var(--text-primary)}
+[data-theme="light"] .btn-secondary{background:rgba(0,0,0,0.05)}
+.btn-secondary:hover{border-color:var(--accent-color)}
+.btn-sm{padding:6px 12px;font-size:12px;width:auto}
+.video-container{background:var(--bg-input);border-radius:12px;overflow:hidden;border:1px solid var(--border-color);margin-bottom:20px}
 .video-container video{width:100%;display:block}
 .video-info{padding:15px}
 .video-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:5px}
 .model-badge,.provider-badge,.style-badge{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.1)}
-.loading{text-align:center;padding:60px 20px;color:#9ca3af}
-.spinner{border:3px solid rgba(255,255,255,0.1);border-top:3px solid #f59e0b;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 15px}
+[data-theme="light"] .model-badge,[data-theme="light"] .provider-badge,[data-theme="light"] .style-badge{background:rgba(0,0,0,0.1)}
+.loading{text-align:center;padding:60px 20px;color:var(--text-secondary)}
+.spinner{border:3px solid rgba(255,255,255,0.1);border-top:3px solid var(--accent-color);border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 15px}
+[data-theme="light"] .spinner{border-color:rgba(0,0,0,0.1)}
 @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-.drag-drop-zone{border:2px dashed rgba(255,255,255,0.2);border-radius:12px;padding:20px;text-align:center;transition:all 0.3s ease;cursor:pointer;background:rgba(0,0,0,0.2);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.drag-drop-zone{border:2px dashed var(--border-color);border-radius:12px;padding:20px;text-align:center;transition:all 0.3s ease;cursor:pointer;background:var(--bg-input);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
 .drag-drop-zone:hover{border-color:rgba(245,158,11,0.5);background:rgba(245,158,11,0.05)}
-.drag-drop-zone.drag-over{border-color:#f59e0b;background:rgba(245,158,11,0.15);transform:scale(1.02)}
+.drag-drop-zone.drag-over{border-color:var(--accent-color);background:rgba(245,158,11,0.15);transform:scale(1.02)}
 .drag-drop-zone .drag-icon{font-size:32px;opacity:0.7}
-.drag-drop-zone .drag-text{font-size:13px;color:#9ca3af}
-.drag-drop-zone .drag-subtext{font-size:11px;color:#6b7280}
-.footer{padding:20px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid rgba(255,255,255,0.05);margin-top:auto;line-height:1.8}
+.drag-drop-zone .drag-text{font-size:13px;color:var(--text-secondary)}
+.drag-drop-zone .drag-subtext{font-size:11px;color:var(--text-muted)}
+.footer{padding:20px;text-align:center;font-size:12px;color:var(--text-muted);border-top:1px solid var(--border-color);margin-top:auto;line-height:1.8}
 .footer a{color:#fbbf24;text-decoration:none;transition:0.3s;margin:0 4px}
-.footer a:hover{text-decoration:underline;color:#f59e0b}
+.footer a:hover{text-decoration:underline;color:var(--accent-color)}
+.history-item{background:var(--bg-input);border:1px solid var(--border-color);border-radius:8px;padding:12px;margin-bottom:10px;cursor:pointer;transition:all 0.3s}
+.history-item:hover{border-color:var(--accent-color);transform:translateX(4px)}
+.history-item .history-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.history-item .history-prompt{font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history-item .history-time{font-size:11px;color:var(--text-muted)}
+.history-item .history-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.history-item .history-badge{padding:2px 6px;border-radius:4px;font-size:10px;background:rgba(255,255,255,0.1)}
+[data-theme="light"] .history-item .history-badge{background:rgba(0,0,0,0.1)}
+.advanced-params{display:none}
+.advanced-params.show{display:block}
+.toggle-advanced{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:12px;margin-bottom:12px}
+.toggle-advanced:hover{color:var(--accent-color)}
+.toggle-advanced input{width:auto;margin:0}
+.api-key-group{display:none;background:rgba(245,158,11,0.1);padding:10px;border-radius:8px;border:1px solid rgba(245,158,11,0.3)}
+.api-key-group.show{display:block}
+[data-theme="light"] .api-key-group{background:rgba(245,158,11,0.15)}
+.logs-container{background:var(--bg-input);border:1px solid var(--border-color);border-radius:8px;padding:10px;height:180px;overflow-y:auto;font-size:11px;font-family:monospace;color:var(--text-secondary)}
+.log-entry{margin-bottom:4px}
+.log-entry.error{color:var(--error-color)}
+.log-entry.success{color:var(--success-color)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty-state .empty-icon{font-size:48px;margin-bottom:16px;opacity:0.5}
+.empty-state .empty-text{font-size:14px;margin-bottom:8px}
+.empty-state .empty-subtext{font-size:12px}
 </style>
 </head>
 <body>
@@ -1114,74 +1187,147 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
         <a href="/" class="nav-btn">🎨 圖像生成</a>
         <a href="/nano" class="nav-btn">🍌 Nano版</a>
         <a href="/video" class="nav-btn active">🎬 影片生成</a>
+        <button class="theme-toggle" id="themeToggle" title="切換主題">🌙</button>
     </div>
 </div>
 <div class="main-content">
 <div class="left-panel">
-    <div style="font-size:16px;font-weight:700;margin-bottom:20px;color:#f59e0b">⚙️ 影片參數</div>
-    <form id="videoForm">
-        <div class="form-group">
-            <label>🏢 供應商</label>
-            <select id="provider">${providerOptionsHTML}</select>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">⚙️ 基本參數</div>
         </div>
-        <div class="form-group" id="apiKeyGroup" style="display:none;background:rgba(245,158,11,0.1);padding:10px;border-radius:8px;border:1px solid rgba(245,158,11,0.3)">
-            <label>API Key</label>
-            <input type="password" id="apiKey" placeholder="輸入 API Key">
-            <div style="font-size:11px;color:#ccc;margin-top:6px">API Key 將存儲在本地</div>
+        <div class="card-content">
+            <form id="videoForm">
+                <div class="form-group">
+                    <label>🏢 供應商</label>
+                    <select id="provider">${providerOptionsHTML}</select>
+                </div>
+                <div class="form-group api-key-group" id="apiKeyGroup">
+                    <label>🔑 API Key</label>
+                    <input type="password" id="apiKey" placeholder="輸入 API Key">
+                    <div style="font-size:11px;color:var(--text-secondary);margin-top:6px">API Key 將存儲在本地</div>
+                </div>
+                <div class="form-group">
+                    <label>🤖 模型選擇</label>
+                    <select id="model">
+                        <!-- JS 將填充此選單 -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>📐 尺寸預設</label>
+                    <select id="size">${sizeOptionsHTML}</select>
+                </div>
+                <div class="form-group">
+                    <label>🎨 藝術風格</label>
+                    <select id="style">${styleOptionsHTML}</select>
+                </div>
+                <div class="form-group">
+                    <label>⏱️ 持續時間 (秒)</label>
+                    <input type="number" id="duration" value="4" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label>🎞️ 幀率 (FPS)</label>
+                    <input type="number" id="fps" value="8" min="1" max="30">
+                </div>
+                <button type="submit" class="btn btn-primary" id="generateBtn">🎬 開始生成</button>
+            </form>
         </div>
-        <div class="form-group">
-            <label>🤖 模型選擇</label>
-            <select id="model">
-                <!-- JS 將填充此選單 -->
-            </select>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">🔧 進階參數</div>
+            <button class="card-toggle" id="advancedToggle">▼</button>
         </div>
-        <div class="form-group">
-            <label>📐 尺寸預設</label>
-            <select id="size">${sizeOptionsHTML}</select>
+        <div class="card-content advanced-params" id="advancedParams">
+            <div class="form-group">
+                <label>🌱 Seed 值</label>
+                <input type="number" id="seed" placeholder="留空為隨機" min="0" max="4294967295">
+                <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">相同的 Seed 會產生相同的結果</div>
+            </div>
+            <div class="form-group">
+                <label>🚫 負面提示詞</label>
+                <textarea id="negativePrompt" placeholder="描述你不想要的內容..." rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>📏 自定義寬度</label>
+                <input type="number" id="customWidth" placeholder="留空使用預設" min="64" max="1920">
+            </div>
+            <div class="form-group">
+                <label>📐 自定義高度</label>
+                <input type="number" id="customHeight" placeholder="留空使用預設" min="64" max="1920">
+            </div>
+            <div class="form-group">
+                <label>🎯 CFG Scale</label>
+                <input type="number" id="cfgScale" value="7.5" min="1" max="20" step="0.5">
+                <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">控制提示詞影響程度 (1-20)</div>
+            </div>
         </div>
-        <div class="form-group">
-            <label>🎨 藝術風格</label>
-            <select id="style">${styleOptionsHTML}</select>
-        </div>
-        <div class="form-group">
-            <label>⏱️ 持續時間 (秒)</label>
-            <input type="number" id="duration" value="4" min="1" max="10">
-        </div>
-        <div class="form-group">
-            <label>🎞️ 幀率 (FPS)</label>
-            <input type="number" id="fps" value="8" min="1" max="30">
-        </div>
-        <button type="submit" class="btn btn-primary" id="generateBtn">🎬 開始生成</button>
-    </form>
+    </div>
 </div>
 <div class="center-panel">
-    <div id="results">
-        <div class="loading">
-            <div style="font-size:48px;margin-bottom:20px">🎬</div>
-            <p>尚未生成任何影片</p>
-            <p style="font-size:12px;color:#6b7280;margin-top:10px">輸入提示詞並點擊「開始生成」</p>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">🎬 生成結果</div>
+            <button class="btn btn-secondary btn-sm" id="clearResults">清除</button>
+        </div>
+        <div class="card-content">
+            <div id="results">
+                <div class="empty-state">
+                    <div class="empty-icon">🎬</div>
+                    <div class="empty-text">尚未生成任何影片</div>
+                    <div class="empty-subtext">輸入提示詞並點擊「開始生成」</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 <div class="right-panel">
-    <div class="form-group">
-        <label>✍️ 提示詞</label>
-        <textarea id="prompt" placeholder="描述你想要的影片..." rows="6" required></textarea>
-    </div>
-    <div class="form-group">
-        <label>📷 參考圖片 (圖片轉影片)</label>
-        <input type="file" id="imageUpload" accept="image/*" style="display:none">
-        <div id="imageDropZone" class="drag-drop-zone">
-            <div class="drag-icon">📷</div>
-            <div class="drag-text">拖放圖片或點擊選擇</div>
-            <div class="drag-subtext">支援 JPG, PNG, GIF (最大 32MB)</div>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">✍️ 提示詞輸入</div>
         </div>
-        <textarea id="referenceImage" placeholder="圖片 URL (或上傳上方)" rows="2" style="margin-top:10px"></textarea>
+        <div class="card-content">
+            <div class="form-group">
+                <textarea id="prompt" placeholder="描述你想要的影片..." rows="5" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>📷 參考圖片 (圖片轉影片)</label>
+                <input type="file" id="imageUpload" accept="image/*" style="display:none">
+                <div id="imageDropZone" class="drag-drop-zone">
+                    <div class="drag-icon">📷</div>
+                    <div class="drag-text">拖放圖片或點擊選擇</div>
+                    <div class="drag-subtext">支援 JPG, PNG, GIF (最大 32MB)</div>
+                </div>
+                <textarea id="referenceImage" placeholder="圖片 URL (或上傳上方)" rows="2" style="margin-top:10px"></textarea>
+            </div>
+        </div>
     </div>
-    <div class="form-group">
-        <label>📝 生成日誌</label>
-        <div id="logs" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px;height:200px;overflow-y:auto;font-size:11px;font-family:monospace;color:#9ca3af">
-            <div>等待生成...</div>
+    
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">📝 生成日誌</div>
+            <button class="btn btn-secondary btn-sm" id="clearLogs">清除</button>
+        </div>
+        <div class="card-content">
+            <div class="logs-container" id="logs">
+                <div class="log-entry">等待生成...</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">📜 生成歷史</div>
+            <button class="btn btn-secondary btn-sm" id="clearHistory">清除</button>
+        </div>
+        <div class="card-content">
+            <div id="history">
+                <div class="empty-state" style="padding:20px">
+                    <div class="empty-icon" style="font-size:32px">📜</div>
+                    <div class="empty-text" style="font-size:12px">暫無歷史記錄</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1199,6 +1345,7 @@ const VIDEO_CONFIG = ${JSON.stringify(VIDEO_CONFIG)};
 // 狀態管理
 let isGenerating = false;
 let uploadedImageUrl = null;
+let generationHistory = JSON.parse(localStorage.getItem('video_generation_history') || '[]');
 
 // DOM 元素
 const providerSelect = document.getElementById('provider');
@@ -1214,6 +1361,35 @@ const referenceImageInput = document.getElementById('referenceImage');
 const generateBtn = document.getElementById('generateBtn');
 const resultsDiv = document.getElementById('results');
 const logsDiv = document.getElementById('logs');
+const historyDiv = document.getElementById('history');
+const themeToggle = document.getElementById('themeToggle');
+const advancedToggle = document.getElementById('advancedToggle');
+const advancedParams = document.getElementById('advancedParams');
+
+// 主題切換
+function initTheme() {
+    const savedTheme = localStorage.getItem('video_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('video_theme', newTheme);
+    updateThemeIcon(newTheme);
+}
+
+function updateThemeIcon(theme) {
+    themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
+}
+
+// 進階參數切換
+advancedToggle.addEventListener('click', () => {
+    advancedParams.classList.toggle('show');
+    advancedToggle.textContent = advancedParams.classList.contains('show') ? '▲' : '▼';
+});
 
 // 更新模型選單
 function updateModelOptions() {
@@ -1224,9 +1400,9 @@ function updateModelOptions() {
     
     // 顯示/隱藏 API Key 輸入框
     if (provider === 'pollinations') {
-        apiKeyGroup.style.display = 'none';
+        apiKeyGroup.classList.remove('show');
     } else {
-        apiKeyGroup.style.display = 'block';
+        apiKeyGroup.classList.add('show');
         const storedKey = localStorage.getItem(\`\${provider}_api_key\`);
         apiKeyInput.value = storedKey || '';
     }
@@ -1247,7 +1423,7 @@ function updateModelOptions() {
             const opt = document.createElement('option');
             opt.value = m.id;
             opt.textContent = m.name;
-            if (m.id === 'svd') opt.selected = true;
+            if (m.id === 'seedance-pro') opt.selected = true;
             optgroup.appendChild(opt);
         });
         modelSelect.appendChild(optgroup);
@@ -1268,13 +1444,103 @@ function updateSizeParams() {
 // 添加日誌
 function addLog(message, type = 'info') {
     const time = new Date().toLocaleTimeString();
-    const color = type === 'error' ? '#ef4444' : type === 'success' ? '#22c55e' : '#9ca3af';
     const logEntry = document.createElement('div');
-    logEntry.style.color = color;
+    logEntry.className = \`log-entry \${type}\`;
     logEntry.textContent = \`[\${time}] \${message}\`;
     logsDiv.appendChild(logEntry);
     logsDiv.scrollTop = logsDiv.scrollHeight;
 }
+
+// 清除日誌
+document.getElementById('clearLogs').addEventListener('click', () => {
+    logsDiv.innerHTML = '<div class="log-entry">等待生成...</div>';
+});
+
+// 清除結果
+document.getElementById('clearResults').addEventListener('click', () => {
+    resultsDiv.innerHTML = \`
+        <div class="empty-state">
+            <div class="empty-icon">🎬</div>
+            <div class="empty-text">尚未生成任何影片</div>
+            <div class="empty-subtext">輸入提示詞並點擊「開始生成」</div>
+        </div>
+    \`;
+});
+
+// 保存歷史記錄
+function saveToHistory(data) {
+    const historyItem = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        prompt: data.prompt,
+        provider: data.provider,
+        model: data.model,
+        style: data.style,
+        width: data.width,
+        height: data.height,
+        fps: data.fps,
+        duration: data.duration,
+        url: data.url
+    };
+    
+    generationHistory.unshift(historyItem);
+    if (generationHistory.length > 20) {
+        generationHistory = generationHistory.slice(0, 20);
+    }
+    
+    localStorage.setItem('video_generation_history', JSON.stringify(generationHistory));
+    renderHistory();
+}
+
+// 渲染歷史記錄
+function renderHistory() {
+    if (generationHistory.length === 0) {
+        historyDiv.innerHTML = \`
+            <div class="empty-state" style="padding:20px">
+                <div class="empty-icon" style="font-size:32px">📜</div>
+                <div class="empty-text" style="font-size:12px">暫無歷史記錄</div>
+            </div>
+        \`;
+        return;
+    }
+    
+    historyDiv.innerHTML = '';
+    generationHistory.forEach(item => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        historyItem.innerHTML = \`
+            <div class="history-meta">
+                <span class="history-prompt">\${item.prompt || '無提示詞'}</span>
+                <span class="history-time">\${new Date(item.timestamp).toLocaleString()}</span>
+            </div>
+            <div class="history-badges">
+                <span class="history-badge">\${item.provider}</span>
+                <span class="history-badge">\${item.model}</span>
+                <span class="history-badge">\${item.width}x\${item.height}</span>
+            </div>
+        \`;
+        historyItem.addEventListener('click', () => {
+            promptInput.value = item.prompt;
+            providerSelect.value = item.provider;
+            updateModelOptions();
+            modelSelect.value = item.model;
+            styleSelect.value = item.style;
+            durationInput.value = item.duration;
+            fpsInput.value = item.fps;
+            displayVideo(item);
+        });
+        historyDiv.appendChild(historyItem);
+    });
+}
+
+// 清除歷史記錄
+document.getElementById('clearHistory').addEventListener('click', () => {
+    if (confirm('確定要清除所有歷史記錄嗎？')) {
+        generationHistory = [];
+        localStorage.removeItem('video_generation_history');
+        renderHistory();
+    }
+});
 
 // 拖放功能
 const imageDropZone = document.getElementById('imageDropZone');
@@ -1376,6 +1642,13 @@ document.getElementById('videoForm').addEventListener('submit', async (e) => {
     
     const sizeConfig = VIDEO_CONFIG.PRESET_SIZES[sizeSelect.value];
     
+    // 獲取進階參數
+    const seedInput = document.getElementById('seed');
+    const negativePromptInput = document.getElementById('negativePrompt');
+    const customWidthInput = document.getElementById('customWidth');
+    const customHeightInput = document.getElementById('customHeight');
+    const cfgScaleInput = document.getElementById('cfgScale');
+    
     try {
         const response = await fetch('/api/video/generate', {
             method: 'POST',
@@ -1384,13 +1657,16 @@ document.getElementById('videoForm').addEventListener('submit', async (e) => {
                 prompt: prompt,
                 provider: provider,
                 model: modelSelect.value,
-                width: sizeConfig.width,
-                height: sizeConfig.height,
+                width: customWidthInput.value ? parseInt(customWidthInput.value) : sizeConfig.width,
+                height: customHeightInput.value ? parseInt(customHeightInput.value) : sizeConfig.height,
                 fps: parseInt(fpsInput.value),
                 duration: parseInt(durationInput.value),
                 style: styleSelect.value,
                 reference_image: uploadedImageUrl || referenceImageInput.value,
                 api_key: apiKeyInput.value,
+                seed: seedInput.value ? parseInt(seedInput.value) : null,
+                negative_prompt: negativePromptInput.value.trim() || null,
+                cfg_scale: parseFloat(cfgScaleInput.value),
             })
         });
         
@@ -1398,13 +1674,15 @@ document.getElementById('videoForm').addEventListener('submit', async (e) => {
         
         if (data.success) {
             addLog('影片生成成功！', 'success');
+            data.prompt = prompt;
             displayVideo(data);
+            saveToHistory(data);
         } else {
             throw new Error(data.error || '生成失敗');
         }
     } catch (error) {
         addLog('生成失敗: ' + error.message, 'error');
-        resultsDiv.innerHTML = '<div class="loading"><p style="color:#ef4444">生成失敗: ' + error.message + '</p></div>';
+        resultsDiv.innerHTML = '<div class="loading"><p style="color:var(--error-color)">生成失敗: ' + error.message + '</p></div>';
     } finally {
         isGenerating = false;
         generateBtn.disabled = false;
@@ -1427,11 +1705,12 @@ function displayVideo(data) {
                 <span class="model-badge">\${data.model}</span>
                 <span class="style-badge">\${data.style}</span>
             </div>
-            <div style="font-size:12px;color:#9ca3af;margin-top:8px">
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:8px">
                 \${data.width}x\${data.height} | \${data.fps}fps | \${data.duration}s
             </div>
-            <div style="margin-top:10px">
-                <a href="\${data.url}" download="video.mp4" class="btn btn-primary" style="text-decoration:none;padding:8px 16px;font-size:12px">📥 下載影片</a>
+            <div style="margin-top:10px;display:flex;gap:10px">
+                <a href="\${data.url}" download="video.mp4" class="btn btn-primary" style="text-decoration:none;padding:8px 16px;font-size:12px;flex:1">📥 下載影片</a>
+                <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('\${data.url}')" style="padding:8px 16px;font-size:12px">📋 複製連結</button>
             </div>
         </div>
     \`;
@@ -1442,10 +1721,13 @@ function displayVideo(data) {
 // 事件監聽
 providerSelect.addEventListener('change', updateModelOptions);
 sizeSelect.addEventListener('change', updateSizeParams);
+themeToggle.addEventListener('click', toggleTheme);
 
 // 初始化
+initTheme();
 updateModelOptions();
 updateSizeParams();
+renderHistory();
 </script>
 </body>
 </html>`;
