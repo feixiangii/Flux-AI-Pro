@@ -1307,6 +1307,12 @@ export default {
     console.log("API Endpoint:", CONFIG.PROVIDERS.pollinations.endpoint);
     console.log("===================");
     
+    // 自動執行模型發現（後台任務）
+    if (ctx && env?.FLUX_KV) {
+      const discovery = new ModelDiscovery(env);
+      ctx.waitUntil(discovery.autoDiscover());
+    }
+    
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
     
     try {
