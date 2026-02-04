@@ -157,7 +157,25 @@ class Logger {
   constructor() { this.logs = []; }
   add(title, data) { this.logs.push({ title, data, timestamp: new Date().toISOString() }); }
   get() { return this.logs; }
+  getLogs() { return this.logs; }
   clear() { this.logs = []; }
+}
+
+/**
+ * 帶超時的 fetch 請求
+ */
+async function fetchWithTimeout(url, options = {}, timeout = 120000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') throw new Error("Request timeout after " + timeout + "ms");
+    throw error;
+  }
 }
 
 /**
