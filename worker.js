@@ -5086,13 +5086,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 </script>
-<div class="footer" style="position:relative; z-index:10; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; gap:15px; flex-wrap:wrap;">
-    <span>Powered by Flux AI Pro • <a href="https://github.com/kinai9661/Flux-AI-Pro" target="_blank">Engine</a> • <a href="/nano" target="_blank">Nano Version</a></span>
+<div class="footer" style="position:relative; z-index:10; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; gap:15px; flex-wrap:wrap; padding:15px 20px;">
+    <span style="font-size:14px;">Powered by Flux AI Pro • <a href="https://github.com/kinai9661/Flux-AI-Pro" target="_blank">Engine</a> • <a href="/nano" target="_blank">Nano Version</a></span>
     <span style="opacity:0.5">|</span>
-    <span style="opacity:0.9">友情鏈接: <a href="https://pollinations.ai" target="_blank">Pollinations.ai</a> • <a href="https://infip.pro" target="_blank">Infip</a> • <a href="https://aquadevs.com" target="_blank">AquaDevs</a> • <a href="https://github.com" target="_blank">GitHub</a> • <a href="https://dofollow.tools" target="_blank"><img src="https://dofollow.tools/badge/badge_transparent.svg" alt="Featured on Dofollow.Tools" width="200" height="54" /></a></span>
+    <span style="opacity:0.9; font-size:14px;">友情鏈接: <a href="https://pollinations.ai" target="_blank">Pollinations.ai</a> • <a href="https://infip.pro" target="_blank">Infip</a> • <a href="https://aquadevs.com" target="_blank">AquaDevs</a> • <a href="https://github.com" target="_blank">GitHub</a></span>
     <span style="opacity:0.5">|</span>
-    <a href="https://showmebest.ai" target="_blank" style="display:flex; align-items:center;"><img src="https://showmebest.ai/badge/feature-badge-dark.webp" alt="Featured on ShowMeBestAI" width="165" height="45"></a>
+    <div class="friend-badges" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <a href="https://dofollow.tools" target="_blank" style="display:inline-flex; align-items:center; justify-content:center;">
+            <img src="https://dofollow.tools/badge/badge_dark.svg" alt="Featured on Dofollow.Tools" style="max-width:200px; width:auto; height:auto; max-height:54px; object-fit:contain;" />
+        </a>
+        <a href="https://showmebest.ai" target="_blank" style="display:inline-flex; align-items:center; justify-content:center;">
+            <img src="https://showmebest.ai/badge/feature-badge-dark.webp" alt="Featured on ShowMeBestAI" style="max-width:165px; width:auto; height:auto; max-height:45px; object-fit:contain;" />
+        </a>
+    </div>
 </div>
+<style>
+.footer {
+    font-size: 14px;
+    line-height: 1.6;
+}
+.footer a {
+    color: #fff;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+.footer a:hover {
+    opacity: 0.8;
+}
+.friend-badges img {
+    transition: transform 0.2s, opacity 0.2s;
+}
+.friend-badges img:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+@media (max-width: 768px) {
+    .footer {
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px;
+    }
+    .footer span {
+        text-align: center;
+    }
+    .friend-badges {
+        justify-content: center;
+    }
+    .friend-badges img {
+        max-width: 150px;
+        max-height: 40px;
+    }
+}
+@media (max-width: 480px) {
+    .footer {
+        font-size: 12px;
+        padding: 10px;
+    }
+    .friend-badges img {
+        max-width: 120px;
+        max-height: 35px;
+    }
+}
+</style>
 </body>
 </html>`;
   
