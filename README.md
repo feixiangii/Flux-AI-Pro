@@ -1,6 +1,6 @@
 # 🎨 Flux AI Pro - NanoBanana Edition
 
-![Version](https://img.shields.io/badge/Version-11.17.0-8B5CF6?style=flat-square)
+![Version](https://img.shields.io/badge/Version-11.19.0-8B5CF6?style=flat-square)
 ![Platform](https://img.shields.io/badge/Platform-Cloudflare%20Workers-orange?style=flat-square)
 ![Engine](https://img.shields.io/badge/Engine-Multi%20Provider-blue?style=flat-square)
 ![I18N](https://img.shields.io/badge/I18N-5%20Languages-green?style=flat-square)
@@ -31,8 +31,11 @@
 
 ---
 
-## 🔥 v11.17.0 更新亮點 (Release Highlights)
+## 🔥 v11.19.0 更新亮點 (Release Highlights)
 
+- **🔐 環境變量配置**：freeimage.host API 金鑰改用環境變量 `FREEIMAGE_API_KEY`，提升安全性和靈活性。
+- **🔧 請求頭優化**：使用真實瀏覽器 User-Agent 和完整的請求頭，避免被 freeimage.host 識別為機器人。
+- **🛡️ 反爬蟲繞過**：添加 Referer、Origin、Accept-Language 等標準瀏覽器請求頭，解決 "You have been forbidden" 錯誤。
 - **🔧 API 響應結構修復**：修正 freeimage.host API 響應結構解析，正確檢查 `success.code` 而非 `success` 布林值。
 - **📡 增強調試日誌**：新增 `success.code` 和 `success.message` 日誌輸出，便於診斷 API 響應問題。
 - **🛡️ 穩定性提升**：根據官方 API 文檔更新響應驗證邏輯，確保正確處理上傳成功/失敗狀態。

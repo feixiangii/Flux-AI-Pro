@@ -1,7 +1,7 @@
 # ============================================
 # Cloudflare Workers 配置文件
 # 項目: Flux AI Pro - NanoBanana Edition
-# 版本: 11.17.0 (freeimage.host API 響應結構修復)
+# 版本: 11.19.0 (freeimage.host API 金鑰改用環境變量)
 # 更新: 2026-02-04
 # ============================================
 
@@ -28,7 +28,7 @@ binding = "AI"
 # 環境變量（非敏感）
 # ============================================
 [vars]
-WORKER_VERSION = "11.17.0"
+WORKER_VERSION = "11.19.0"
 DEFAULT_MODEL = "flux-schnell"
 MAX_WIDTH = 2048
 MAX_HEIGHT = 2048
@@ -41,7 +41,7 @@ ENVIRONMENT = "production"
 # 1. POLLINATIONS_API_KEY (Pollinations)
 # 2. INFIP_API_KEY (Ghostbot/Infip)
 # 3. AQUA_API_KEY (Aqua Server)
-# 4. FREEIMAGE_API_KEY (Freeimage.host 圖片存儲 - 歷史記錄優化)
+# 4. FREEIMAGE_API_KEY (Freeimage.host 圖片存儲 - 環境變量配置)
 # ============================================
 # 設置命令範例：
 # npx wrangler secret put POLLINATIONS_API_KEY

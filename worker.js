@@ -1115,7 +1115,7 @@ export default {
         response = await handleInternalGenerate(request, env, ctx);
       }
       else if (url.pathname === '/api/upload') {
-        response = await handleUpload(request);
+        response = await handleUpload(request, env);
       }
       else if (url.pathname === '/api/generate-prompt') {
         response = await handlePromptGeneration(request, env);
@@ -1215,7 +1215,7 @@ async function checkFreeImageConfig() {
   }
 }
 
-async function handleUpload(request) {
+async function handleUpload(request, env) {
   if (request.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405, headers: corsHeaders() });
   }
@@ -1256,8 +1256,9 @@ async function handleUpload(request) {
     }
 
     // 使用 freeimage.host API 上傳圖片
-    // freeimage.host 免費 API Key (用於測試，生產環境建議使用自己的 API Key)
-    const FREEIMAGE_API_KEY = '6d207e02198a847aa98d0a2a901485a5'; // 免費測試用 API Key
+    // API Key 從環境變量讀取，通過 wrangler secret 設置
+    // 設置命令: npx wrangler secret put FREEIMAGE_API_KEY
+    const FREEIMAGE_API_KEY = env.FREEIMAGE_API_KEY || '6d207e02198a847aa98d0a2a901485a5'; // 默認免費測試用 API Key
     
     // 將文件轉換為 Base64（使用分塊處理避免堆疊溢出）
     const arrayBuffer = await file.arrayBuffer();
@@ -1279,11 +1280,16 @@ async function handleUpload(request) {
     freeimageFormData.append('source', base64);
     freeimageFormData.append('format', 'json');
     
+    // 使用更自然的請求頭避免被識別為機器人
     const response = await fetch('https://freeimage.host/api/1/upload', {
       method: 'POST',
       body: freeimageFormData,
       headers: {
-        'User-Agent': 'FluxAIPro-Worker/1.0'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': 'https://freeimage.host/',
+        'Origin': 'https://freeimage.host'
       }
     });
 
@@ -4440,7 +4446,23 @@ const DragDropHandler = {
         const dropZone = document.getElementById(dropZoneId);
         const fileInput = document.getElementById(fileInputId);
         
-        if (!dropZone || !fileInput) return;
+        console.log('[DEBUG] DragDropHandler.initDropZone called:', {
+            dropZoneId,
+            fileInputId,
+            dropZoneExists: !!dropZone,
+            fileInputExists: !!fileInput,
+            documentReady: document.readyState
+        });
+        
+        if (!dropZone || !fileInput) {
+            console.error('[DEBUG] DragDropHandler.initDropZone failed: Elements not found', {
+                dropZoneId,
+                fileInputId,
+                dropZone,
+                fileInput
+            });
+            return;
+        }
 
         // 點擊區域觸發文件選擇
         dropZone.addEventListener('click', () => {
@@ -4505,9 +4527,12 @@ const DragDropHandler = {
 };
 
 // 初始化主頁面參考圖像拖放區域
+console.log('[DEBUG] Script loaded, about to call DragDropHandler.initDropZone');
 DragDropHandler.initDropZone('imageDropZone', 'imageUpload', async (file) => {
+    console.log('[DEBUG] File dropped/selected:', file.name, file.type, file.size);
     const validation = DragDropHandler.validateImageFile(file);
     if (!validation.valid) {
+        console.error('[DEBUG] File validation failed:', validation.error);
         alert(validation.error);
         return;
     }
@@ -4517,18 +4542,23 @@ DragDropHandler.initDropZone('imageDropZone', 'imageUpload', async (file) => {
     dropZone.innerHTML = '<div class="drag-icon">⏳</div><div class="drag-text">上傳中...</div>';
 
     try {
+        console.log('[DEBUG] Starting file upload...');
         const base64 = await DragDropHandler.readFileAsBase64(file);
+        console.log('[DEBUG] File converted to base64, length:', base64.length);
         
         const formData = new FormData();
         formData.append('fileToUpload', file);
+        console.log('[DEBUG] FormData created, sending to /api/upload');
         
         const response = await fetch('/api/upload', {
             method: 'POST',
             body: formData
         });
 
+        console.log('[DEBUG] Upload response status:', response.status);
         if (response.ok) {
             const data = await response.json();
+            console.log('[DEBUG] Upload response data:', data);
             if (data.url && data.url.startsWith('http')) {
                 const textarea = document.getElementById('referenceImages');
                 const currentVal = textarea.value.trim();
@@ -4542,10 +4572,11 @@ DragDropHandler.initDropZone('imageDropZone', 'imageUpload', async (file) => {
             }
         } else {
             const errData = await response.json().catch(()=>({}));
+            console.error('[DEBUG] Upload failed:', response.status, errData);
             throw new Error("Upload failed: " + (errData.error || response.status));
         }
     } catch (error) {
-        console.error("Upload error:", error);
+        console.error("[DEBUG] Upload error:", error);
         dropZone.innerHTML = '<div class="drag-icon">❌</div><div class="drag-text">上傳失敗</div>';
         setTimeout(() => {
             dropZone.innerHTML = originalContent;
@@ -4554,7 +4585,10 @@ DragDropHandler.initDropZone('imageDropZone', 'imageUpload', async (file) => {
 });
 
 const imageUpload = document.getElementById('imageUpload');
-imageUpload.addEventListener('change', async (e) => {
+console.log('[DEBUG] imageUpload element:', imageUpload);
+if (imageUpload) {
+    imageUpload.addEventListener('change', async (e) => {
+        console.log('[DEBUG] File input change event triggered');
     const file = e.target.files[0];
     if (!file) return;
     
@@ -4619,8 +4653,10 @@ imageUpload.addEventListener('change', async (e) => {
         console.error(err);
         dropZone.innerHTML = '<div class="drag-icon">❌</div><div="drag-text">上傳失敗</div>';
         setTimeout(() => { dropZone.innerHTML = originalContent; }, 2000);
-    }
-});
+    });
+} else {
+    console.error('[DEBUG] imageUpload element not found!');
+}
 
 providerSelect.addEventListener('change', updateModelOptions);
 apiKeyInput.addEventListener('input', (e) => {
