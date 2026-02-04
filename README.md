@@ -152,26 +152,29 @@ Content-Type: application/json
 {
   "prompt": "A beautiful sunset over mountains",
   "provider": "pollinations",
-  "model": "svd",
+  "model": "seedance-pro",
   "width": 512,
   "height": 512,
-  "fps": 8,
+  "fps": 24,
+  "duration": 5,
   "style": "cinematic",
-  "referenceImage": "https://example.com/image.jpg"  // 可選，用於圖片轉影片
+  "referenceImage": "https://example.com/image.jpg",  // 可選，用於圖片轉影片
+  "apiKey": "YOUR_API_KEY"  // 可選，veo 模型需要
 }
 ```
 
 ### 支援的影片模型
 
-| 供應商 | 模型 | 類型 | 說明 |
-|--------|------|------|------|
-| Pollinations.ai | svd | 文字轉影片 | Stable Video Diffusion 基礎模型 |
-| Pollinations.ai | svd-xt | 文字轉影片 | SVD XT 增強版本 |
-| Pollinations.ai | animatediff | 文字轉影片 | AnimateDiff 動畫模型 |
-| Runway | gen-2 | 文字/圖片轉影片 | Runway Gen-2 專業模型 |
-| Pika | pika-1.0 | 文字/圖片轉影片 | Pika 1.0 高品質模型 |
-| Luma | dream-machine | 文字/圖片轉影片 | Luma Dream Machine |
-| Kling | kling-1.0 | 文字/圖片轉影片 | Kling 1.0 中文優化 |
+| 供應商 | 模型 | 類型 | 說明 | 費用 |
+|--------|------|------|------|------|
+| Pollinations.ai | seedance-pro | 文字/圖片轉影片 | Seedance Pro 專業級影片生成模型，更好的提示詞遵循能力 (2-10秒) | 0.000001/token |
+| Pollinations.ai | seedance | 文字/圖片轉影片 | Seedance 高品質影片生成模型 (2-10秒) | 0.0000018/token |
+| Pollinations.ai | wan | 文字/圖片轉影片 | Wan 影片生成模型，支援圖片輸入和音頻 (2-15秒，最高1080P) | 0.025 Pollen/sec |
+| Pollinations.ai | veo | 文字轉影片 | Google 的影片生成模型，僅支援文字輸入 (4-8秒)，需要 API Key | 0.15 Pollen/sec |
+| Runway | gen-2 | 文字/圖片轉影片 | Runway Gen-2 專業模型 | - |
+| Pika | pika-1.0 | 文字/圖片轉影片 | Pika 1.0 高品質模型 | - |
+| Luma | dream-machine | 文字/圖片轉影片 | Luma Dream Machine | - |
+| Kling | kling-v1 | 文字/圖片轉影片 | Kling v1 影片生成模型 | - |
 
 ---
 

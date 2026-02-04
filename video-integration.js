@@ -31,15 +31,10 @@ const VIDEO_CONFIG = {
       name: 'Pollinations.ai',
       icon: '🌸',
       models: [
-        { id: 'svd', name: 'Stable Video Diffusion', category: 'text-to-video', fps: 8, maxDuration: 4, description: '基於 Stable Diffusion 的影片生成模型' },
-        { id: 'svd-xt', name: 'SVD XT', category: 'text-to-video', fps: 8, maxDuration: 4, description: 'SVD 的增強版本，質量更高' },
-        { id: 'animatediff', name: 'AnimateDiff', category: 'text-to-video', fps: 8, maxDuration: 4, description: '專注於動畫風格的影片生成' },
-        { id: 'zeroscope', name: 'ZeroScope', category: 'text-to-video', fps: 8, maxDuration: 4, description: '高質量影片生成模型' },
-        { id: 'modelscope', name: 'ModelScope', category: 'text-to-video', fps: 8, maxDuration: 4, description: 'ModelScope 影片生成模型' },
-        { id: 'cogvideox', name: 'CogVideoX', category: 'text-to-video', fps: 8, maxDuration: 4, description: '智譜 AI 的影片生成模型' },
-        { id: 'seedance-pro', name: 'Seedance Pro', category: 'text-to-video', fps: 24, maxDuration: 5, description: 'Seedance Pro 專業級影片生成模型' },
-        { id: 'seedance', name: 'Seedance', category: 'text-to-video', fps: 24, maxDuration: 5, description: 'Seedance 高品質影片生成模型' },
-        { id: 'wan', name: 'Wan', category: 'text-to-video', fps: 24, maxDuration: 5, description: 'Wan 影片生成模型' },
+        { id: 'seedance-pro', name: 'Seedance Pro', category: 'text-to-video', fps: 24, maxDuration: 10, description: 'Seedance Pro 專業級影片生成模型，更好的提示詞遵循能力 (2-10秒)', cost: '0.000001/token' },
+        { id: 'seedance', name: 'Seedance', category: 'text-to-video', fps: 24, maxDuration: 10, description: 'Seedance 高品質影片生成模型，支援文字和圖片輸入 (2-10秒)', cost: '0.0000018/token' },
+        { id: 'wan', name: 'Wan', category: 'text-to-video', fps: 24, maxDuration: 15, description: 'Wan 影片生成模型，支援圖片輸入和音頻 (2-15秒，最高1080P)', cost: '0.025 Pollen/sec' },
+        { id: 'veo', name: 'Veo', category: 'text-to-video', fps: 24, maxDuration: 8, description: 'Google 的影片生成模型，僅支援文字輸入 (4-8秒)，需要 API Key', cost: '0.15 Pollen/sec', requiresAuth: true },
       ]
     },
     runway: {
@@ -100,7 +95,8 @@ const VIDEO_CONFIG = {
   // API 配置
   API: {
     pollinations: {
-      baseUrl: 'https://image.pollinations.ai/video',
+      baseUrl: 'https://gen.pollinations.ai/image',
+      animateUrl: 'https://gen.pollinations.ai/image/animate',
       timeout: 120000, // 2 分鐘
     },
     runway: {
@@ -152,6 +148,15 @@ function corsHeaders(extra = {}) {
     'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob: ws: wss:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://waust.at https://*.whos.amung.us https:;",
     ...extra
   };
+}
+
+/**
+ * Logger: 負責記錄日誌
+ */
+class Logger {
+  constructor() { this.logs = []; }
+  add(title, data) { this.logs.push({ title, data, timestamp: new Date().toISOString() }); }
+  get() { return this.logs; }
 }
 
 /**
@@ -405,32 +410,45 @@ class VideoGenerator {
 
   /**
    * Pollinations 影片生成
+   * 新 API: https://gen.pollinations.ai/image/{prompt}?model={model}
+   * Image-to-video: https://gen.pollinations.ai/image/animate?model={model}&image={image_url}
    */
   async generatePollinations(prompt, options) {
-    const { model, width, height, fps, duration, referenceImage } = options;
+    const { model, width, height, fps, duration, referenceImage, apiKey } = options;
     const apiConfig = this.config.API.pollinations;
 
-    // 構建 URL
-    let url = `${apiConfig.baseUrl}/${encodeURIComponent(prompt)}`;
+    let url;
     const params = new URLSearchParams();
     params.append('model', model);
-    params.append('width', width);
-    params.append('height', height);
-    params.append('fps', fps);
-    params.append('duration', duration);
+    
+    // 新 API 參數
+    if (width) params.append('width', width);
+    if (height) params.append('height', height);
+    if (fps) params.append('fps', fps);
+    if (duration) params.append('duration', duration);
 
-    if (referenceImage) {
-      params.append('image', referenceImage);
+    // 構建請求標頭
+    const headers = {};
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
-    url += `?${params.toString()}`;
+    if (referenceImage) {
+      // Image-to-video: 使用 animate 端點
+      url = `${apiConfig.animateUrl}?${params.toString()}`;
+      params.append('image', referenceImage);
+      this.logger.add('📤 發送 Image-to-Video 請求到 Pollinations', { url, model });
+    } else {
+      // Text-to-video: 使用新的端點格式
+      url = `${apiConfig.baseUrl}/${encodeURIComponent(prompt)}?${params.toString()}`;
+      this.logger.add('📤 發送 Text-to-Video 請求到 Pollinations', { url, model });
+    }
 
-    this.logger.add('📤 發送請求到 Pollinations', { url });
-
-    const response = await fetchWithTimeout(url, {}, apiConfig.timeout);
+    const response = await fetchWithTimeout(url, { headers }, apiConfig.timeout);
 
     if (!response.ok) {
-      throw new Error(`Pollinations API 錯誤: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Pollinations API 錯誤: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     // Pollinations 直接返回影片文件
