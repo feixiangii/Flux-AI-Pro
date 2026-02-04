@@ -142,6 +142,19 @@ const VIDEO_CONFIG = {
 // =================================================================================
 
 /**
+ * CORS 頭部設置
+ */
+function corsHeaders(extra = {}) {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Worker-Version, X-Source',
+    'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob: ws: wss:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://waust.at https://*.whos.amung.us https:;",
+    ...extra
+  };
+}
+
+/**
  * 影片生成限流器
  * 負責檢查每小時每IP的影片生成配額和冷卻時間
  */
