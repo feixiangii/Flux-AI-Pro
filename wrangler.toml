@@ -1,8 +1,8 @@
 # ============================================
 # Cloudflare Workers 配置文件
 # 項目: Flux AI Pro - NanoBanana Edition
-# 版本: 11.12.0 (模型預覽顯示 + 能力檢測)
-# 更新: 2026-02-03
+# 版本: 11.14.0 (freeimage.host 圖片代管 + 配置檢測)
+# 更新: 2026-02-04
 # ============================================
 
 name = "flux-ai-pro"
@@ -28,7 +28,7 @@ binding = "AI"
 # 環境變量（非敏感）
 # ============================================
 [vars]
-WORKER_VERSION = "11.12.0"
+WORKER_VERSION = "11.14.0"
 DEFAULT_MODEL = "flux-schnell"
 MAX_WIDTH = 2048
 MAX_HEIGHT = 2048
@@ -54,3 +54,9 @@ ENVIRONMENT = "production"
 # - 如需自訂 API Key，訪問 https://freeimage.host/api
 # - 支援縮圖、中等尺寸、完整尺寸三種格式
 # - 無需註冊即可使用預設 API Key
+# - 最大文件大小: 64MB
+# - 支援格式: JPEG, PNG, BMP, GIF, WebP
+#
+# 🔍 配置檢測端點:
+# - GET /api/config/freeimage - 自動檢測 freeimage.host 最新配置
+# - 返回: max_filesize, image_types, supported_mime_types

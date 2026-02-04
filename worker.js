@@ -1,7 +1,7 @@
 // =================================================================================
 //  項目: Flux AI Pro - NanoBanana Edition
-//  版本: 11.12.0 (Model Discovery Enhancement)
-//  更新: 新增模型預覽圖、能力檢測、模型測試功能
+//  版本: 11.14.0 (freeimage.host 圖片代管 + 配置檢測)
+//  更新: 新增 freeimage.host 配置自動檢測端點
 // =================================================================================
 
 // 導入風格適配器（僅在服務器端使用）
@@ -13,7 +13,7 @@ const mergedStyles = styleManager.merge();
 
 const CONFIG = {
   PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "11.9.0",
+  PROJECT_VERSION: "11.14.0",
   API_MASTER_KEY: "1",
   FETCH_TIMEOUT: 120000,
   MAX_RETRIES: 3,
@@ -79,9 +79,17 @@ const CONFIG = {
       },
       models: [
         { id: "img4", name: "Imagen 4 (Google) 🌟", category: "google", description: "Google 最新高品質繪圖模型", max_size: 1792 },
+        { id: "qwen", name: "Qwen Image 🎨", category: "other", description: "Qwen 圖像生成模型", max_size: 1024 },
+        { id: "z-image-turbo", name: "Z-Image Turbo ⚡", category: "other", description: "Z-Image 極速版", max_size: 1024 },
         { id: "flux-schnell", name: "Flux Schnell ⚡", category: "flux", description: "Flux 極速版", max_size: 1024 },
-        { id: "sdxl", name: "SDXL Stable Diffusion", category: "sd", description: "Stable Diffusion XL", max_size: 1024 },
-        { id: "lucid-origin", name: "Lucid Origin", category: "other", description: "Lucid 風格模型", max_size: 1024 }
+        { id: "flux2-klein-9b", name: "Flux 2 Klein 9B 🧠", category: "flux", description: "Flux 2 Klein 9B 模型", max_size: 1024 },
+        { id: "flux2-klein-4b", name: "Flux 2 Klein 4B 🧠", category: "flux", description: "Flux 2 Klein 4B 模型", max_size: 1024 },
+        { id: "flux2-dev", name: "Flux 2 Dev 🔥", category: "flux", description: "Flux 2 開發版", max_size: 1024 },
+        { id: "lucid-origin", name: "Lucid Origin", category: "other", description: "Lucid 風格模型", max_size: 1024 },
+        { id: "phoenix", name: "Phoenix 🦅", category: "other", description: "Phoenix 圖像生成模型", max_size: 1024 },
+        { id: "sdxl-lite", name: "SDXL Lite ⚡", category: "sd", description: "Stable Diffusion XL 輕量版", max_size: 1024 },
+        { id: "dreamshaper", name: "DreamShaper 🎭", category: "sd", description: "DreamShaper 風格模型", max_size: 1024 },
+        { id: "sdxl", name: "SDXL Stable Diffusion", category: "sd", description: "Stable Diffusion XL", max_size: 1024 }
       ],
       rate_limit: { requests: 30, interval: 60 },
       max_size: { width: 1792, height: 1792 }
@@ -1122,8 +1130,11 @@ export default {
           style_categories: Object.keys(CONFIG.STYLE_CATEGORIES).map(key => ({ id: key, name: CONFIG.STYLE_CATEGORIES[key].name, icon: CONFIG.STYLE_CATEGORIES[key].icon, count: Object.values(CONFIG.STYLE_PRESETS).filter(s => s.category === key).length }))
         }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       }
+      else if (url.pathname === '/api/config/freeimage') {
+        response = new Response(JSON.stringify(await checkFreeImageConfig()), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+      }
       else {
-        response = new Response(JSON.stringify({ error: 'Not Found', message: '此 Worker 僅提供 Web UI 界面', available_paths: ['/', '/health', '/_internal/generate', '/nano'] }), { status: 404, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+        response = new Response(JSON.stringify({ error: 'Not Found', message: '此 Worker 僅提供 Web UI 界面', available_paths: ['/', '/health', '/_internal/generate', '/nano', '/api/config/freeimage'] }), { status: 404, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       }
       const duration = Date.now() - startTime;
       const headers = new Headers(response.headers);
@@ -1138,6 +1149,71 @@ export default {
     }
   }
 };
+
+// ====== FreeImage.host 配置檢測 ======
+async function checkFreeImageConfig() {
+  try {
+    const response = await fetch('https://freeimage.host/', {
+      headers: {
+        'User-Agent': 'FluxAIPro-Worker/1.0'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const html = await response.text();
+    
+    // 解析配置（從網站獲取最新配置）
+    const configMatch = html.match(/max_filesize:\s*"([^"]+)"/);
+    const typesMatch = html.match(/image_types:\s*\[([^\]]+)\]/);
+    const loadMaxMatch = html.match(/load_max_filesize:\s*"([^"]+)"/);
+    
+    // 解析圖片類型數組
+    let imageTypes = [];
+    if (typesMatch && typesMatch[1]) {
+      imageTypes = typesMatch[1]
+        .replace(/"/g, '')
+        .split(',')
+        .map(t => t.trim());
+    }
+    
+    return {
+      status: 'ok',
+      provider: 'freeimage.host',
+      api_endpoint: 'https://freeimage.host/api/1/upload',
+      config: {
+        max_filesize: configMatch?.[1] || 'Unknown',
+        load_max_filesize: loadMaxMatch?.[1] || 'Unknown',
+        image_types: imageTypes,
+        supported_mime_types: imageTypes.map(ext => {
+          const mimeMap = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'bmp': 'image/bmp',
+            'gif': 'image/gif',
+            'webp': 'image/webp'
+          };
+          return mimeMap[ext] || `image/${ext}`;
+        })
+      },
+      checked_at: new Date().toISOString(),
+      recommendations: {
+        max_filesize_mb: configMatch?.[1] ? parseInt(configMatch[1]) : 64,
+        allowed_types: imageTypes
+      }
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      provider: 'freeimage.host',
+      error: error.message,
+      checked_at: new Date().toISOString()
+    };
+  }
+}
 
 async function handleUpload(request) {
   if (request.method !== 'POST') {
@@ -1155,8 +1231,8 @@ async function handleUpload(request) {
       });
     }
 
-    // 驗證文件大小（ImgBB 最大支持 32MB）
-    const MAX_FILE_SIZE = 32 * 1024 * 1024; // 32MB
+    // 驗證文件大小（freeimage.host 最大支持 64MB）
+    const MAX_FILE_SIZE = 64 * 1024 * 1024; // 64MB
     if (file.size > MAX_FILE_SIZE) {
       return new Response(JSON.stringify({
         error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`,
@@ -1167,17 +1243,21 @@ async function handleUpload(request) {
       });
     }
 
-    // 驗證文件類型
-    if (!file.type.startsWith('image/')) {
-      return new Response(JSON.stringify({ error: 'Invalid file type. Only images are allowed.' }), {
+    // 驗證文件類型（freeimage.host 支持的格式）
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'image/gif', 'image/webp'];
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return new Response(JSON.stringify({
+        error: 'Invalid file type. Only JPEG, PNG, BMP, GIF, and WebP images are allowed.',
+        allowedTypes: ALLOWED_TYPES
+      }), {
         status: 400,
         headers: corsHeaders({ 'Content-Type': 'application/json' })
       });
     }
 
-    // 使用 ImgBB API 上傳圖片
-    // ImgBB 免費 API Key (用於測試，生產環境建議使用自己的 API Key)
-    const IMGBB_API_KEY = '8245f772dd33870730fab74e7e236df2'; // 免費測試用 API Key
+    // 使用 freeimage.host API 上傳圖片
+    // freeimage.host 免費 API Key (用於測試，生產環境建議使用自己的 API Key)
+    const FREEIMAGE_API_KEY = '6d207e02198a847aa98d0a2a901485a5'; // 免費測試用 API Key
     
     // 將文件轉換為 Base64（使用分塊處理避免堆疊溢出）
     const arrayBuffer = await file.arrayBuffer();
@@ -1190,14 +1270,14 @@ async function handleUpload(request) {
     }
     const base64 = btoa(binary);
     
-    // 構建 ImgBB API 請求
-    const imgbbFormData = new FormData();
-    imgbbFormData.append('key', IMGBB_API_KEY);
-    imgbbFormData.append('image', base64);
+    // 構建 freeimage.host API 請求
+    const freeimageFormData = new FormData();
+    freeimageFormData.append('key', FREEIMAGE_API_KEY);
+    freeimageFormData.append('image', base64);
     
-    const response = await fetch('https://api.imgbb.com/1/upload', {
+    const response = await fetch('https://freeimage.host/api/1/upload', {
       method: 'POST',
-      body: imgbbFormData,
+      body: freeimageFormData,
       headers: {
         'User-Agent': 'FluxAIPro-Worker/1.0'
       }
@@ -1216,7 +1296,7 @@ async function handleUpload(request) {
         headers: corsHeaders({ 'Content-Type': 'application/json' })
       });
     } else {
-      console.error('ImgBB API Error:', data);
+      console.error('freeimage.host API Error:', data);
       return new Response(JSON.stringify({
         error: data.error?.message || 'Upload failed',
         details: data
