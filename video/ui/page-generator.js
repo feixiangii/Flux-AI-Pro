@@ -47,7 +47,7 @@ export class VideoPageGenerator {
   /**
    * 處理影片頁面請求
    * @param {Request} request - HTTP 請求
-   * @returns {Response} HTTP 回應
+   * @returns {Response|null} HTTP 回應或 null
    */
   handleVideoPage(request) {
     const url = new URL(request.url);
@@ -56,7 +56,9 @@ export class VideoPageGenerator {
       return new Response(this.generateMainPage(), {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
     }
@@ -65,7 +67,9 @@ export class VideoPageGenerator {
       return new Response(this.generateNanoPage(), {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
     }
