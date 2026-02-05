@@ -86,15 +86,26 @@ export const VideoUIComponents = {
       try {
         const response = await fetch('/api/video/quota');
         const data = await response.json();
-        state.quota = data.remaining || 0;
-        state.maxQuota = data.limit || 5;
-        state.cooldown = data.cooldownRemaining || 0;
+        
+        // 後端返回格式: { quota: { maxPerHour, used, remaining, resetAt } }
+        if (data.quota) {
+          state.quota = data.quota.remaining || 0;
+          state.maxQuota = data.quota.maxPerHour || 5;
+        } else {
+          // 向後兼容：直接從 data 讀取
+          state.quota = data.remaining || 0;
+          state.maxQuota = data.limit || data.maxPerHour || 5;
+        }
+        
+        // 冷卻時間需要另外檢查
+        state.cooldown = 0;
         updateQuotaDisplay();
       } catch (error) {
         console.error('載入配額失敗:', error);
         // 使用預設值
         state.quota = 5;
         state.maxQuota = 5;
+        state.cooldown = 0;
         updateQuotaDisplay();
       }
     }
@@ -268,8 +279,13 @@ export const VideoUIComponents = {
         state.currentVideo = data;
         displayVideo(data.video);
         
-        // 更新配額
-        state.quota--;
+        // 更新配額 - 使用後端返回的配額資訊
+        if (data.quota) {
+          state.quota = data.quota.remaining || 0;
+          state.maxQuota = data.quota.maxPerHour || 5;
+        } else {
+          state.quota--;
+        }
         updateQuotaDisplay();
         
         // 加入歷史記錄
