@@ -1,5 +1,6 @@
 /**
  * Pollinations.ai 影片生成供應商
+ * 官方 API 文件: https://pollinations.ai/
  */
 
 import { POLLINATIONS_CONFIG } from '../config/pollinations.config.js';
@@ -23,22 +24,25 @@ export class PollinationsProvider {
    * @returns {Promise<Object>} 生成結果
    */
   async generate(prompt, options = {}) {
-    const { 
+    const {
       model = this.config.defaults.model,
-      width, 
-      height, 
+      width,
+      height,
       fps = this.config.defaults.fps,
       duration = this.config.defaults.duration,
       referenceImage,
-      apiKey 
+      apiKey
     } = options;
 
     const finalApiKey = this.getApiKey(apiKey);
     const headers = this.buildHeaders(finalApiKey);
 
+    // 圖片轉影片
     if (referenceImage) {
       return this.generateImageToVideo(referenceImage, { model, width, height, fps, duration }, headers);
-    } else {
+    }
+    // 文字轉影片
+    else {
       return this.generateTextToVideo(prompt, { model, width, height, fps, duration }, headers);
     }
   }

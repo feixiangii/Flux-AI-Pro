@@ -481,8 +481,9 @@ export const VideoTemplates = {
         <div class="form-group">
           <label class="form-label">模型</label>
           <select class="form-select" id="modelSelect">
-            <option value="flux-video">Flux Video（預設）</option>
-            <option value="turbo">Turbo（快速）</option>
+            <option value="seedance">Seedance（預設）</option>
+            <option value="seedance-pro">Seedance Pro（進階）</option>
+            <option value="wan">Wan（圖片轉影片）</option>
           </select>
         </div>
         
@@ -816,8 +817,9 @@ export const VideoTemplates = {
     <div class="form-group">
       <label class="form-label">模型</label>
       <select class="form-select" id="modelSelect">
-        <option value="flux-video">Flux Video</option>
-        <option value="turbo">Turbo</option>
+        <option value="seedance">Seedance</option>
+        <option value="seedance-pro">Seedance Pro</option>
+        <option value="wan">Wan</option>
       </select>
     </div>
     

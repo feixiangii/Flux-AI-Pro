@@ -4,6 +4,8 @@
 
 這是 Flux AI Pro 的完整影片生成模組，僅支援 Pollinations.ai 供應商。模組採用模組化架構設計，提供完整的 RESTful API 端點和精美的使用者介面。
 
+**官方 API 文件**: https://pollinations.ai/
+
 ## 架構
 
 ```
@@ -35,10 +37,10 @@ video/
 - **輸入區域**
   - 提示詞輸入框（多行文字）
   - 圖片上傳區域（支援拖曳上傳）
-  - 模型選擇下拉選單（Flux Video、Turbo）
+  - 模型選擇下拉選單（Seedance、Seedance Pro、Wan、Veo）
   - 尺寸選擇下拉選單（HD、Full HD、Square、Portrait）
   - FPS 調整滑桿（24-60）
-  - 持續時間調整滑桿（3-10 秒）
+  - 持續時間調整滑桿（2-15 秒，依模型而定）
 
 - **配額顯示**
   - 剩餘配額數量
@@ -90,7 +92,7 @@ curl -X POST https://your-worker.workers.dev/api/video/generate \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "A beautiful sunset over mountains",
-    "model": "flux-video",
+    "model": "seedance",
     "width": 1280,
     "height": 720,
     "fps": 24,
@@ -105,7 +107,7 @@ curl -X POST https://your-worker.workers.dev/api/video/generate \
   -H "Content-Type: application/json" \
   -d '{
     "referenceImage": "https://example.com/image.jpg",
-    "model": "flux-video",
+    "model": "seedance",
     "duration": 5
   }'
 ```
@@ -136,10 +138,11 @@ curl https://your-worker.workers.dev/api/video/quota
 
 ## 支援的模型
 
-| 模型 ID | 名稱 | 說明 |
-|---------|------|------|
-| `flux-video` | Flux Video | 預設模型，高品質影片生成 |
-| `turbo` | Turbo | 快速生成模式 |
+| 模型 ID | 名稱 | 費用 | 功能 | 時長 | 說明 |
+|---------|------|------|------|------|------|
+| `seedance` | Seedance | 0.0000018/token | 文字/圖片轉影片 | 2-10秒 | BytePlus 模型，預設選項 |
+| `seedance-pro` | Seedance Pro | 0.000001/token | 文字/圖片轉影片 | 2-10秒 | BytePlus 進階版，更好的提示詞遵循 |
+| `wan` | Wan | 0.025 Pollen/sec | 圖片轉影片（含音訊） | 2-15秒 | 最高 1080P 解析度 |
 
 ## 支援的尺寸
 

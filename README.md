@@ -162,7 +162,7 @@ Content-Type: application/json
 
 {
   "prompt": "A beautiful sunset over mountains",
-  "model": "flux-video",
+  "model": "seedance",
   "width": 1280,
   "height": 720,
   "fps": 24,
@@ -174,10 +174,11 @@ Content-Type: application/json
 
 ### 支援的影片模型
 
-| 供應商 | 模型 | 類型 | 說明 |
-|--------|------|------|------|
-| Pollinations.ai | flux-video | 文字/圖片轉影片 | 預設模型，高品質影片生成 |
-| Pollinations.ai | turbo | 文字/圖片轉影片 | 快速生成模式 |
+| 供應商 | 模型 | 類型 | 費用 | 說明 |
+|--------|------|------|------|------|
+| Pollinations.ai | seedance | 文字/圖片轉影片 | 0.0000018/token | BytePlus 模型，預設選項 (2-10秒) |
+| Pollinations.ai | seedance-pro | 文字/圖片轉影片 | 0.000001/token | BytePlus 進階版，更好的提示詞遵循 (2-10秒) |
+| Pollinations.ai | wan | 圖片轉影片（含音訊） | 0.025 Pollen/sec | 圖片轉影片含音訊 (2-15秒，最高 1080P) |
 
 ### 支援的影片尺寸
 
