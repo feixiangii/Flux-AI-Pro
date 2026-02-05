@@ -6,7 +6,7 @@
 ![I18N](https://img.shields.io/badge/I18N-5%20Languages-green?style=flat-square)
 ![Video](https://img.shields.io/badge/Video-Generation-red?style=flat-square)
 
-**Flux AI Pro - NanoBanana Edition** is a high-performance, single-file AI image and video generation solution built on Cloudflare Workers. It integrates top-tier AI providers like Pollinations.ai, Infip/Ghostbot, Aqua Server, Runway, Pika, Luma, and Kling to deliver a serverless, lightning-fast, and feature-rich creative experience.
+**Flux AI Pro - NanoBanana Edition** is a high-performance, single-file AI image and video generation solution built on Cloudflare Workers. It integrates top-tier AI providers like Pollinations.ai, Infip/Ghostbot, and Aqua Server to deliver a serverless, lightning-fast, and feature-rich creative experience.
 
 ---
 
@@ -19,11 +19,10 @@
   - **Professional UI**: Full control over parameters like Steps, Guidance, and Seed.
   - **NanoBanana Pro**: A streamlined, mobile-friendly "one-click" generation experience.
 - **Video Generation**:
-  - **Text-to-Video**: Generate videos from text prompts using multiple AI models.
+  - **Text-to-Video**: Generate videos from text prompts using Pollinations.ai.
   - **Image-to-Video**: Transform static images into dynamic videos.
-  - **Multiple Providers**: Pollinations.ai, Runway, Pika, Luma, and Kling.
-  - **Model Selection**: Choose from 12+ video models across different providers.
-- **Multi-Provider Architecture**: Seamlessly switch between Pollinations.ai (Free), Infip/Ghostbot (Pro), Aqua Server, Runway, Pika, Luma, and Kling.
+  - **Single Provider**: Pollinations.ai with Flux Video and Turbo models.
+- **Multi-Provider Architecture**: Seamlessly switch between Pollinations.ai (Free), Infip/Ghostbot (Pro), and Aqua Server.
 - **Global Language Support**: Native support for **English, Traditional Chinese, Japanese, Korean, and Arabic**.
 - **Smart Language Detection**: Automatically follows your system/browser language settings.
 - **Full RTL Support**: Specialized layout and text direction for Right-to-Left languages (Arabic).
@@ -35,12 +34,11 @@
 
 ## 🔥 v11.12.0 更新亮點 (Release Highlights)
 
-- **🎬 影片生成功能**：全新影片生成模組，支援文字轉影片和圖片轉影片。
-- **🤖 多供應商支援**：整合 Pollinations.ai、Runway、Pika、Luma、Kling 五大影片生成供應商。
-- **🎯 模型選擇器**：提供 12+ 種影片模型選擇，包含 Stable Video Diffusion、AnimateDiff、ZeroScope、ModelScope、CogVideoX 等。
-- **📐 多種解析度**：支援 7 種預設影片尺寸，從 256x256 到 1024x1024。
-- **🎨 風格預設**：內建 8 種影片風格預設，包含電影感、動漫、3D 動畫、水彩等。
-- **📊 獨立頁面**：提供 `/video` 和 `/video/nano` 兩個獨立影片生成頁面。
+- **🎬 影片生成功能**：簡化版影片生成模組，僅支援 Pollinations.ai 供應商。
+- **🤖 單一供應商**：整合 Pollinations.ai 影片生成 API。
+- **🎯 模型選擇器**：提供 Flux Video 和 Turbo 兩種影片模型。
+- **📐 多種解析度**：支援 3 種預設影片尺寸 (16:9、9:16、1:1)。
+- **📊 API 端點**：提供完整的 RESTful API 端點供外部呼叫。
 - **🌍 多語言支援**：影片生成介面完整支援繁體中文、英文、日文、韓文、阿拉伯語。
 - **💾 本地歷史記錄**：使用 LocalStorage 儲存影片生成歷史，支援匯出/匯入功能。
 
@@ -78,18 +76,13 @@
 *   **NanoBanana Pro (`/nano`)**：極簡設計，內建每小時 5 張的免費配額與能量回充系統，適合快速獲取靈感。
 
 ### 2. 影片生成功能 (Video Generation)
-*   **專業版影片頁面 (`/video`)**：完整的影片生成介面，支援文字轉影片和圖片轉影片。
-*   **Nano 影片頁面 (`/video/nano`)**：簡化版影片生成介面，適合快速生成。
-*   **多供應商支援**：
-  - **Pollinations.ai**：免費影片生成，支援 SVD、SVD XT、AnimateDiff 模型。
-  - **Runway**：專業級影片生成，支援 Gen-2 模型。
-  - **Pika**：高品質影片生成，支援 Pika-1.0 模型。
-  - **Luma**：先進影片生成，支援 Dream Machine 模型。
-  - **Kling**：中文優化影片生成，支援 Kling-1.0 模型。
-*   **模型選擇**：12+ 種影片模型，包含 Stable Video Diffusion、AnimateDiff、ZeroScope、ModelScope、CogVideoX 等。
-*   **風格預設**：8 種影片風格預設，包含電影感、動漫、3D 動畫、水彩、油畫、素描、像素藝術、賽博龐克。
-*   **多種解析度**：7 種預設影片尺寸，從 256x256 到 1024x1024。
-*   **本地歷史記錄**：使用 LocalStorage 儲存影片生成歷史，支援匯出/匯入功能。
+*   **影片 API 文件頁面 (`/video`)**：提供影片生成 API 文件說明。
+*   **單一供應商支援**：
+  - **Pollinations.ai**：免費影片生成，支援 Flux Video 和 Turbo 模型。
+*   **模型選擇**：2 種影片模型 - Flux Video (高品質) 和 Turbo (快速生成)。
+*   **多種解析度**：3 種預設影片尺寸 - 16:9 (1280x720)、9:16 (720x1280)、1:1 (1024x1024)。
+*   **API 端點**：提供完整的 RESTful API 端點供外部呼叫。
+*   **限流機制**：每小時每 IP 5 個影片免費配額，180 秒生成冷卻。
 
 ### 3. 智慧語言管理 (Smart I18N)
 *   **自動偵測**：根據 `navigator.language` 自動切換，並記憶用戶的手動選擇。
@@ -131,11 +124,8 @@
     wrangler secret put INFIP_API_KEY
     wrangler secret put AQUA_API_KEY
     wrangler secret put GEMINI_API_KEY
-    # 影片生成 API Keys (可選)
-    wrangler secret put RUNWAY_API_KEY
-    wrangler secret put PIKA_API_KEY
-    wrangler secret put LUMA_API_KEY
-    wrangler secret put KLING_API_KEY
+    # 影片生成 API Key (可選)
+    wrangler secret put POLLINATIONS_VIDEO_API_KEY
     ```
 4.  **部署**：
     ```bash
@@ -151,20 +141,8 @@
 **設置環境變數：**
 
 ```bash
-# Pollinations 影片生成 API Key
+# Pollinations 影片生成 API Key（可選）
 wrangler secret put POLLINATIONS_VIDEO_API_KEY
-
-# Runway 影片生成 API Key
-wrangler secret put RUNWAY_VIDEO_API_KEY
-
-# Pika 影片生成 API Key
-wrangler secret put PIKA_VIDEO_API_KEY
-
-# Luma 影片生成 API Key
-wrangler secret put LUMA_VIDEO_API_KEY
-
-# Kling 影片生成 API Key
-wrangler secret put KLING_VIDEO_API_KEY
 ```
 
 **API Key 優先順序：**
@@ -178,13 +156,11 @@ Content-Type: application/json
 
 {
   "prompt": "A beautiful sunset over mountains",
-  "provider": "pollinations",
-  "model": "seedance-pro",
-  "width": 512,
-  "height": 512,
+  "model": "flux-video",
+  "width": 1280,
+  "height": 720,
   "fps": 24,
   "duration": 5,
-  "style": "cinematic",
   "referenceImage": "https://example.com/image.jpg",  // 可選，用於圖片轉影片
   "apiKey": "YOUR_API_KEY"  // 可選，如果環境變數已配置則不需要
 }
@@ -192,16 +168,18 @@ Content-Type: application/json
 
 ### 支援的影片模型
 
-| 供應商 | 模型 | 類型 | 說明 | 費用 |
-|--------|------|------|------|------|
-| Pollinations.ai | seedance-pro | 文字/圖片轉影片 | Seedance Pro 專業級影片生成模型，更好的提示詞遵循能力 (2-10秒) | 0.000001/token |
-| Pollinations.ai | seedance | 文字/圖片轉影片 | Seedance 高品質影片生成模型 (2-10秒) | 0.0000018/token |
-| Pollinations.ai | wan | 文字/圖片轉影片 | Wan 影片生成模型，支援圖片輸入和音頻 (2-15秒，最高1080P) | 0.025 Pollen/sec |
-| Pollinations.ai | veo | 文字轉影片 | Google 的影片生成模型，僅支援文字輸入 (4-8秒)，需要 API Key | 0.15 Pollen/sec |
-| Runway | gen-2 | 文字/圖片轉影片 | Runway Gen-2 專業模型 | - |
-| Pika | pika-1.0 | 文字/圖片轉影片 | Pika 1.0 高品質模型 | - |
-| Luma | dream-machine | 文字/圖片轉影片 | Luma Dream Machine | - |
-| Kling | kling-v1 | 文字/圖片轉影片 | Kling v1 影片生成模型 | - |
+| 供應商 | 模型 | 類型 | 說明 |
+|--------|------|------|------|
+| Pollinations.ai | flux-video | 文字/圖片轉影片 | 預設模型，高品質影片生成 |
+| Pollinations.ai | turbo | 文字/圖片轉影片 | 快速生成模式 |
+
+### 支援的影片尺寸
+
+| 比例 | 寬度 | 高度 | 標籤 |
+|------|------|------|------|
+| 16:9 | 1280 | 720 | 橫向 (16:9) |
+| 9:16 | 720 | 1280 | 直向 (9:16) |
+| 1:1 | 1024 | 1024 | 方形 (1:1) |
 
 ---
 
@@ -215,9 +193,10 @@ Content-Type: application/json
 
 *   `POST /api/video/generate` - 生成影片
 *   `GET /api/video/models` - 獲取可用模型列表
-*   `GET /api/video/styles` - 獲取風格預設
-*   `GET /api/video/sizes` - 獲取尺寸預設
-*   `GET /api/video/status` - 檢查配額和冷卻狀態
+*   `GET /api/video/styles` - 獲取樣式列表
+*   `GET /api/video/sizes` - 獲取尺寸列表
+*   `GET /api/video/quota` - 獲取配額資訊
+*   `GET /api/video/config` - 獲取完整配置
 
 ---
 
@@ -226,10 +205,6 @@ Content-Type: application/json
 - [Pollinations.ai](https://pollinations.ai) - Free AI Image & Video API
 - [Infip.pro](https://infip.pro) - Ghostbot Web API
 - [Aqua Server](https://aqua.server) - AI Generation Server
-- [Runway](https://runwayml.com) - Professional Video Generation
-- [Pika Labs](https://pika.art) - High-Quality Video Generation
-- [Luma AI](https://luma.ai) - Advanced Video Generation
-- [Kling AI](https://klingai.com) - Chinese-Optimized Video Generation
 - [ShowMeBest.AI](https://showmebest.ai) - AI Tool Directory
 - [Cloudflare Workers](https://workers.cloudflare.com) - Serverless Platform
 
