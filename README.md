@@ -6,29 +6,29 @@
 ![I18N](https://img.shields.io/badge/I18N-5%20Languages-green?style=flat-square)
 ![Video](https://img.shields.io/badge/Video-Generation-red?style=flat-square)
 
-**Flux AI Pro - NanoBanana Edition** is a high-performance, single-file AI image and video generation solution built on Cloudflare Workers. It integrates top-tier AI providers like Pollinations.ai, Infip/Ghostbot, and Aqua Server to deliver a serverless, lightning-fast, and feature-rich creative experience.
+**Flux AI Pro - NanoBanana Edition** 是一個基於 Cloudflare Workers 構建的高性能、單文件 AI 圖像和影片生成解決方案。它整合了 Pollinations.ai、Infip/Ghostbot 和 Aqua Server 等頂級 AI 供應商，提供無伺服器、極速且功能豐富的創作體驗。
 
 ---
 
 ## 🌍 English Introduction
 
-**Flux AI Pro** is designed for creators who demand speed, quality, and flexibility. By leveraging the power of Cloudflare's edge network, it provides a seamless interface for generating high-quality AI art without the need for complex server setups.
+**Flux AI Pro** 專為追求速度、品質和靈活性的創作者設計。透過利用 Cloudflare 邊緣網絡的強大功能，它提供無縫的介面來生成高品質 AI 藝術，無需複雜的伺服器設置。
 
 ### 🚀 Key Features
-- **Dual Interface Design**:
-  - **Professional UI**: Full control over parameters like Steps, Guidance, and Seed.
-  - **NanoBanana Pro**: A streamlined, mobile-friendly "one-click" generation experience.
-- **Video Generation**:
-  - **Text-to-Video**: Generate videos from text prompts using Pollinations.ai.
-  - **Image-to-Video**: Transform static images into dynamic videos.
-  - **Single Provider**: Pollinations.ai with Flux Video and Turbo models.
-- **Multi-Provider Architecture**: Seamlessly switch between Pollinations.ai (Free), Infip/Ghostbot (Pro), and Aqua Server.
-- **Global Language Support**: Native support for **English, Traditional Chinese, Japanese, Korean, and Arabic**.
-- **Smart Language Detection**: Automatically follows your system/browser language settings.
-- **Full RTL Support**: Specialized layout and text direction for Right-to-Left languages (Arabic).
-- **AI Prompt Generator**: Powered by Google Gemini 3 Flash to turn simple ideas into professional prompts.
-- **Ultra HD by Default**: Built-in optimization strategies to ensure every image is generated at maximum quality.
-- **Permanent Local History**: Uses IndexedDB to store your creations locally with export/import capabilities.
+- **雙重介面設計**：
+  - **專業版 UI**：完整控制 Steps、Guidance 和 Seed 等參數。
+  - **NanoBanana Pro**：簡化、手機友好的「一鍵」生成體驗。
+- **影片生成功能**：
+  - **文字轉影片**：使用 Pollinations.ai 從文字提示生成影片。
+  - **圖片轉影片**：將靜態圖片轉換為動態影片。
+  - **單一供應商**：Pollinations.ai 支援 Flux Video 和 Turbo 模型。
+- **多供應商架構**：無縫切換 Pollinations.ai（免費）、Infip/Ghostbot（專業版）和 Aqua Server。
+- **全球語言支援**：原生支援 **英文、繁體中文、日文、韓文和阿拉伯文**。
+- **智慧語言偵測**：自動遵循您的系統/瀏覽器語言設置。
+- **完整 RTL 支援**：為從右到左語言（阿拉伯語）提供專用佈局和文字方向。
+- **AI 提示詞生成器**：由 Google Gemini 3 Flash 驅動，將簡單想法轉化為專業提示詞。
+- **預設超高清**：內建優化策略，確保每張圖像都以最大品質生成。
+- **永久本地歷史記錄**：使用 IndexedDB 本地存儲您的創作，支援匯出/匯入功能。
 
 ---
 
@@ -42,31 +42,6 @@
 - **🌍 多語言支援**：影片生成介面完整支援繁體中文、英文、日文、韓文、阿拉伯語。
 - **💾 本地歷史記錄**：使用 LocalStorage 儲存影片生成歷史，點擊可重新載入。
 - **🎨 精美 UI 設計**：深色漸變背景、毛玻璃效果、響應式設計。
-
-### v11.11.0 更新亮點
-
-- **⚡ 非同步模型生成優化**：大幅改進 Aqua Provider 的輪詢機制，提升穩定性和可靠性。
-- **🕐 延長超時時間**：輪詢超時從 120 秒延長至 300 秒 (5 分鐘)，適應高解析度或複雜提示詞的生成需求。
-- **📈 指數退避策略**：實現動態輪詢間隔，從固定 2 秒改為 2-10 秒動態增長，減少不必要的 API 請求。
-- **🛡️ 增強錯誤處理**：
-  - **Rate Limit (429)**：讀取 `Retry-After` 標頭，使用伺服器建議的等待時間。
-  - **伺服器錯誤 (5xx)**：使用指數退避，最多連續 5 次錯誤後放棄。
-  - **網路錯誤**：自動檢測並重試，避免因暫時性網路問題失敗。
-- **📊 進度回報**：每 10 次輪詢報告一次進度百分比，狀態變化時立即報告，顯示已耗費時間。
-- **📝 詳細日誌**：記錄連續錯誤次數、退避等待時間、完成時顯示總嘗試次數和總時間。
-
-### v11.9.0 更新亮點
-
-- **🔄 Aqua Polling Models**：新增 Aqua API 輪詢模型支援，包含 `imagen4` (Google Imagen 4) 和 `nanobanana` (Img2Img)。
-- **📸 Img2Img 支援**：nanobanana 模型支援圖片轉圖片功能，可上傳參考圖片進行生成。
-- **🎯 動態 UI 顯示**：參考圖片區塊根據模型能力自動顯示或隱藏，提供更直觀的使用體驗。
-- **⚡ 輪詢機制優化**：實現智能輪詢系統，自動追蹤任務狀態 (pending → processing → completed/failed)。
-- **📊 供應商使用統計追蹤**：新增 API 供應商使用比例追蹤功能，自動記錄各供應商的使用次數與比例。
-- **🔄 實時統計數據**：透過 `/api/provider-stats` 端點獲取詳細的供應商使用統計，包含總生成次數與各供應商使用比例。
-- **💾 KV 持久化存儲**：統計數據自動存儲在 KV 中，30天後自動過期，確保數據持久性。
-- **🌍 多語言支援**：供應商統計介面支援繁體中文、英文、日文、韓文、阿拉伯語。
-- **🎨 Aqua Server 供應商**：新增 Aqua Server 作為第三個 API 供應商選項。
-- **📡 Health 端點增強**：`/health` 端點現在包含完整的供應商統計信息。
 
 ---
 
@@ -95,10 +70,10 @@
 *   **RTL 支援**：阿拉伯語模式下，介面元素自動鏡像翻轉，符合母語用戶習慣。
 
 ### 4. 多供應商模型庫 (Multi-Model Library)
-*   **Pollinations.ai**：提供 `Kontext`、`NanoBanana` (Nano Pro 專用)、`SeeDream`、`Flux Schnell`、`Z-Image`、`FLUX.2 Klein`、`FLUX.2 Klein 9B` 等免費高品質模型。
+*   **Pollinations.ai**：提供 `Flux 2 Dev`、`Imagen 4`、`NanoBanana` (Nano Pro 專用)、`SeeDream`、`Flux Schnell`、`Z-Image`、`FLUX.2 Klein`、`FLUX.2 Klein 9B` 等免費高品質模型。
 *   **Infip/Ghostbot**：支援 Google `Imagen 4` 與 `Flux Schnell`，具備更強的併發處理能力。
 *   **Aqua Server**：提供 `Flux 2`、`Z-Image`、`Imagen 4` (輪詢模式)、`NanoBanana` (Img2Img 輪詢模式) 等高品質模型。
-*   **輪詢模型支援**：imagen4 和 nanobanana 採用輪詢機制，確保大型模型生成的穩定性。
+*   **輪詢模型支援**：imagen-4 和 nanobanana 採用輪詢機制，確保大型模型生成的穩定性。
 *   **Img2Img 功能**：nanobanana 模型支援參考圖片上傳，實現圖片轉圖片生成。
 *   **供應商統計追蹤**：自動追蹤各供應商的使用次數與比例，透過 API 端點查詢。
 
@@ -106,7 +81,7 @@
 *   **懶加載技術**：利用 IntersectionObserver 優化圖片加載速度。
 *   **請求隊列**：智慧管理併發請求，避免瀏覽器卡頓。
 *   **自動翻譯**：內建 Google 翻譯接口，支援中文提示詞自動轉英文。
-*   **實時生成時間追生成時間追生成時間追蹤**：顯示圖片生成的實時進度與最終耗時，提供透明的性能反饋。
+*   **實時生成時間追蹤**：顯示圖片生成的實時進度與最終耗時，提供透明的性能反饋。
 
 ---
 
