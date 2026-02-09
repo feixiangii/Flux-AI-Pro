@@ -128,7 +128,7 @@ const CONFIG = {
     },
     airforce: {
       name: "Airforce API",
-      endpoint: "https://api.airforce.ai",
+      endpoint: "https://api.airforce",
       type: "openai_compatible",
       auth_mode: "bearer",
       requires_key: true,
@@ -1298,8 +1298,13 @@ class AirforceProvider {
     } = options;
 
     const finalApiKey = this.env.AIRFORCE_API_KEY || apiKey;
-    if (!finalApiKey) {
-      throw new Error("Airforce API key is required");
+    if (!finalApiKey || finalApiKey.trim() === '') {
+      throw new Error("Airforce API key is required. Please configure AIRFORCE_API_KEY in your environment variables or provide it in the request.");
+    }
+    
+    // Validate API key format (should be a bearer token)
+    if (finalApiKey.length < 10) {
+      throw new Error("Invalid Airforce API key format. API key should be at least 10 characters.");
     }
 
     logger.add("🎨 Airforce Generating", {
@@ -1329,7 +1334,7 @@ class AirforceProvider {
       
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${finalApiKey}`,
+        'Authorization': finalApiKey.startsWith('Bearer ') ? finalApiKey : `Bearer ${finalApiKey}`,
         'User-Agent': 'Flux-AI-Pro-Worker'
       };
 
@@ -1345,7 +1350,10 @@ class AirforceProvider {
         url,
         model: body.model,
         size: body.size,
-        promptLength: finalPrompt.length
+        promptLength: finalPrompt.length,
+        apiKeyPrefix: finalApiKey ? finalApiKey.substring(0, 8) + '...' : 'none',
+        apiKeyLength: finalApiKey ? finalApiKey.length : 0,
+        hasBearerPrefix: finalApiKey ? finalApiKey.startsWith('Bearer ') : false
       });
 
       const response = await fetchWithTimeout(url, {
@@ -1364,9 +1372,39 @@ class AirforceProvider {
         const errorText = await response.text();
         logger.add("❌ Airforce API Error", {
           status: response.status,
-          error: errorText
+          statusText: response.statusText,
+          error: errorText,
+          headers: Object.fromEntries(response.headers.entries())
         });
-        throw new Error(`Airforce API error: ${response.status} - ${errorText}`);
+        
+        // Parse error details if possible
+        let errorMessage = `Airforce API error: ${response.status}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error) {
+            errorMessage += ` - ${errorData.error.message || errorData.error}`;
+            if (errorData.error.code) {
+              errorMessage += ` (code: ${errorData.error.code})`;
+            }
+          } else if (errorData.message) {
+            errorMessage += ` - ${errorData.message}`;
+          } else {
+            errorMessage += ` - ${errorText}`;
+          }
+        } catch {
+          errorMessage += ` - ${errorText}`;
+        }
+        
+        // Add helpful hints for common errors
+        if (response.status === 401 || response.status === 403) {
+          errorMessage += '. Please check your Airforce API key.';
+        } else if (response.status === 429) {
+          errorMessage += '. Rate limit exceeded. Please try again later.';
+        } else if (response.status === 530) {
+          errorMessage += '. This may be an authentication issue. Please verify your API key.';
+        }
+        
+        throw new Error(errorMessage);
       }
 
       // Handle non-streaming JSON response
