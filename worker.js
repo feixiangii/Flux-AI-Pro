@@ -4626,13 +4626,14 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
         <option value="infip">Ghostbot (Infip) 🌟</option>
         <option value="aqua">Aqua API 💧</option>
         <option value="kinai">Kinai API 🚀</option>
+        <option value="airforce">Airforce API ✈️</option>
     </select>
 </div>
 <div class="form-group" id="apiKeyGroup" style="display:none; background:rgba(245, 158, 11, 0.1); padding:10px; border-radius:8px; border:1px solid rgba(245, 158, 11, 0.3);">
     <label>API Key <span style="font-weight:normal;opacity:0.7">(Stored locally)</span></label>
     <input type="password" id="apiKey" placeholder="Paste your API Key here">
     <div style="font-size:11px;color:#ccc;margin-top:6px">
-        Get free key from <a href="https://infip.pro/api-keys" target="_blank" style="color:#f59e0b;text-decoration:underline">infip.pro/api-keys</a>
+        Get free key from <a id="apiKeysLink" href="https://infip.pro/api-keys" target="_blank" style="color:#f59e0b;text-decoration:underline">infip.pro/api-keys</a>
     </div>
 </div>
 
@@ -5339,6 +5340,21 @@ function updateModelOptions() {
     const p = providerSelect.value;
     const config = PROVIDERS[p];
     if(!config) return;
+    
+    // Update API Key link based on provider
+    const apiKeysLink = document.getElementById('apiKeysLink');
+    if (apiKeysLink) {
+        const providerLinks = {
+            'infip': { url: 'https://infip.pro/api-keys', text: 'infip.pro/api-keys' },
+            'aqua': { url: 'https://aqua-api.com/api-keys', text: 'aqua-api.com/api-keys' },
+            'kinai': { url: 'https://kinai.ai/api-keys', text: 'kinai.ai/api-keys' },
+            'airforce': { url: 'https://api.airforce/', text: 'api.airforce/' }
+        };
+        if (providerLinks[p]) {
+            apiKeysLink.href = providerLinks[p].url;
+            apiKeysLink.textContent = providerLinks[p].text;
+        }
+    }
     
     // Logic: Show API Key input only if required AND not provided by server
     if(config.requires_key && config.auth_mode === 'bearer') {

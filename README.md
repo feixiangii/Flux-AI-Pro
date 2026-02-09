@@ -5,7 +5,7 @@
 ![Engine](https://img.shields.io/badge/Engine-Multi%20Provider-blue?style=flat-square)
 ![I18N](https://img.shields.io/badge/I18N-5%20Languages-green?style=flat-square)
 
-**Flux AI Pro - NanoBanana Edition** 是一個基於 Cloudflare Workers 構建的高性能、單文件 AI 圖像生成解決方案。它整合了 Pollinations.ai、Infip/Ghostbot、Aqua Server 和 Kinai API 等頂級 AI 供應商，提供無伺服器、極速且功能豐富的創作體驗。
+**Flux AI Pro - NanoBanana Edition** 是一個基於 Cloudflare Workers 構建的高性能、單文件 AI 圖像生成解決方案。它整合了 Pollinations.ai、Infip/Ghostbot、Aqua Server、Kinai API 和 Airforce API 等頂級 AI 供應商，提供無伺服器、極速且功能豐富的創作體驗。
 
 ---
 
@@ -17,7 +17,7 @@
 - **雙重介面設計**：
   - **專業版 UI**：完整控制 Steps、Guidance 和 Seed 等參數。
   - **NanoBanana Pro**：簡化、手機友好的「一鍵」生成體驗。
-- **多供應商架構**：無縫切換 Pollinations.ai（免費）、Infip/Ghostbot（專業版）、Aqua Server 和 Kinai API。
+- **多供應商架構**：無縫切換 Pollinations.ai（免費）、Infip/Ghostbot（專業版）、Aqua Server、Kinai API 和 Airforce API。
 - **全球語言支援**：原生支援 **英文、繁體中文、日文、韓文和阿拉伯文**。
 - **智慧語言偵測**：自動遵循您的系統/瀏覽器語言設置。
 - **完整 RTL 支援**：為從右到左語言（阿拉伯語）提供專用佈局和文字方向。
@@ -52,9 +52,10 @@
 *   **Infip/Ghostbot**：支援 Google `Imagen 4` 與 `Flux Schnell`，具備更強的併發處理能力，支援 NSFW 模式。
 *   **Aqua Server**：提供 `Flux 2`、`Z-Image`、`Imagen 4` (輪詢模式)、`NanoBanana` (Img2Img 輪詢模式) 等高品質模型。
 *   **Kinai API**：提供 `GLM Image` 高品質模型，支援 NSFW 模式與批量生成（最多 4 張）。
+*   **Airforce API**：提供 `Plutogen O1`、`Z-Image`、`Imagen 4` (Google)、`Flux 2 Pro`、`Flux 2 Flex`、`GPT Image 1.5`、`Flux 2 Klein 4B`、`Flux 2 Klein 9B`、`SeeDream 4.5` 等高品質模型，支援 NSFW 模式與批量生成。
 *   **輪詢模型支援**：imagen-4 和 nanobanana 採用輪詢機制，確保大型模型生成的穩定性。
 *   **Img2Img 功能**：nanobanana 模型支援參考圖片上傳，實現圖片轉圖片生成。
-*   **NSFW 模式**：Infip 和 Kinai 供應商支援解除成人內容限制功能。
+*   **NSFW 模式**：Infip、Kinai 和 Airforce 供應商支援解除成人內容限制功能。
 *   **供應商統計追蹤**：自動追蹤各供應商的使用次數與比例，透過 API 端點查詢。
 
 ### 4. 性能與優化 (Performance)
@@ -85,6 +86,7 @@
     wrangler secret put INFIP_API_KEY
     wrangler secret put AQUA_API_KEY
     wrangler secret put KINAI_API_KEY
+    wrangler secret put AIRFORCE_API_KEY
     ```
 4.  **部署**：
     ```bash
@@ -106,6 +108,7 @@
 - [Infip.pro](https://infip.pro) - Ghostbot Web API
 - [Aqua Server](https://aqua.server) - AI Generation Server
 - [Kinai API](https://kinai.eu.cc) - High-Performance AI Generation API
+- [Airforce API](https://api.airforce) - High-Quality AI Image Generation API
 - [ShowMeBest.AI](https://showmebest.ai) - AI Tool Directory
 - [Cloudflare Workers](https://workers.cloudflare.com) - Serverless Platform
 
