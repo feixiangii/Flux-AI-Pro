@@ -214,7 +214,7 @@ class RateLimiter {
   }
   async checkLimit(ip) {
     if (!this.KV) {
-      console.warn("⚠️ FLUX_KV 未綁定，跳過限制");
+      console.warn("65c2232e78044e749adb797599cb6ac8");
       return { allowed: true };
     }
     const key = `nano_limit:${ip}`;
@@ -6501,3 +6501,4 @@ document.addEventListener('DOMContentLoaded', () => {
   
   return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', ...corsHeaders() } });
 }
+
