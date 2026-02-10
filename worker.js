@@ -1579,11 +1579,41 @@ class AirforceProvider {
         firstUrl: results[0].url?.substring(0, 50) + "..."
       });
 
+      // Return single result object (compatible with other providers)
+      const firstResult = results[0];
+      
+      // If the URL is a base64 data URI, extract the base64 part
+      let imgData = null;
+      let imgContentType = 'image/png';
+      const imgUrl = firstResult.url;
+      
+      if (imgUrl.startsWith('data:image/')) {
+        // It's already a base64 data URI
+        const match = imgUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+        if (match) {
+          imgContentType = match[1];
+          const base64Data = match[2];
+          // Convert base64 to ArrayBuffer
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          imgData = bytes.buffer;
+        }
+      }
+      
       return {
-        success: true,
-        images: results,
+        imageData: imgData,
+        contentType: imgContentType,
+        url: imgUrl,
         provider: this.name,
         model: model,
+        seed: -1, // Airforce doesn't return seed
+        width: width,
+        height: height,
+        auto_translated: false,
+        authenticated: true,
         cost: "QUOTA"
       };
     } catch (e) {
