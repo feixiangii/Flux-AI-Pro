@@ -1650,8 +1650,8 @@ class AirforceProvider {
             if (dataStr === ': keepalive') continue;
             if (!dataStr || dataStr.trim() === '') continue;
 
-          try {
-            const data = JSON.parse(dataStr);
+            try {
+              const data = JSON.parse(dataStr);
             console.log("📡 [AirforceProvider] SSE Data:", data);
 
             // Handle different response formats
@@ -1812,14 +1812,19 @@ class AirforceProvider {
                 logger.add("✅ SSE: Found images via deep search", { count: results.length });
               }
             }
-          } catch (parseError) {
-            logger.add("⚠️ SSE Parse Error", {
-              dataStr: dataStr.substring(0, 500),
-              error: parseError.message
-            });
+            } catch (parseError) {
+              logger.add("⚠️ SSE Parse Error", {
+                dataStr: dataStr.substring(0, 500),
+                error: parseError.message
+              });
+            }
           }
         }
       }
+    } catch (streamError) {
+      logger.add("❌ SSE Stream Error", {
+        error: streamError.message
+      });
     } finally {
       reader.releaseLock();
     }
