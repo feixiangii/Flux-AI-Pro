@@ -116,7 +116,7 @@ export const TRANSLATIONS = {
     
     // NSFW
     nsfw_label: "🔞 解除成人內容限制 (NSFW)",
-    nsfw_desc: "啟用此選項將允許生成成人內容 (Infip, Airforce)",
+    nsfw_desc: "啟用此選項將允許生成成人內容 (Infip, Kinai)",
     
     // 批量生成
     batch_label: "🖼️ 批量生成",
@@ -446,7 +446,7 @@ export const TRANSLATIONS = {
     
     // NSFW
     nsfw_label: "🔞 Disable NSFW Filter",
-    nsfw_desc: "Enable this option to allow adult content generation (Infip, Airforce)",
+    nsfw_desc: "Enable this option to allow adult content generation (Infip, Kinai)",
     
     // Batch Generation
     batch_label: "🖼️ Batch Generation",
@@ -717,7 +717,7 @@ export const TRANSLATIONS = {
     
     // NSFW
     nsfw_label: "🔞 NSFWフィルターを無効化",
-    nsfw_desc: "このオプションを有効にすると、成人向けコンテンツの生成が可能になります（Infip, Airforce）",
+    nsfw_desc: "このオプションを有効にすると、成人向けコンテンツの生成が可能になります（Infip, Kinai）",
     
     // バッチ生成
     batch_label: "🖼️ バッチ生成",
@@ -988,7 +988,7 @@ export const TRANSLATIONS = {
     
     // NSFW
     nsfw_label: "🔞 NSFW 필터 비활성화",
-    nsfw_desc: "이 옵션을 활성화하면 성인 콘텐츠 생성이 허용됩니다 (Infip, Airforce)",
+    nsfw_desc: "이 옵션을 활성화하면 성인 콘텐츠 생성이 허용됩니다 (Infip, Kinai)",
     
     // 배치 생성
     batch_label: "🖼️ 배치 생성",
@@ -1259,7 +1259,7 @@ export const TRANSLATIONS = {
     
     // NSFW
     nsfw_label: "🔞 تعطيل فلتر NSFW",
-    nsfw_desc: "تمكين هذا الخيار للسماح بإنشاء محتوى للبالغين (Infip, Airforce)",
+    nsfw_desc: "تمكين هذا الخيار للسماح بإنشاء محتوى للبالغين (Infip, Kinai)",
     
     // الإنشاء المجموع
     batch_label: "🖼️ إنشاء مجموع",

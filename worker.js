@@ -1865,16 +1865,52 @@ class MultiProviderRouter {
     }
   }
   getProvider(providerName = null) {
-    if (providerName && this.providers[providerName]) return { name: providerName, instance: this.providers[providerName] };
+    console.log("🔍 [MultiProviderRouter] getProvider called with:", {
+      providerName,
+      availableProviders: Object.keys(this.providers),
+      hasProviderName: !!providerName,
+      providerExists: providerName ? !!this.providers[providerName] : false
+    });
+    
+    if (providerName && this.providers[providerName]) {
+      console.log("✅ [MultiProviderRouter] Using requested provider:", providerName);
+      return { name: providerName, instance: this.providers[providerName] };
+    }
+    
     const defaultName = CONFIG.DEFAULT_PROVIDER;
-    if (this.providers[defaultName]) return { name: defaultName, instance: this.providers[defaultName] };
+    console.log("🔄 [MultiProviderRouter] Falling back to default provider:", defaultName);
+    
+    if (this.providers[defaultName]) {
+      console.log("✅ [MultiProviderRouter] Using default provider:", defaultName);
+      return { name: defaultName, instance: this.providers[defaultName] };
+    }
+    
     const firstProvider = Object.keys(this.providers)[0];
-    if (firstProvider) return { name: firstProvider, instance: this.providers[firstProvider] };
+    console.log("🔄 [MultiProviderRouter] Falling back to first provider:", firstProvider);
+    
+    if (firstProvider) {
+      console.log("✅ [MultiProviderRouter] Using first provider:", firstProvider);
+      return { name: firstProvider, instance: this.providers[firstProvider] };
+    }
+    
     throw new Error('No available provider');
   }
   async generate(prompt, options, logger) {
     const { provider: requestedProvider = null, numOutputs = 1 } = options;
+    
+    logger.add("🔍 MultiProviderRouter: Generating", {
+      requestedProvider,
+      availableProviders: Object.keys(this.providers),
+      options: { ...options, apiKey: options.apiKey ? '***' : '' }
+    });
+    
     const { name: providerName, instance: provider } = this.getProvider(requestedProvider);
+    
+    logger.add("✅ MultiProviderRouter: Provider selected", {
+      providerName,
+      providerInstance: provider ? provider.name : 'null'
+    });
+    
     const results = [];
     
     // Optimization for Infip: Use native batching if available
@@ -2308,6 +2344,7 @@ async function handleInternalGenerate(request, env, ctx) {
       prompt: prompt.substring(0, 50) + "...",
       width: body.width,
       height: body.height,
+      provider: body.provider,
       source: request.headers.get('X-Source')
     });
 
@@ -4407,7 +4444,7 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
 <div class="form-group" id="nsfwGroup" style="display:none; align-items:center; justify-content:space-between; background:rgba(239, 68, 68, 0.1); padding:10px; border-radius:8px; border:1px solid rgba(239, 68, 68, 0.3);">
     <div>
         <label for="nsfwToggle" style="margin:0; cursor:pointer; color:#f87171;">🔞 解除成人內容限制 (NSFW)</label>
-        <div style="font-size:11px; color:#fca5a5; margin-top:2px;">啟用此選項將允許生成成人內容 (僅 Infip)</div>
+        <div style="font-size:11px; color:#fca5a5; margin-top:2px;">啟用此選項將允許生成成人內容 (Infip, Kinai)</div>
     </div>
     <input type="checkbox" id="nsfwToggle" style="width:20px; height:20px; cursor:pointer;">
 </div>
@@ -4802,7 +4839,7 @@ const I18N={
         quality_economy: "Economy", quality_standard: "Standard", quality_ultra: "Ultra HD",
         provider_pollinations: "Pollinations.ai (Free)", provider_infip: "Ghostbot (Infip) 🌟", provider_airforce: "Airforce API ✈️",
         api_key_label: "API Key", api_key_desc: "Stored locally", api_key_placeholder: "Paste your API Key here",
-        nsfw_label: "🔞 解除成人內容限制 (NSFW)", nsfw_desc: "啟用此選項將允許生成成人內容 (Infip, Airforce)",
+        nsfw_label: "🔞 解除成人內容限制 (NSFW)", nsfw_desc: "啟用此選項將允許生成成人內容 (Infip, Kinai)",
         batch_label: "🖼️ 批量生成", batch_size_label: "生成數量 (Batch Size)",
         prompt_generator_title: "專業提示詞生成器", prompt_generator_upload_ref: "上傳參考圖片 (可選)",
         prompt_generator_select_image: "選擇圖片", prompt_generator_simple_desc: "簡單描述你想要的畫面",
@@ -4818,7 +4855,7 @@ const I18N={
         quality_economy: "Economy", quality_standard: "Standard", quality_ultra: "Ultra HD",
         provider_pollinations: "Pollinations.ai (Free)", provider_infip: "Ghostbot (Infip) 🌟", provider_airforce: "Airforce API ✈️",
         api_key_label: "API Key", api_key_desc: "Stored locally", api_key_placeholder: "Paste your API Key here",
-        nsfw_label: "🔞 Disable NSFW Filter", nsfw_desc: "Enable this option to allow adult content generation (Infip, Airforce)",
+        nsfw_label: "🔞 Disable NSFW Filter", nsfw_desc: "Enable this option to allow adult content generation (Infip, Kinai)",
         batch_label: "🖼️ Batch Generation", batch_size_label: "Batch Size",
         prompt_generator_title: "Professional Prompt Generator", prompt_generator_upload_ref: "Upload Reference Image (Optional)",
         prompt_generator_select_image: "Select Image", prompt_generator_simple_desc: "Simply describe the image you want",
@@ -4834,7 +4871,7 @@ const I18N={
         quality_economy: "エコノミー", quality_standard: "スタンダード", quality_ultra: "ウルトラHD",
         provider_pollinations: "Pollinations.ai (無料)", provider_infip: "Ghostbot (Infip) 🌟", provider_airforce: "Airforce API ✈️",
         api_key_label: "APIキー", api_key_desc: "ローカルに保存", api_key_placeholder: "ここにAPIキーを貼り付け",
-        nsfw_label: "🔞 NSFWフィルターを無効化", nsfw_desc: "このオプションを有効にすると、成人向けコンテンツの生成が可能になります（Infip, Airforce）",
+        nsfw_label: "🔞 NSFWフィルターを無効化", nsfw_desc: "このオプションを有効にすると、成人向けコンテンツの生成が可能になります（Infip, Kinai）",
         batch_label: "🖼️ バッチ生成", batch_size_label: "バッチサイズ",
         prompt_generator_title: "プロフェッショナルプロンプトジェネレーター", prompt_generator_upload_ref: "参照画像をアップロード（任意）",
         prompt_generator_select_image: "画像を選択", prompt_generator_simple_desc: "作成したい画像を簡単に説明",
@@ -4850,7 +4887,7 @@ const I18N={
         quality_economy: "이코노미", quality_standard: "스탠다드", quality_ultra: "울트라 HD",
         provider_pollinations: "Pollinations.ai (무료)", provider_infip: "Ghostbot (Infip) 🌟", provider_airforce: "Airforce API ✈️",
         api_key_label: "API 키", api_key_desc: "로컬에 저장", api_key_placeholder: "여기에 API 키를 붙여넣으세요",
-        nsfw_label: "🔞 NSFW 필터 비활성화", nsfw_desc: "이 옵션을 활성화하면 성인 콘텐츠 생성이 허용됩니다 (Infip, Airforce)",
+        nsfw_label: "🔞 NSFW 필터 비활성화", nsfw_desc: "이 옵션을 활성화하면 성인 콘텐츠 생성이 허용됩니다 (Infip, Kinai)",
         batch_label: "🖼️ 배치 생성", batch_size_label: "배치 크기",
         prompt_generator_title: "전문 프롬프트 생성기", prompt_generator_upload_ref: "참조 이미지 업로드 (선택 사항)",
         prompt_generator_select_image: "이미지 선택", prompt_generator_simple_desc: "원하는 이미지를 간단히 설명",
