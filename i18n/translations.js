@@ -45,6 +45,11 @@ export const TRANSLATIONS = {
     cooldown_msg: "⏳ 請等待冷卻時間...",
     generating: "生成中...",
     
+    // 隊列狀態
+    queue_label: "隊列",
+    queue_waiting: "等待中",
+    queue_processing: "處理中",
+    
     // 統計
     stat_total: "📊 總記錄數",
     stat_storage: "💾 存儲空間 (永久)",
@@ -375,6 +380,11 @@ export const TRANSLATIONS = {
     cooldown_msg: "⏳ Please wait for cooldown...",
     generating: "Generating...",
     
+    // Queue Status
+    queue_label: "Queue",
+    queue_waiting: "Waiting",
+    queue_processing: "Processing",
+    
     // Statistics
     stat_total: "📊 Total Records",
     stat_storage: "💾 Storage Space (Permanent)",
@@ -645,6 +655,11 @@ export const TRANSLATIONS = {
     no_history: "履歴がありません",
     cooldown_msg: "⏳ クールダウンをお待ちください...",
     generating: "生成中...",
+    
+    // キューステータス
+    queue_label: "キュュー",
+    queue_waiting: "待機中",
+    queue_processing: "処理中",
     
     // 統計
     stat_total: "📊 総記録数",
@@ -917,6 +932,11 @@ export const TRANSLATIONS = {
     cooldown_msg: "⏳ 쿨다운을 기다려주세요...",
     generating: "생성 중...",
     
+    // 큐 상태
+    queue_label: "큐",
+    queue_waiting: "대기 중",
+    queue_processing: "처리 중",
+    
     // 통계
     stat_total: "📊 총 기록 수",
     stat_storage: "💾 저장 공간 (영구)",
@@ -1187,6 +1207,11 @@ export const TRANSLATIONS = {
     no_history: "لا توجد سجلات",
     cooldown_msg: "⏳ يرجى الانتظار...",
     generating: "جاري الإنشاء...",
+    
+    // حالة الطابور
+    queue_label: "الطابور",
+    queue_waiting: "في الانتظار",
+    queue_processing: "قيد المعالجة",
     
     // الإحصائيات
     stat_total: "📊 إجمالي السجلات",

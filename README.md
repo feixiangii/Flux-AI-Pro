@@ -53,15 +53,50 @@
 *   **介面語言跟蹤**：生成進度、按鈕文本、狀態消息、錯誤提示等所有 UI 元素均支持多語言。
 
 ### 3. 多供應商模型庫 (Multi-Model Library)
-*   **Pollinations.ai**：提供 `Flux 2 Dev`、`Imagen 4`、`NanoBanana` (Nano Pro 專用)、`SeeDream`、`Flux Schnell`、`Z-Image`、`FLUX.2 Klein`、`FLUX.2 Klein 9B` 等免費高品質模型。
-*   **Infip/Ghostbot**：支援 Google `Imagen 4` 與 `Flux Schnell`，具備更強的併發處理能力，支援 NSFW 模式。
-*   **Aqua Server**：提供 `Flux 2`、`Z-Image`、`Imagen 4` (輪詢模式)、`NanoBanana` (Img2Img 輪詢模式) 等高品質模型。
-*   **Kinai API**：提供 `GLM Image` 高品質模型，支援 NSFW 模式與批量生成（最多 4 張）。
-*   **Airforce API**：提供 `Plutogen O1`、`Z-Image`、`Imagen 4` (Google)、`Flux 2 Pro`、`Flux 2 Flex`、`GPT Image 1.5`、`Flux 2 Klein 4B`、`Flux 2 Klein 9B`、`SeeDream 4.5` 等高品質模型，支援批量生成。
-*   **輪詢模型支援**：imagen-4 和 nanobanana 採用輪詢機制，確保大型模型生成的穩定性。
-*   **Img2Img 功能**：nanobanana 模型支援參考圖片上傳，實現圖片轉圖片生成。
-*   **NSFW 模式**：Infip 和 Kinai 供應商支援解除成人內容限制功能。
-*   **供應商統計追蹤**：自動追蹤各供應商的使用次數與比例，透過 API 端點查詢。
+
+#### 🎨 Pollinations.ai（免費）
+- **Flux 2 Dev** - 高品質開發版本，適合日常創作
+- **Imagen 4** - Google 最新高品質繪圖模型
+- **NanoBanana** - Nano Pro 專用快速生成模型
+- **SeeDream** - 夢幻般的圖像生成模型
+- **Flux Schnell** - 快速生成模型，適合快速迭代
+- **Z-Image** - 快速 6B 參數圖像生成
+- **FLUX.2 Klein** - 輕量級 Flux 模型
+- **FLUX.2 Klein 9B** - 高參數 Flux 模型，更精細的細節
+
+#### 🔥 Infip/Ghostbot（專業版）
+- **Imagen 4** - Google 最新高品質繪圖模型
+- **Flux Schnell** - 快速生成模型
+- **特色功能**：更強的併發處理能力、NSFW 模式支援
+
+#### 💧 Aqua Server
+- **Flux 2** - Flux 2 系列模型
+- **Z-Image** - 快速 6B 參數圖像生成
+- **Imagen 4** - Google 最新高品質繪圖模型（輪詢模式）
+- **NanoBanana** - Img2Img 輪詢模式，支援參考圖片上傳
+
+#### 🌟 Kinai API
+- **GLM Image** - 高品質圖像生成模型
+- **特色功能**：NSFW 模式支援、批量生成（最多 4 張）
+
+#### ✈️ Airforce API（排隊系統）
+- **Plutogen O1** 🌟 - Plutogen O1 高品質圖像生成模型
+- **Z-Image** ⚡ - 快速 6B 參數圖像生成
+- **Imagen 4** 🌟 - Google 最新高品質繪圖模型
+- **Flux 2 Pro** 🌟 - Flux 2 Pro 高品質模型
+- **Flux 2 Flex** ⚡ - Flux 2 Flex 靈活模型
+- **GPT Image 1.5** 🎨 - GPT Image 1.5 圖像生成模型
+- **Flux 2 Klein 4B** - Advanced Flux 2 model - 4B parameters
+- **Flux 2 Klein 9B** 🌟 - Advanced Flux 2 Large model - 9B parameters
+- **SeeDream 4.5** 🌈 - 夢幻般的圖像生成 v4.5
+- **特色功能**：排隊系統、並發控制、實時隊列狀態顯示
+
+#### 📋 其他功能
+- **輪詢模型支援**：imagen-4 和 nanobanana 採用輪詢機制，確保大型模型生成的穩定性
+- **Img2Img 功能**：nanobanana 模型支援參考圖片上傳，實現圖片轉圖片生成
+- **NSFW 模式**：Infip 和 Kinai 供應商支援解除成人內容限制功能
+- **供應商統計追蹤**：自動追蹤各供應商的使用次數與比例，透過 API 端點查詢
+- **隊列系統**：Aqua 和 Airforce API 支援智能排隊，避免請求過載
 
 ### 4. 性能與優化 (Performance)
 *   **懶加載技術**：利用 IntersectionObserver 優化圖片加載速度。

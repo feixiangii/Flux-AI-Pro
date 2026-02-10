@@ -6347,10 +6347,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 只為使用隊列的供應商顯示隊列狀態
                 if (queue && queue.usesQueue && (queue.waiting > 0 || queue.processing > 0)) {
                     queueStatusEl.style.display = 'block';
-                    var waitingText = queue.waiting > 0 ? queue.waiting + ' 等待中' : '';
-                    var processingText = queue.processing > 0 ? queue.processing + ' 處理中' : '';
+                    var waitingText = queue.waiting > 0 ? queue.waiting + ' ' + I18N[curLang].queue_waiting : '';
+                    var processingText = queue.processing > 0 ? queue.processing + ' ' + I18N[curLang].queue_processing : '';
                     var separator = waitingText && processingText ? ', ' : '';
-                    queueStatusTextEl.textContent = '隊列: ' + waitingText + separator + processingText;
+                    queueStatusTextEl.textContent = I18N[curLang].queue_label + ': ' + waitingText + separator + processingText;
                 } else {
                     queueStatusEl.style.display = 'none';
                 }
