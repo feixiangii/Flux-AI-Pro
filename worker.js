@@ -4186,9 +4186,19 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     checkAndStartCooldown();
     
     function updateQuotaUI() {
+        console.log('🍌 updateQuotaUI called, currentQuota:', currentQuota, 'maxQuota:', maxQuota);
+        if (!els.quotaText) {
+            console.error('🍌 els.quotaText is null!');
+            return;
+        }
+        if (!els.quotaFill) {
+            console.error('🍌 els.quotaFill is null!');
+            return;
+        }
         els.quotaText.textContent = \`\${currentQuota} / \${maxQuota}\`;
         const pct = (currentQuota / maxQuota) * 100;
         els.quotaFill.style.width = pct + '%';
+        console.log('🍌 Quota UI updated, percentage:', pct + '%');
         if(currentQuota <= 0) {
             els.quotaFill.style.background = '#ef4444';
             els.genBtn.disabled = true;
@@ -4197,12 +4207,16 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     }
     
     function consumeQuota() {
+        console.log('🍌 consumeQuota called, currentQuota before:', currentQuota);
         if(currentQuota > 0) {
             currentQuota--;
             const now = new Date();
             const currentMinStr = now.toDateString() + '-' + now.getHours() + '-' + now.getMinutes();
             localStorage.setItem('nano_quota_minutely', JSON.stringify({min: currentMinStr, val: currentQuota}));
+            console.log('🍌 Quota consumed, currentQuota after:', currentQuota);
             updateQuotaUI();
+        } else {
+            console.log('🍌 No quota to consume, currentQuota is 0');
         }
     }
 
@@ -4561,6 +4575,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     const MAX_HISTORY_ITEMS = 10;
 
     function addHistory(base64) {
+        console.log('🍌 addHistory called with base64 length:', base64 ? base64.length : 0);
         // 保存到 localStorage
         let history = JSON.parse(localStorage.getItem(NANO_HISTORY_KEY) || '[]');
         history.unshift({
@@ -4574,13 +4589,22 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
         }
         
         localStorage.setItem(NANO_HISTORY_KEY, JSON.stringify(history));
+        console.log('🍌 History saved to localStorage, total items:', history.length);
         
         // 更新 UI
         updateHistoryUI();
     }
 
     function updateHistoryUI() {
+        console.log('🍌 updateHistoryUI called');
         const history = JSON.parse(localStorage.getItem(NANO_HISTORY_KEY) || '[]');
+        console.log('🍌 History from localStorage:', history.length, 'items');
+        
+        if (!els.history) {
+            console.error('🍌 els.history is null!');
+            return;
+        }
+        
         els.history.innerHTML = '';
         
         history.forEach((item, index) => {
@@ -4594,6 +4618,8 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
             };
             els.history.appendChild(div);
         });
+        
+        console.log('🍌 History UI updated, children count:', els.history.children.length);
         
         // 設置第一個為活動狀態
         if (els.history.children.length > 0) {
