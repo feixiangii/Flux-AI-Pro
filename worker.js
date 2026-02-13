@@ -2856,6 +2856,7 @@ function handleNanoPage(request) {
     --glass: blur(20px) saturate(180%);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+nav { display: block; }
 body {
     font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: var(--bg-dark);
@@ -2864,6 +2865,53 @@ body {
     height: 100vh;
     overflow: hidden;
     display: flex;
+    flex-direction: column;
+}
+/* 頂部導航欄樣式 */
+.top-nav {
+    height: 56px;
+    background: rgba(15, 15, 17, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 100;
+    flex-shrink: 0;
+}
+.nav-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.nav-btn {
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #e5e7eb;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.2s;
+    text-decoration: none;
+}
+.nav-btn:hover {
+    background: rgba(250, 204, 21, 0.1);
+    color: #FACC15;
+    border-color: rgba(250, 204, 21, 0.3);
+}
+.nav-btn:active {
+    transform: scale(0.98);
 }
 /* 語言切換按鈕樣式 */
 .nano-lang-btn {
@@ -2920,7 +2968,7 @@ body {
     background: rgba(250, 204, 21, 0.2);
     color: #FACC15;
 }
-.app-container { display: flex; width: 100%; height: 100%; }
+.app-container { display: flex; width: 100%; flex: 1; overflow: hidden; }
 .sidebar {
     width: 380px;
     background: var(--panel-bg);
@@ -2982,7 +3030,23 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
 }
 .placeholder-text { color: rgba(255,255,255,0.1); font-size: 80px; font-weight: 900; user-select: none; }
 .history-dock {
-    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(20, 20, 23, 0.8); backdrop-filter: blur(15px); border: 1px solid var(--border); padding: 10px; border-radius: 20px; display: flex; gap: 10px; max-width: 90%; overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 20;
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(20, 20, 23, 0.8); backdrop-filter: blur(15px); border: 1px solid var(--border); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 20; transition: 0.3s;
+}
+.history-header {
+    display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.history-header:hover { background: rgba(255,255,255,0.05); }
+.history-title { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.history-toggle {
+    background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: 0.2s; font-size: 12px;
+}
+.history-toggle:hover { background: rgba(255,255,255,0.1); color: var(--primary); }
+.history-content {
+    max-height: 80px; overflow: hidden; transition: max-height 0.3s ease;
+}
+.history-content.collapsed { max-height: 0; }
+.history-strip {
+    display: flex; gap: 10px; padding: 10px 15px; overflow-x: auto; max-width: 90vw;
 }
 .history-item {
     width: 50px; height: 50px; border-radius: 10px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: 0.2s; flex-shrink: 0;
@@ -3097,6 +3161,51 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
 <body>
     <div id="toast" class="toast"></div>
 
+    <!-- 頂部導航欄 -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="/" class="nav-btn">
+                <span>🏠</span>
+                <span id="navHomeText">主頁</span>
+            </a>
+        </div>
+        <div class="nav-right">
+            <div style="position:relative">
+                <button class="nav-btn" id="nanoLangSwitch">
+                    <span id="nanoCurrentLangFlag">🇹🇼</span>
+                    <span id="nanoCurrentLangName">繁體中文</span>
+                    <span style="margin-left:4px">▼</span>
+                </button>
+                <div class="nano-lang-dropdown" id="nanoLangDropdown">
+                    <div class="nano-lang-option" data-lang="auto">
+                        <span>🌐</span>
+                        <span>自動偵測</span>
+                    </div>
+                    <div class="nano-lang-option" data-lang="zh">
+                        <span>🇹🇼</span>
+                        <span>繁體中文</span>
+                    </div>
+                    <div class="nano-lang-option" data-lang="en">
+                        <span>🇺🇸</span>
+                        <span>English</span>
+                    </div>
+                    <div class="nano-lang-option" data-lang="ja">
+                        <span>🇯🇵</span>
+                        <span>日本語</span>
+                    </div>
+                    <div class="nano-lang-option" data-lang="ko">
+                        <span>🇰🇷</span>
+                        <span>한국어</span>
+                    </div>
+                    <div class="nano-lang-option" data-lang="ar">
+                        <span>🇸🇦</span>
+                        <span>العربية</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
     <div class="app-container">
         <!-- Sidebar Controls -->
         <div class="sidebar">
@@ -3107,39 +3216,6 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
                     <p style="color:#666; font-size:12px">Flux Engine • Pro Model • Pollinations AI</p>
                     <div style="font-size:11px; color:#22c55e; margin-top:4px; display:flex; align-items:center; gap:4px">
                         <script id="_waudw4">var _wau = _wau || []; _wau.push(["small", "yuynsazz1f", "dw4"]);</script><script async src="//waust.at/s.js"></script>
-                    </div>
-                </div>
-                <div style="position:relative">
-                    <button class="nano-lang-btn" id="nanoLangSwitch">
-                        <span id="nanoCurrentLangFlag">🇹🇼</span>
-                        <span id="nanoCurrentLangName">繁體中文</span>
-                        <span style="margin-left:2px">▼</span>
-                    </button>
-                    <div class="nano-lang-dropdown" id="nanoLangDropdown">
-                        <div class="nano-lang-option" data-lang="auto">
-                            <span>🌐</span>
-                            <span>自動偵測</span>
-                        </div>
-                        <div class="nano-lang-option" data-lang="zh">
-                            <span>🇹🇼</span>
-                            <span>繁體中文</span>
-                        </div>
-                        <div class="nano-lang-option" data-lang="en">
-                            <span>🇺🇸</span>
-                            <span>English</span>
-                        </div>
-                        <div class="nano-lang-option" data-lang="ja">
-                            <span>🇯🇵</span>
-                            <span>日本語</span>
-                        </div>
-                        <div class="nano-lang-option" data-lang="ko">
-                            <span>🇰🇷</span>
-                            <span>한국어</span>
-                        </div>
-                        <div class="nano-lang-option" data-lang="ar">
-                            <span>🇸🇦</span>
-                            <span>العربية</span>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -3339,8 +3415,18 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
                 <div id="loadingText" class="loading-text">正在注入 AI 能量...</div>
             </div>
 
-            <div class="history-dock" id="historyStrip">
-                <!-- History Items -->
+            <div class="history-dock" id="historyDock">
+                <div class="history-header">
+                    <span id="historyTitle">📚 歷史記錄</span>
+                    <button class="history-toggle" id="historyToggle" title="展開/收起">
+                        <span id="historyToggleIcon">▼</span>
+                    </button>
+                </div>
+                <div class="history-content" id="historyContent">
+                    <div class="history-strip" id="historyStrip">
+                        <!-- History Items -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -3365,6 +3451,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     // ====== Nano I18N 多語言支援 ======
     const NANO_I18N = {
         zh: {
+            nav_home: "主頁",
             prompt_label: "Prompt",
             random_btn: "🎲 靈感骰子",
             prompt_placeholder: "描述你想像中的畫面... (支援中文)",
@@ -3413,6 +3500,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
             lightbox_close: "❌ 關閉"
         },
         en: {
+            nav_home: "Home",
             prompt_label: "Prompt",
             random_btn: "🎲 Random Idea",
             prompt_placeholder: "Describe the image you want... (Chinese supported)",
@@ -3465,6 +3553,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
             lightbox_close: "❌ Close"
         },
         ja: {
+            nav_home: "ホーム",
             prompt_label: "Prompt",
             random_btn: "🎲 ランダムアイデア",
             prompt_placeholder: "想像する画像を説明してください... (中国語対応)",
@@ -3517,6 +3606,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
             lightbox_close: "❌ 閉じる"
         },
         ko: {
+            nav_home: "홈",
             prompt_label: "Prompt",
             random_btn: "🎲 랜덤 아이디어",
             prompt_placeholder: "원하는 이미지를 설명하세요... (중국어 지원)",
@@ -3569,6 +3659,7 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
             lightbox_close: "❌ 닫기"
         },
         ar: {
+            nav_home: "الرئيسية",
             prompt_label: "Prompt",
             random_btn: "🎲 نرد الإلهام",
             prompt_placeholder: "صف الصورة التي تريدها... (يدعم العربية)",
@@ -3762,6 +3853,10 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
 
     // 更新所有翻譯
     function nanoUpdateLang() {
+        // 更新導航欄主頁按鈕
+        const navHomeText = document.getElementById('navHomeText');
+        if (navHomeText) navHomeText.textContent = nanoT('nav_home');
+        
         // 更新標籤
         const promptLabel = document.querySelector('.control-group label');
         if (promptLabel && promptLabel.textContent.includes('Prompt')) {
@@ -4509,68 +4604,17 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     // 頁面加載時恢復歷史記錄
     updateHistoryUI();
 
-    // 保存到主頁 IndexedDB 歷史記錄
-    async function saveToMainHistory(blob, prompt, negative, style, width, height, seed) {
-        try {
-            // 將 Blob 轉換為 Base64
-            const reader = new FileReader();
-            const base64Promise = new Promise((resolve, reject) => {
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-            const base64 = await base64Promise;
-
-            // 打開主頁的 IndexedDB
-            const DB_NAME = 'FluxAI_DB';
-            const STORE_NAME = 'images';
-            const DB_VERSION = 2;
-            
-            const dbPromise = new Promise((resolve, reject) => {
-                const req = indexedDB.open(DB_NAME, DB_VERSION);
-                req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                    }
-                };
-                req.onsuccess = (e) => resolve(e.target.result);
-                req.onerror = (e) => reject(e.target.error);
-            });
-
-            const db = await dbPromise;
-            
-            // 創建歷史記錄項目
-            const item = {
-                id: Date.now().toString(),
-                image: base64,
-                prompt: prompt,
-                negative: negative,
-                style: style,
-                width: width,
-                height: height,
-                seed: seed,
-                timestamp: new Date().toISOString(),
-                source: 'nano-pro' // 標記來源為 Nano Pro
-            };
-
-            // 保存到 IndexedDB
-            const tx = db.transaction(STORE_NAME, 'readwrite');
-            const store = tx.objectStore(STORE_NAME);
-            store.put(item);
-
-            await new Promise((resolve, reject) => {
-                tx.oncomplete = () => {
-                    console.log("🍌 Nano Pro: 已保存到主頁歷史記錄");
-                    resolve();
-                };
-                tx.onerror = () => reject(tx.error);
-            });
-
-            db.close();
-        } catch (error) {
-            console.error("🍌 Nano Pro: 保存到主頁歷史記錄失敗", error);
-        }
+    // 歷史記錄展開/收起功能
+    const historyToggle = document.getElementById('historyToggle');
+    const historyContent = document.getElementById('historyContent');
+    const historyToggleIcon = document.getElementById('historyToggleIcon');
+    
+    if (historyToggle && historyContent && historyToggleIcon) {
+        historyToggle.addEventListener('click', () => {
+            historyContent.classList.toggle('collapsed');
+            const isCollapsed = historyContent.classList.contains('collapsed');
+            historyToggleIcon.textContent = isCollapsed ? '▲' : '▼';
+        });
     }
 
     els.genBtn.onclick = async () => {
@@ -4666,9 +4710,6 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
             if(!isSeedRandom && realSeed) els.seed.value = realSeed;
 
             addHistory(base64);
-            
-            // 保存到主頁 IndexedDB 歷史記錄
-            saveToMainHistory(blob, p, els.negative.value, els.style.value, parseInt(els.width.value), parseInt(els.height.value), realSeed || els.seed.value);
             
             consumeQuota();
             
