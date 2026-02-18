@@ -5314,17 +5314,13 @@ async function handleAdminPage(request, env, ctx) {
     return await handleAdminAPI(request, env, ctx);
   }
   
-  // 頁面路由
+  // 頁面路由 - 登入頁面
   if (pathname === '/admin/login') {
     return await renderAdminLogin();
   }
   
-  // 其他頁面需要身份驗證
-  const authResult = await verifyAdminAuth(request, env);
-  if (!authResult.valid) {
-    return new Response('', { status: 302, headers: { 'Location': '/admin/login' } });
-  }
-  
+  // 其他後台頁面 - 直接渲染，由前端 JavaScript 驗證 token
+  // 這樣可以避免服務器端驗證頁面請求的問題（瀏覽器不會自動帶 Authorization header）
   if (pathname === '/admin' || pathname === '/admin/') {
     return await renderAdminDashboard();
   } else if (pathname === '/admin/styles') {
