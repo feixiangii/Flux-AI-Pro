@@ -1,6 +1,6 @@
 # 🎨 Flux AI Pro - NanoBanana Edition
 
-![Version](https://img.shields.io/badge/Version-11.13.0-8B5CF6?style=flat-square)
+![Version](https://img.shields.io/badge/Version-11.14.0-8B5CF6?style=flat-square)
 ![Platform](https://img.shields.io/badge/Platform-Cloudflare%20Workers-orange?style=flat-square)
 ![Engine](https://img.shields.io/badge/Engine-Multi%20Provider-blue?style=flat-square)
 ![I18N](https://img.shields.io/badge/I18N-5%20Languages-green?style=flat-square)
@@ -28,9 +28,16 @@
 
 ---
 
-## 🔥 v11.13.0 更新亮點 (Release Highlights)
+## 🔥 v11.14.0 更新亮點 (Release Highlights)
 
-- **🎨 精美 UI 設計**：深色漸變背景、毛玻璃效果、響應式設計。
+- **🎨 Nano Pro UI 大幅升級**：
+  - **功能區塊重組**：將控制面板重組為 4 個區塊（核心輸入、尺寸與風格、進階設定、操作區域），提升操作效率。
+  - **可折疊進階設定**：進階參數（Seed、Negative Prompt、Steps/Guidance/Quality）可折疊收納，介面更簡潔。
+- **✨ 互動體驗增強**：
+  - **多狀態載入動畫**：載入時顯示「🎨 正在創作...」、「✨ 添加細節...」、「🖼️ 生成圖像...」、「⏳ 即將完成...」四種狀態循環切換。
+  - **比例預覽**：懸停比例選項時，在主舞台顯示比例預覽框，即時查看畫布尺寸。
+  - **風格按鈕懸停預覽**：懸停風格快捷按鈕時，顯示風格描述提示框。
+  - **歷史記錄改進**：縮圖懸停放大、刪除/下載操作按鈕、拖曳排序功能。
 - **🌍 多語言支援**：完整支援繁體中文、英文、日文、韓文、阿拉伯語，所有語言均包含視頻生成翻譯。
 - **💾 本地歷史記錄**：使用 IndexedDB 儲存生成歷史，點擊可重新載入圖像。
 - **🤖 AI 提示詞生成器**：使用 Pollinations Vision API 生成專業提示詞。
@@ -42,7 +49,7 @@
 - **🆕 2K/4K 輸出支持**：Nano Pro 頁面支持 2K (2048x2048) 和 4K (4096x4096) 輸出。
 - **🆕 風格快捷按鈕**：Nano Pro 頁面新增 10 個常用風格快捷按鈕。
 - **🆕 每分鐘配額系統**：Nano Pro 頁面改為每分鐘 3 次免費配額。
-- **🆕 歷史記錄持久化**：Nano Pro 頁面使用 Base64 格式保存歷史記錄到 localStorage，解決死圖問題。
+- **🆕 歷史記錄本地化**：Nano Pro 頁面歷史記錄僅在本地顯示，不再同步到主頁 IndexedDB。
 
 ---
 
