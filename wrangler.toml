@@ -1,8 +1,8 @@
 # ============================================
 # Cloudflare Workers 配置文件
 # 項目: Flux AI Pro - NanoBanana Edition
-# 版本: 11.15.0
-# 更新: 2026-02-18
+# 版本: 11.16.0
+# 更新: 2026-02-19
 # ============================================
 
 name = "flux-ai-pro"
@@ -17,26 +17,36 @@ compatibility_date = "2024-12-01"
 # KV 存儲用途:
 # ────────────────────────────────────────────
 # 【Nano Pro 限流和配額管理】
-# - rate_limit:{ip} (IP 限流計數)
+# - nano_limit:{ip} (IP 限流計數，60s TTL)
+# - rate_limit:{ip} (API 速率限制計數)
 # ────────────────────────────────────────────
 # 【管理後台系統 - 身份驗證】
-# - admin:credentials (管理員憑證)
-# - admin:tokens:{token} (JWT Token)
+# - admin:credentials (管理員憑證，含 hash 密碼)
+# - admin:tokens:{token} (JWT Token 驗證，24h TTL)
 # ────────────────────────────────────────────
 # 【管理後台系統 - 風格管理】
-# - admin:styles (自定義風格配置)
+# - admin:styles (自定義風格配置 JSON)
+#   結構: { custom_styles: { [id]: StyleConfig } }
 # ────────────────────────────────────────────
 # 【管理後台系統 - 模型配置】
-# - admin:providers (供應商配置)
-# - admin:custom_models (自定義模型)
-# - admin:custom_providers (自定義供應商)
+# - admin:providers (供應商啟用/禁用狀態)
+#   結構: { providers: { [id]: ProviderConfig }, global_settings: {} }
+# - admin:custom_models (自定義模型配置)
+#   結構: { models: { [id]: CustomModelConfig } }
+# - admin:custom_providers (自定義 API 供應商)
+#   結構: { providers: { [id]: CustomProviderConfig } }
 # ────────────────────────────────────────────
 # 【管理後台系統 - 參數調整】
-# - admin:parameters (參數配置)
+# - admin:parameters (優化規則、速率限制配置)
+#   結構: { optimization_rules: {}, rate_limits: {} }
 # ────────────────────────────────────────────
 # 【統計與監控】
 # - online:{ip} (在線用戶計數，60s TTL)
 # - stats:daily:{date} (每日請求統計)
+# - stats:total (總請求計數)
+# ────────────────────────────────────────────
+# 【數據備份】
+# - 可通過管理後台導出/導入所有 admin:* 數據
 # ============================================
 [[kv_namespaces]]
 binding = "FLUX_KV"
@@ -52,7 +62,7 @@ binding = "AI"
 # 環境變量（非敏感）
 # ============================================
 [vars]
-WORKER_VERSION = "11.15.0"
+WORKER_VERSION = "11.16.0"
 DEFAULT_MODEL = "flux-schnell"
 MAX_WIDTH = 4096
 MAX_HEIGHT = 4096

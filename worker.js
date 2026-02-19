@@ -1,7 +1,7 @@
 // =================================================================================
-//  項目: Flux AI Pro - NanoBanana Edition
-//  版本: 11.12.0
-//  更新: AI 圖像生成服務
+// 項目: Flux AI Pro - NanoBanana Edition
+// 版本: 11.16.0
+// 更新: AI 圖像生成服務
 // =================================================================================
 
 // 導入風格適配器（僅在服務器端使用）
@@ -12,8 +12,8 @@ const styleManager = new ServerStyleManager();
 const mergedStyles = styleManager.merge();
 
 const CONFIG = {
-  PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "11.12.0",
+PROJECT_NAME: "Flux-AI-Pro",
+PROJECT_VERSION: "11.16.0",
   API_MASTER_KEY: "1",
   FETCH_TIMEOUT: 120000,
   MAX_RETRIES: 3,
