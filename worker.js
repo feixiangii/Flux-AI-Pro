@@ -6876,7 +6876,9 @@ function renderProviderList() {
     
     // 渲染合併後的列表
     allProvidersList.forEach(({ id, provider, isCustom }) => {
-        if (provider.name.toLowerCase().includes(searchTerm) || id.toLowerCase().includes(searchTerm)) {
+        const providerName = (provider.name || id || '').toLowerCase();
+        const providerId = (id || '').toLowerCase();
+        if (providerName.includes(searchTerm) || providerId.includes(searchTerm)) {
             const isActive = isCustom
                 ? selectedProviderId === 'custom_' + id
                 : selectedProviderId === id && !selectedProviderId.startsWith('custom_');
@@ -7834,12 +7836,13 @@ async function getAdminProviders(env) {
 			: CONFIG.PROVIDERS;
 
 		return new Response(JSON.stringify({
-			providers: providers,
-			global_settings: providersData?.global_settings || {}
+		    success: true,
+		    providers: providers,
+		    global_settings: providersData?.global_settings || {}
 		}), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
-	} catch (error) {
-		return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
-	}
+} catch (error) {
+		return new Response(JSON.stringify({ success: false, error: error.message }), { status: 500, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+}
 }
 
 async function updateAdminProvider(request, env, providerId) {
