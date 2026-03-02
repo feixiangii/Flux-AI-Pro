@@ -221,10 +221,43 @@ PROJECT_VERSION: "11.16.0",
       ],
       rate_limit: { requests: 60, interval: 60 },
       max_size: { width: 2048, height: 2048 }
-    }
-  },
-  
-  DEFAULT_PROVIDER: "pollinations",
+      },
+      supabase: {
+      name: "Supabase API",
+      endpoint: "https://gjosebfngzowbcrwzxnw.supabase.co/functions/v1/openai-compatible",
+      type: "openai_compatible",
+      auth_mode: "bearer",
+      requires_key: true,
+      enabled: true,
+      default: false,
+      description: "Supabase OpenAI 相容 API 圖像生成服務",
+      features: {
+      private_mode: true,
+      custom_size: true,
+      seed_control: false,
+      negative_prompt: false,
+      enhance: false,
+      nologo: false,
+      style_presets: true,
+      auto_hd: true,
+      quality_modes: false,
+      auto_translate: true,
+      reference_images: false,
+      image_to_image: false,
+      batch_generation: true,
+      api_key_auth: true
+      },
+      models: [
+      { id: "gemini-3.1-flash-image-preview", name: "Gemini 3.1 Flash Image Preview ⚡", category: "gemini", description: "Gemini 3.1 Flash 圖像預覽模型 - 快速圖像生成", max_size: 4096 },
+      { id: "dall-e-3", name: "DALL-E 3 ✨", category: "dalle", description: "DALL-E 3 - 高品質圖像生成", max_size: 1024 },
+      { id: "gpt-image-1", name: "GPT Image 1 🖼️", category: "gpt", description: "GPT Image 1 - OpenAI 圖像生成模型", max_size: 1024 }
+      ],
+      rate_limit: { requests: 60, interval: 60 },
+      max_size: { width: 4096, height: 4096 }
+      }
+      },
+      
+      DEFAULT_PROVIDER: "pollinations",
   
   STYLE_PRESETS: mergedStyles.styles,
   STYLE_CATEGORIES: mergedStyles.categories,
@@ -1716,11 +1749,118 @@ class KaaiProvider {
       throw e;
     }
   }
-}
-
-// =================================================================================
-// AirforceProvider - Airforce API Provider
-// =================================================================================
+  }
+  
+  // =================================================================================
+  // SupabaseProvider - Supabase OpenAI Compatible API Provider
+  // =================================================================================
+  class SupabaseProvider {
+  constructor(config, env) {
+  this.config = config;
+  this.name = config.name;
+  this.env = env;
+  }
+  
+  async generate(prompt, options, logger) {
+  const {
+  model = "dall-e-3",
+  width = 1024,
+  height = 1024,
+  apiKey = "",
+  style = "none",
+  negativePrompt = "",
+  quality = "standard"
+  } = options;
+  
+  // Prefer environment variable if available
+  const finalApiKey = this.env.SUPABASE_API_KEY || apiKey;
+  
+  if (!finalApiKey) throw new Error("Supabase API Key is required (Set SUPABASE_API_KEY env var or provide via UI)");
+  
+  let basePrompt = prompt;
+  let translationLog = { translated: false };
+  if (/[\u4e00-\u9fa5]/.test(prompt)) {
+  logger.add("🌐 Pre-translation", { message: "Detecting Chinese, translating first..." });
+  const translation = await translateToEnglish(prompt, this.env);
+  if (translation.translated) {
+  basePrompt = translation.text;
+  translationLog = translation;
+  logger.add("✅ Translation Success", { original: prompt, translated: basePrompt });
+  }
+  }
+  
+  // Apply Style
+  const { enhancedPrompt } = StyleProcessor.applyStyle(basePrompt, style, negativePrompt);
+  logger.add("🎨 Style Processing", { selected_style: style, style_applied: style !== 'none', original: basePrompt, enhanced: enhancedPrompt });
+  
+  const url = `${this.config.endpoint}/images/generations`;
+  const headers = {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${finalApiKey}`,
+  'User-Agent': 'Flux-AI-Pro-Worker'
+  };
+  
+  // Map size to supported formats
+  let sizeStr = "1024x1024";
+  if (width > height && width >= 1500) sizeStr = "1792x1024";
+  else if (height > width && height >= 1500) sizeStr = "1024x1792";
+  
+  const body = {
+  model: model,
+  prompt: enhancedPrompt,
+  n: 1,
+  size: sizeStr,
+  quality: quality,
+  response_format: "url"
+  };
+  
+  logger.add("📡 Supabase Request", { endpoint: url, model: model, size: sizeStr, quality: quality });
+  
+  try {
+  const response = await fetchWithTimeout(url, { method: 'POST', headers: headers, body: JSON.stringify(body) }, 60000);
+  
+  if (!response.ok) {
+  const errText = await response.text();
+  throw new Error(`Supabase API Error (${response.status}): ${errText}`);
+  }
+  
+  const data = await response.json();
+  
+  if (data.data && data.data.length > 0) {
+  const imgUrl = data.data[0].url;
+  logger.add("⬇️ Downloading Image", { url: imgUrl });
+  
+  // Download image to return binary
+  const imgResp = await fetch(imgUrl);
+  const imageBuffer = await imgResp.arrayBuffer();
+  const contentType = imgResp.headers.get('content-type') || 'image/png';
+  
+  return {
+  imageData: imageBuffer,
+  contentType: contentType,
+  url: imgUrl,
+  provider: this.name,
+  model: model,
+  seed: -1,
+  width: width,
+  height: height,
+  auto_translated: translationLog.translated,
+  authenticated: true,
+  cost: "QUOTA"
+  };
+  } else {
+  throw new Error("Invalid response format from Supabase API");
+  }
+  } catch (e) {
+  logger.add("❌ Supabase Failed", { error: e.message });
+  throw e;
+  }
+  }
+  }
+  
+  // =================================================================================
+  // AirforceProvider - Airforce API Provider
+  // =================================================================================
 class AirforceProvider {
   constructor(config, env) {
     this.config = config;
@@ -2790,15 +2930,16 @@ class MultiProviderRouter {
     this.env = env;
     this.queueManager = new ProviderQueueManager();
     for (const [key, config] of Object.entries(CONFIG.PROVIDERS)) {
-      if (config.enabled) {
-        if (key === 'pollinations') this.providers[key] = new PollinationsProvider(config, env);
-        else if (key === 'infip') this.providers[key] = new InfipProvider(config, env);
-        else if (key === 'aqua') this.providers[key] = new AquaProvider(config, env);
-        else if (key === 'kinai') this.providers[key] = new KinaiProvider(config, env);
-        else if (key === 'airforce') this.providers[key] = new AirforceProvider(config, env);
-        else if (key === 'nonpon') this.providers[key] = new NonponProvider(config, env);
-        else if (key === 'kaai') this.providers[key] = new KaaiProvider(config, env);
-      }
+    if (config.enabled) {
+    if (key === 'pollinations') this.providers[key] = new PollinationsProvider(config, env);
+    else if (key === 'infip') this.providers[key] = new InfipProvider(config, env);
+    else if (key === 'aqua') this.providers[key] = new AquaProvider(config, env);
+    else if (key === 'kinai') this.providers[key] = new KinaiProvider(config, env);
+    else if (key === 'airforce') this.providers[key] = new AirforceProvider(config, env);
+    else if (key === 'nonpon') this.providers[key] = new NonponProvider(config, env);
+    else if (key === 'kaai') this.providers[key] = new KaaiProvider(config, env);
+    else if (key === 'supabase') this.providers[key] = new SupabaseProvider(config, env);
+    }
     }
   }
   getProvider(providerName = null) {
@@ -4195,10 +4336,21 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
                 </div>
                 </div>
          
+            <!-- ====== API 供應商選擇 ====== -->
+            <div class="control-group provider-select-block">
+            <div class="label-row">
+            <label id="providerLabel">API 供應商</label>
+            </div>
+            <select id="nanoProvider" style="width: 100%; margin-bottom: 10px;">
+            <option value="nonpon" selected>🍌 Nonpon API (Gemini)</option>
+            <option value="supabase">⚡ Supabase API</option>
+            </select>
+            </div>
+            
             <div class="control-group size-style-block">
-                <div class="label-row">
-                    <label id="styleLabel">風格選擇</label>
-                </div>
+            <div class="label-row">
+            <label id="styleLabel">風格選擇</label>
+            </div>
                 <select id="style" style="width: 100%; margin-bottom: 10px;">
                     <!-- 風格選項將由 JavaScript 動態生成 -->
                 </select>
@@ -5038,25 +5190,29 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
     PerformanceOptimizer.initLazyLoad();
     
     const els = {
-        prompt: document.getElementById('prompt'),
-        negative: document.getElementById('negative'),
-        style: document.getElementById('style'),
-        seed: document.getElementById('seed'),
-        width: document.getElementById('width'),
-        height: document.getElementById('height'),
-        genBtn: document.getElementById('genBtn'),
-        img: document.getElementById('resultImg'),
-        loader: document.querySelector('.loading-overlay'),
-        history: document.getElementById('historyStrip'),
-        lockSeed: document.getElementById('lockSeedBtn'),
-        randomBtn: document.getElementById('randomBtn'),
-        ratios: document.querySelectorAll('.ratio-item'),
-        quotaText: document.getElementById('quotaText'),
-        quotaFill: document.getElementById('quotaFill'),
-        lightbox: document.getElementById('lightbox'),
-        lbImg: document.getElementById('lbImg'),
-        lbClose: document.getElementById('lbClose'),
-        lbDownload: document.getElementById('lbDownload')
+    prompt: document.getElementById('prompt'),
+    negative: document.getElementById('negative'),
+    style: document.getElementById('style'),
+    seed: document.getElementById('seed'),
+    width: document.getElementById('width'),
+    height: document.getElementById('height'),
+    genBtn: document.getElementById('genBtn'),
+    img: document.getElementById('resultImg'),
+    loader: document.querySelector('.loading-overlay'),
+    history: document.getElementById('historyStrip'),
+    lockSeed: document.getElementById('lockSeedBtn'),
+    randomBtn: document.getElementById('randomBtn'),
+    ratios: document.querySelectorAll('.ratio-item'),
+    quotaText: document.getElementById('quotaText'),
+    quotaFill: document.getElementById('quotaFill'),
+    lightbox: document.getElementById('lightbox'),
+    lbImg: document.getElementById('lbImg'),
+    lbClose: document.getElementById('lbClose'),
+    lbDownload: document.getElementById('lbDownload'),
+    nanoProvider: document.getElementById('nanoProvider'),
+    nanoSteps: document.getElementById('nanoSteps'),
+    nanoGuidance: document.getElementById('nanoGuidance'),
+    nanoQuality: document.getElementById('nanoQuality')
     };
     
     // UI Quota Logic (Syncs with server limit of 3 per minute)
@@ -5821,21 +5977,29 @@ select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--borde
         els.img.style.opacity = '0.5';
 
         try {
-            console.log("🍌 Nano Pro: 開始生成圖片...", {
-                prompt: p,
-                provider: 'nonpon',
-                model: 'gemini-3.1-flash-image-preview',
-                width: els.width.value,
-                height: els.height.value,
-                style: els.style.value,
-                seed: els.seed.value
-            });
-            
-            const requestBody = {
-                prompt: p,
-                negative_prompt: els.negative.value,
-                provider: 'nonpon',
-                model: 'gemini-3.1-flash-image-preview',
+        // 取得選擇的供應商
+        const selectedProvider = els.nanoProvider?.value || 'nonpon';
+        const providerModelMap = {
+        'nonpon': 'gemini-3.1-flash-image-preview',
+        'supabase': 'gemini-3.1-flash-image-preview'
+        };
+        const selectedModel = providerModelMap[selectedProvider] || 'gemini-3.1-flash-image-preview';
+        
+        console.log("🍌 Nano Pro: 開始生成圖片...", {
+        prompt: p,
+        provider: selectedProvider,
+        model: selectedModel,
+        width: els.width.value,
+        height: els.height.value,
+        style: els.style.value,
+        seed: els.seed.value
+        });
+        
+        const requestBody = {
+        prompt: p,
+        negative_prompt: els.negative.value,
+        provider: selectedProvider,
+        model: selectedModel,
                 width: parseInt(els.width.value),
                 height: parseInt(els.height.value),
                 style: els.style.value,

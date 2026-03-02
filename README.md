@@ -1,6 +1,6 @@
 # 🎨 Flux AI Pro - NanoBanana Edition
 
-![Version](https://img.shields.io/badge/Version-11.17.0-8B5CF6?style=flat-square)
+![Version](https://img.shields.io/badge/Version-11.18.0-8B5CF6?style=flat-square)
 ![Platform](https://img.shields.io/badge/Platform-Cloudflare%20Workers-orange?style=flat-square)
 ![Engine](https://img.shields.io/badge/Engine-Multi%20Provider-blue?style=flat-square)
 ![I18N](https://img.shields.io/badge/I18N-5%20Languages-green?style=flat-square)
@@ -186,7 +186,6 @@
 | 模型 | 描述 | 最大尺寸 |
 |------|------|----------|
 | **Gemini 3 Pro Image Preview** 🌟 | Google Gemini 3 Pro 高品質圖像生成模型 | 4096x4096 |
-| **gemini-3.1-flash-image-preview** 🌟 | nano banana 2 高品質圖像生成模型 | 4096x4096 |
 
 **特色功能**：2K/4K 輸出支持、Steps/Guidance/Quality Mode 參數控制、風格快捷按鈕、每分鐘 3 次免費配額
 
@@ -472,14 +471,20 @@ MIT License. 歡迎 Fork 與二次開發。
 
 ## 📝 更新日誌 (Changelog)
 
+### v11.18.0 (2026-03-02)
+- **新增 Supabase API 供應商**：整合 Supabase OpenAI 相容 API
+  - 支援 DALL-E 3 和 GPT Image 1 模型
+  - 端點：`https://gjosebfngzowbcrwzxnw.supabase.co/functions/v1/openai-compatible`
+  - 需設定 `SUPABASE_API_KEY` 環境變數
+
 ### v11.17.0 (2026-02-28)
 - **Gemini 原生 API 參數支援**：Nonpon API 現在使用 Gemini 原生格式
-  - 新增 `aspectRatio` 參數（支援 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3, 21:9, 9:21）
-  - 新增 `imageSize` 參數（支援 1K, 2K, 4K）
+- 新增 `aspectRatio` 參數（支援 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3, 21:9, 9:21）
+- 新增 `imageSize` 參數（支援 1K, 2K, 4K）
 - **Nano Pro UI 介面升級**：
-  - 新增 Gemini 參數預覽區塊，即時顯示轉換後的 aspectRatio 和 imageSize
-  - 比例選擇器新增視覺標記（✓ 原生支援、⟳ 需轉換）
-  - 4:5 IG 比例自動轉換為最接近的 Gemini 支援比例（3:4）
+- 新增 Gemini 參數預覽區塊，即時顯示轉換後的 aspectRatio 和 imageSize
+- 比例選擇器新增視覺標記（✓ 原生支援、⟳ 需轉換）
+- 4:5 IG 比例自動轉換為最接近的 Gemini 支援比例（3:4）
 
 ### v11.16.0 (2026-02-19)
 - 新增 Kaai API 供應商支援
