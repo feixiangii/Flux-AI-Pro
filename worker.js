@@ -283,6 +283,242 @@ class Logger {
   get() { return this.logs; }
 }
 
+class AdaptiveStrategyManager {
+  static get VERSION() { return 'd2-pilot-v1'; }
+
+  constructor(env) {
+    this.env = env;
+    this.KV = env?.FLUX_KV || null;
+    this.ttl = 60 * 60 * 24 * 7; // 7 days
+  }
+
+  getProviderStatsKey(provider) {
+    return `d2:provider:${provider}`;
+  }
+
+  createEmptyStats() {
+    return {
+      success: 0,
+      failure: 0,
+      timeout: 0,
+      rate_limit: 0,
+      auth: 0,
+      service_unavailable: 0,
+      other: 0,
+      total_duration: 0,
+      count: 0,
+      updated_at: Date.now()
+    };
+  }
+
+  normalizeStats(stats) {
+    const base = this.createEmptyStats();
+    return {
+      ...base,
+      ...(stats || {}),
+      success: Number(stats?.success || 0),
+      failure: Number(stats?.failure || 0),
+      timeout: Number(stats?.timeout || 0),
+      rate_limit: Number(stats?.rate_limit || 0),
+      auth: Number(stats?.auth || 0),
+      service_unavailable: Number(stats?.service_unavailable || 0),
+      other: Number(stats?.other || 0),
+      total_duration: Number(stats?.total_duration || 0),
+      count: Number(stats?.count || 0),
+      updated_at: Number(stats?.updated_at || Date.now())
+    };
+  }
+
+  async readProviderStats(provider) {
+    if (!this.KV || !provider) return this.createEmptyStats();
+    try {
+      const raw = await this.KV.get(this.getProviderStatsKey(provider));
+      if (!raw) return this.createEmptyStats();
+      return this.normalizeStats(JSON.parse(raw));
+    } catch (error) {
+      console.warn('⚠️ Strategy stats read failed:', provider, error.message);
+      return this.createEmptyStats();
+    }
+  }
+
+  async writeProviderStats(provider, stats) {
+    if (!this.KV || !provider) return;
+    try {
+      await this.KV.put(this.getProviderStatsKey(provider), JSON.stringify(stats), { expirationTtl: this.ttl });
+    } catch (error) {
+      console.warn('⚠️ Strategy stats write failed:', provider, error.message);
+    }
+  }
+
+  applyQueuePenalty(score, queueStatus) {
+    if (!queueStatus || queueStatus.usesQueue === false) return score;
+    const waiting = Number(queueStatus.waiting || 0);
+    const processing = Number(queueStatus.processing || 0);
+    const penalty = Math.min(waiting * 2 + processing, 20);
+    return score - penalty;
+  }
+
+  async getProviderHealth(provider, queueStatus = null) {
+    const stats = await this.readProviderStats(provider);
+    const count = Math.max(stats.count, 0);
+
+    if (count === 0) {
+      const neutralScore = this.applyQueuePenalty(72, queueStatus);
+      return {
+        provider,
+        score: Math.max(5, Math.min(99, neutralScore)),
+        success_rate: 0.95,
+        avg_latency: 3200,
+        count,
+        rate_limit_rate: 0,
+        stats
+      };
+    }
+
+    const successRate = stats.success / count;
+    const avgLatency = stats.total_duration > 0 ? stats.total_duration / count : 3200;
+    const rateLimitRate = stats.rate_limit / count;
+    const unavailableRate = stats.service_unavailable / count;
+
+    let score = successRate * 100;
+    score -= Math.min(avgLatency / 400, 25);
+    score -= rateLimitRate * 20;
+    score -= unavailableRate * 25;
+    score = this.applyQueuePenalty(score, queueStatus);
+    score = Math.max(5, Math.min(99, score));
+
+    return {
+      provider,
+      score,
+      success_rate: successRate,
+      avg_latency: avgLatency,
+      count,
+      rate_limit_rate: rateLimitRate,
+      service_unavailable_rate: unavailableRate,
+      stats
+    };
+  }
+
+  async selectProvider({ requestedProvider = null, defaultProvider = null, availableProviders = [], queueStatusMap = {} }) {
+    const providers = (availableProviders || []).filter(Boolean);
+    if (providers.length === 0) {
+      return {
+        provider: requestedProvider || defaultProvider || CONFIG.DEFAULT_PROVIDER,
+        health: { score: 50 },
+        reason: 'no_available_provider',
+        candidates: []
+      };
+    }
+
+    if (requestedProvider && providers.includes(requestedProvider)) {
+      const health = await this.getProviderHealth(requestedProvider, queueStatusMap[requestedProvider]);
+      return {
+        provider: requestedProvider,
+        health,
+        reason: 'user_requested_provider',
+        candidates: [{ provider: requestedProvider, score: health.score }]
+      };
+    }
+
+    const candidates = [];
+    for (const provider of providers) {
+      const health = await this.getProviderHealth(provider, queueStatusMap[provider]);
+      candidates.push({ provider, score: health.score, health });
+    }
+    candidates.sort((a, b) => b.score - a.score);
+
+    const best = candidates[0];
+    const defaultCandidate = candidates.find(c => c.provider === defaultProvider);
+
+    let selected = best;
+    let reason = 'best_score';
+
+    if (defaultCandidate) {
+      const diff = best.score - defaultCandidate.score;
+      if (diff < 8) {
+        selected = defaultCandidate;
+        reason = 'keep_default_small_gap';
+      }
+    }
+
+    return {
+      provider: selected.provider,
+      health: selected.health,
+      reason,
+      candidates: candidates.slice(0, 3).map(c => ({ provider: c.provider, score: c.score }))
+    };
+  }
+
+  adjustQualityMode(baseMode = 'standard', health = null, queueStatus = null) {
+    const modes = ['economy', 'standard', 'ultra'];
+    const mode = modes.includes(baseMode) ? baseMode : 'standard';
+    const startIndex = modes.indexOf(mode);
+
+    const score = health?.score ?? 72;
+    const waiting = Number(queueStatus?.waiting || 0);
+    const processing = Number(queueStatus?.processing || 0);
+
+    let delta = 0;
+    if (score < 45) delta -= 1;
+    if (waiting >= 3 || processing >= 2) delta -= 1;
+    if (score > 88 && waiting === 0 && processing <= 1) delta += 1;
+
+    const finalIndex = Math.max(0, Math.min(modes.length - 1, startIndex + delta));
+    const finalMode = modes[finalIndex];
+
+    return {
+      mode: finalMode,
+      delta: finalIndex - startIndex,
+      reason: `score=${score.toFixed(1)}, waiting=${waiting}, processing=${processing}`
+    };
+  }
+
+  classifyError(errorMessage = '') {
+    const message = String(errorMessage || '').toLowerCase();
+    if (/429|rate limit|too many requests/.test(message)) return 'rate_limit';
+    if (/503|service is temporarily unavailable|temporarily unavailable|cooldown|all tokens are on cooldown/.test(message)) return 'service_unavailable';
+    if (/timeout|timed out|abort/.test(message)) return 'timeout';
+    if (/401|403|unauthorized|forbidden|invalid api key/.test(message)) return 'auth';
+    return 'other';
+  }
+
+  async recordProviderResult(provider, { success, duration = 0, errorMessage = '' }) {
+    if (!provider) return;
+
+    const stats = await this.readProviderStats(provider);
+
+    if (stats.count > 500) {
+      stats.success = Math.round(stats.success * 0.5);
+      stats.failure = Math.round(stats.failure * 0.5);
+      stats.timeout = Math.round(stats.timeout * 0.5);
+      stats.rate_limit = Math.round(stats.rate_limit * 0.5);
+      stats.auth = Math.round(stats.auth * 0.5);
+      stats.service_unavailable = Math.round(stats.service_unavailable * 0.5);
+      stats.other = Math.round(stats.other * 0.5);
+      stats.total_duration = Math.round(stats.total_duration * 0.5);
+      stats.count = Math.round(stats.count * 0.5);
+    }
+
+    stats.count += 1;
+    stats.total_duration += Math.max(0, Number(duration || 0));
+
+    if (success) {
+      stats.success += 1;
+    } else {
+      stats.failure += 1;
+      const type = this.classifyError(errorMessage);
+      if (type === 'timeout') stats.timeout += 1;
+      else if (type === 'rate_limit') stats.rate_limit += 1;
+      else if (type === 'auth') stats.auth += 1;
+      else if (type === 'service_unavailable') stats.service_unavailable += 1;
+      else stats.other += 1;
+    }
+
+    stats.updated_at = Date.now();
+    await this.writeProviderStats(provider, stats);
+  }
+}
+
 // ====== RateLimiter: 負責 KV 限制邏輯 (3次/分鐘) ======
 class RateLimiter {
   constructor(env) {
@@ -785,6 +1021,81 @@ class InfipProvider {
  return InfipProvider.IMG2IMG_MODELS.includes(model.toLowerCase());
  }
 
+ isCooldownOrUnavailable(status, errText = '') {
+ const text = String(errText || '').toLowerCase();
+ if (status !== 503) return false;
+ return /temporarily unavailable|cooldown|all tokens are on cooldown|tokens are on cooldown|disabled/.test(text);
+ }
+
+ createTransientError(prefix, status, errText = '') {
+ const error = new Error(`${prefix} (${status}): ${errText}`);
+ error._status = Number(status || 0);
+ error._providerName = 'infip';
+ error._isTransient = true;
+ error._retryable = true;
+ error._isCooldown = this.isCooldownOrUnavailable(status, errText);
+ return error;
+ }
+
+ extractTaskInfo(data = {}) {
+ const taskId = data.task_id || data.taskId || data.id || data.result?.task_id || data.result?.taskId || data.result?.id || null;
+ const pollUrl = data.poll_url || data.pollUrl || data.status_url || data.statusUrl || null;
+ return { taskId, pollUrl };
+ }
+
+ extractImageUrls(data = {}) {
+ const urls = [];
+ const pushUrl = (value) => {
+ if (typeof value === 'string' && /^https?:\/\//i.test(value)) urls.push(value);
+ };
+
+ pushUrl(data.url);
+ pushUrl(data.result?.url);
+
+ if (Array.isArray(data.data)) {
+ for (const item of data.data) {
+ pushUrl(item?.url);
+ pushUrl(item?.image_url);
+ pushUrl(item?.imageUrl);
+ }
+ }
+
+ if (Array.isArray(data.output)) {
+ for (const item of data.output) {
+ if (typeof item === 'string') pushUrl(item);
+ else {
+ pushUrl(item?.url);
+ pushUrl(item?.image_url);
+ pushUrl(item?.imageUrl);
+ }
+ }
+ }
+
+ if (Array.isArray(data.result?.images)) {
+ for (const item of data.result.images) {
+ if (typeof item === 'string') pushUrl(item);
+ else {
+ pushUrl(item?.url);
+ pushUrl(item?.image_url);
+ pushUrl(item?.imageUrl);
+ }
+ }
+ }
+
+ return [...new Set(urls)];
+ }
+
+ parseInfipResponse(data = {}) {
+ const task = this.extractTaskInfo(data);
+ const imageUrls = this.extractImageUrls(data);
+ return {
+ taskId: task.taskId,
+ pollUrl: task.pollUrl,
+ imageUrls,
+ primaryImageUrl: imageUrls[0] || null
+ };
+ }
+
  async generate(prompt, options, logger) {
  const { model = "img4", width = 1024, height = 1024, apiKey = "", nsfw = false, style = "none", negativePrompt = "", referenceImages = [] } = options;
 
@@ -853,19 +1164,24 @@ class InfipProvider {
 
  if (!response.ok) {
  const errText = await response.text();
+ if (this.isCooldownOrUnavailable(response.status, errText)) {
+ throw this.createTransientError('Infip Img2Img API Error', response.status, errText);
+ }
  throw new Error(`Infip Img2Img API Error (${response.status}): ${errText}`);
  }
 
  const data = await response.json();
 
- // Img2Img 可能返回 task_id（異步）或直接返回圖片
- if (data.task_id) {
- logger.add("🔄 Img2Img Task Created", { taskId: data.task_id });
- imgUrl = await this.pollTask(data.task_id, headers, logger);
- } else if (data.data && data.data.length > 0) {
- imgUrl = data.data[0].url;
- } else if (data.url) {
- imgUrl = data.url;
+ // Img2Img 可能返回 task_id / poll_url（異步）或直接返回圖片
+ const parsedImg2Img = this.parseInfipResponse(data);
+ if (parsedImg2Img.taskId || parsedImg2Img.pollUrl) {
+ logger.add("🔄 Img2Img Task Created", {
+ taskId: parsedImg2Img.taskId,
+ pollUrl: parsedImg2Img.pollUrl || 'derived_from_task_id'
+ });
+ imgUrl = await this.pollTask({ taskId: parsedImg2Img.taskId, pollUrl: parsedImg2Img.pollUrl }, headers, logger);
+ } else if (parsedImg2Img.primaryImageUrl) {
+ imgUrl = parsedImg2Img.primaryImageUrl;
  } else {
  throw new Error("Invalid Img2Img response: " + JSON.stringify(data));
  }
@@ -897,17 +1213,24 @@ class InfipProvider {
 
  if (!response.ok) {
  const errText = await response.text();
+ if (this.isCooldownOrUnavailable(response.status, errText)) {
+ throw this.createTransientError('Infip API Error', response.status, errText);
+ }
  throw new Error(`Infip API Error (${response.status}): ${errText}`);
  }
 
  const data = await response.json();
 
- if (data.task_id) {
- logger.add("🔄 Task Created", { taskId: data.task_id });
- imgUrl = await this.pollTask(data.task_id, headers, logger);
- } else if (data.data && data.data.length > 0) {
+ const parsedAsync = this.parseInfipResponse(data);
+ if (parsedAsync.taskId || parsedAsync.pollUrl) {
+ logger.add("🔄 Task Created", {
+ taskId: parsedAsync.taskId,
+ pollUrl: parsedAsync.pollUrl || 'derived_from_task_id'
+ });
+ imgUrl = await this.pollTask({ taskId: parsedAsync.taskId, pollUrl: parsedAsync.pollUrl }, headers, logger);
+ } else if (parsedAsync.primaryImageUrl) {
  // 某些異步模型可能直接返回結果
- imgUrl = data.data[0].url;
+ imgUrl = parsedAsync.primaryImageUrl;
  logger.add("✅ Direct Response", { url: imgUrl });
  } else {
  throw new Error("Invalid async response: " + JSON.stringify(data));
@@ -938,27 +1261,34 @@ class InfipProvider {
 
  if (!response.ok) {
  const errText = await response.text();
+ if (this.isCooldownOrUnavailable(response.status, errText)) {
+ throw this.createTransientError('Infip API Error', response.status, errText);
+ }
  throw new Error(`Infip API Error (${response.status}): ${errText}`);
  }
 
  const data = await response.json();
 
- if (data.task_id) {
- // 同步模型不應該返回 task_id，但如果有就處理
- logger.add("⚠️ Unexpected task_id", { taskId: data.task_id, note: "Sync model returned task_id, polling anyway" });
- imgUrl = await this.pollTask(data.task_id, headers, logger);
- } else if (data.data && data.data.length > 0) {
+ const parsedSync = this.parseInfipResponse(data);
+ if (parsedSync.taskId || parsedSync.pollUrl) {
+ // 同步模型理論上不應返回 task，若返回則兼容處理
+ logger.add("⚠️ Unexpected Async Task On Sync Path", {
+ taskId: parsedSync.taskId,
+ pollUrl: parsedSync.pollUrl || 'derived_from_task_id',
+ note: "Sync path returned task metadata, polling anyway"
+ });
+ imgUrl = await this.pollTask({ taskId: parsedSync.taskId, pollUrl: parsedSync.pollUrl }, headers, logger);
+ } else if (parsedSync.imageUrls.length > 0) {
  // 處理多圖片響應
- if (data.data.length > 1) {
+ if (parsedSync.imageUrls.length > 1) {
  const results = [];
- for(const item of data.data) {
- if(item.url) {
- const imgResp = await fetch(item.url);
+ for (const itemUrl of parsedSync.imageUrls) {
+ const imgResp = await fetch(itemUrl);
  const imageBuffer = await imgResp.arrayBuffer();
  results.push({
  imageData: imageBuffer,
  contentType: imgResp.headers.get('content-type') || 'image/png',
- url: item.url,
+ url: itemUrl,
  provider: this.name,
  model: model,
  seed: -1,
@@ -967,14 +1297,13 @@ class InfipProvider {
  authenticated: true
  });
  }
- }
  return {
  batch_results: results,
  provider: this.name,
  cost: "QUOTA"
  };
  }
- imgUrl = data.data[0].url;
+ imgUrl = parsedSync.primaryImageUrl;
  } else {
  throw new Error("Invalid response format from Infip API");
  }
@@ -1009,17 +1338,24 @@ class InfipProvider {
 
  /**
  * 輪詢異步任務狀態
- * @param {string} taskId - 任務 ID
+ * @param {string|object} taskRef - 任務 ID 或 { taskId, pollUrl }
  * @param {object} headers - 請求標頭
  * @param {object} logger - 日誌實例
  * @param {number} maxAttempts - 最大輪詢次數（默認 60 次，約 2 分鐘）
  * @param {number} interval - 輪詢間隔（默認 2000ms）
  * @returns {Promise<string>} 圖片 URL
  */
- async pollTask(taskId, headers, logger, maxAttempts = 60, interval = 2000) {
- const statusUrl = `${this.config.endpoint}/v1/tasks/${taskId}`;
+ async pollTask(taskRef, headers, logger, maxAttempts = 60, interval = 2000) {
+ const taskId = typeof taskRef === 'string' ? taskRef : (taskRef?.taskId || null);
+ const pollUrl = typeof taskRef === 'object' ? (taskRef?.pollUrl || null) : null;
+ const statusUrl = pollUrl || (taskId ? `${this.config.endpoint}/v1/tasks/${taskId}` : null);
+
+ if (!statusUrl) {
+ throw new Error('Infip polling requires task_id or poll_url');
+ }
+
  const totalTimeout = Math.round(maxAttempts * interval / 1000);
- logger.add("🔄 Starting Poll", { taskId, maxAttempts, interval, totalTimeout: `${totalTimeout}s` });
+ logger.add("🔄 Starting Poll", { taskId, pollUrl, statusUrl, maxAttempts, interval, totalTimeout: `${totalTimeout}s` });
 
  let currentInterval = interval;
  let consecutiveErrors = 0;
@@ -1046,7 +1382,29 @@ class InfipProvider {
  continue;
  }
 
- // 處理伺服器錯誤 (5xx)
+ // 優先處理 503，支援 Retry-After
+ if (response.status === 503) {
+ consecutiveErrors++;
+ if (consecutiveErrors >= maxConsecutiveErrors) {
+ throw new Error(`Too many consecutive service unavailable errors (${maxConsecutiveErrors}): ${errText}`);
+ }
+
+ const retryAfterHeader = parseInt(response.headers.get('Retry-After') || '0');
+ const retryAfterMs = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0 ? retryAfterHeader * 1000 : 0;
+ const backoffTime = retryAfterMs > 0
+ ? Math.max(retryAfterMs, currentInterval)
+ : Math.min(currentInterval * Math.pow(2, consecutiveErrors), 30000);
+
+ logger.add(`⏳ Service Unavailable - Backoff`, {
+ consecutiveErrors,
+ retryAfter: retryAfterMs > 0 ? `${Math.round(retryAfterMs / 1000)}s` : 'n/a',
+ backoffTime: `${Math.round(backoffTime/1000)}s`
+ });
+ await new Promise(r => setTimeout(r, backoffTime));
+ continue;
+ }
+
+ // 處理其餘伺服器錯誤 (5xx)
  if (response.status >= 500) {
  consecutiveErrors++;
  if (consecutiveErrors >= maxConsecutiveErrors) {
@@ -1065,45 +1423,38 @@ class InfipProvider {
  consecutiveErrors = 0;
 
  const data = await response.json();
+ const status = String(data?.status || '').toLowerCase();
 
  // 每 10 次或狀態變化時報告進度
- if (attempt % 10 === 0 || ['completed', 'failed', 'processing'].includes(data.status)) {
+ if (attempt % 10 === 0 || ['completed', 'failed', 'processing', 'pending', 'queued', 'succeeded', 'success', 'done'].includes(status)) {
  const progress = Math.round((attempt / maxAttempts) * 100);
  const elapsed = Math.round(attempt * currentInterval / 1000);
  logger.add(`📊 進度: ${progress}%`, {
  attempt: `${attempt}/${maxAttempts}`,
- status: data.status,
+ status: status || 'unknown',
  elapsed: `${elapsed}s`
  });
  }
 
- if (data.status === 'completed') {
- if (data.result && data.result.url) {
+ if (['completed', 'succeeded', 'success', 'done'].includes(status)) {
+ const parsed = this.parseInfipResponse(data);
+ if (parsed.primaryImageUrl) {
  logger.add("✅ Task Completed", {
- imageUrl: data.result.url,
+ imageUrl: parsed.primaryImageUrl,
  totalAttempts: attempt,
  totalTime: `${Math.round(attempt * currentInterval / 1000)}s`
  });
- return data.result.url;
- }
- // 檢查其他可能的響應格式
- if (data.url) {
- logger.add("✅ Task Completed", { imageUrl: data.url });
- return data.url;
- }
- if (data.data && data.data[0] && data.data[0].url) {
- logger.add("✅ Task Completed", { imageUrl: data.data[0].url });
- return data.data[0].url;
+ return parsed.primaryImageUrl;
  }
  throw new Error("Task completed but no image URL in result: " + JSON.stringify(data));
  }
 
- if (data.status === 'failed') {
- const errorMsg = data.result?.error || data.result?.message || data.error || 'Unknown error';
+ if (['failed', 'error', 'cancelled', 'canceled'].includes(status)) {
+ const errorMsg = data.result?.error || data.result?.message || data.error || data.message || 'Unknown error';
  throw new Error(`Task failed: ${errorMsg}`);
  }
 
- // 仍在處理中，等待後繼續
+ // 仍在處理中，等待後繼續（pending/queued/processing/unknown）
  if (attempt < maxAttempts) {
  // 指數退避：每次增加 10%，最大 10 秒
  currentInterval = Math.min(interval * Math.pow(1.1, attempt), 10000);
@@ -2475,11 +2826,12 @@ class ProviderQueueManager {
 }
 
 class MultiProviderRouter {
-  constructor(apiKeys = {}, env = null) {
+  constructor(apiKeys = {}, env = null, strategyManager = null) {
     this.providers = {};
     this.apiKeys = apiKeys;
     this.env = env;
     this.queueManager = new ProviderQueueManager();
+    this.strategyManager = strategyManager || new AdaptiveStrategyManager(env);
     for (const [key, config] of Object.entries(CONFIG.PROVIDERS)) {
     if (config.enabled) {
     if (key === 'pollinations') this.providers[key] = new PollinationsProvider(config, env);
@@ -2525,49 +2877,223 @@ class MultiProviderRouter {
   }
   async generate(prompt, options, logger) {
     const { provider: requestedProvider = null, numOutputs = 1 } = options;
-    
+    let effectiveOptions = { ...options };
+
     logger.add("🔍 MultiProviderRouter: Generating", {
       requestedProvider,
       availableProviders: Object.keys(this.providers),
       options: { ...options, apiKey: options.apiKey ? '***' : '' }
     });
-    
-    const { name: providerName, instance: provider } = this.getProvider(requestedProvider);
-    
-    logger.add("✅ MultiProviderRouter: Provider selected", {
-      providerName,
-      providerInstance: provider ? provider.name : 'null'
-    });
-    
-    // 使用隊列管理器處理請求
-    return await this.queueManager.addToQueue(providerName, async () => {
-      const results = [];
-      
-      // Optimization for Infip and Kaai: Use native batching if available
-      if ((providerName === 'infip' || providerName === 'kaai') && numOutputs > 1) {
-           const batchOptions = { ...options, numOutputs: numOutputs, seed: options.seed };
-           try {
-               const result = await provider.generate(prompt, batchOptions, logger);
-               if (result.batch_results) {
-                   results.push(...result.batch_results);
-                   return results;
-               } else {
-                   results.push(result);
-               }
-           } catch (e) {
-               logger.add("❌ Batch Generation Failed", { error: e.message });
-               throw e;
-           }
-           return results;
+
+    const queueStatusMap = this.getAllQueueStatus();
+    let selectedProviderName = null;
+    let provider = null;
+    let providerHealth = null;
+    let routingReason = 'legacy_fallback';
+
+    const applyRoutingContext = (providerName, health, reason) => {
+      selectedProviderName = providerName;
+      providerHealth = health || null;
+      routingReason = reason || routingReason;
+    };
+
+    if (this.strategyManager) {
+      const selection = await this.strategyManager.selectProvider({
+        requestedProvider,
+        defaultProvider: CONFIG.DEFAULT_PROVIDER,
+        availableProviders: Object.keys(this.providers),
+        queueStatusMap
+      });
+
+      selectedProviderName = selection.provider;
+      providerHealth = selection.health || null;
+      routingReason = selection.reason || 'strategy_selected';
+      provider = this.providers[selectedProviderName] || null;
+
+      if (!provider) {
+        const fallback = this.getProvider(requestedProvider);
+        selectedProviderName = fallback.name;
+        provider = fallback.instance;
+        routingReason = 'strategy_missing_provider_fallback';
       }
 
-      for (let i = 0; i < numOutputs; i++) {
-        const currentOptions = { ...options, seed: options.seed === -1 ? -1 : options.seed + i };
-        const result = await provider.generate(prompt, currentOptions, logger);
-        results.push(result);
-      }
-      return results;
+      const queueStatus = this.queueManager.getQueueStatus(selectedProviderName);
+      const adjusted = this.strategyManager.adjustQualityMode(effectiveOptions.qualityMode || 'standard', providerHealth, queueStatus);
+      effectiveOptions.qualityMode = adjusted.mode;
+      effectiveOptions._qualityModeInput = options.qualityMode || 'standard';
+      effectiveOptions._qualityModeAdjust = adjusted;
+      effectiveOptions._strategyVersion = AdaptiveStrategyManager.VERSION;
+
+      logger.add("🧠 Strategy Selected", {
+        provider: selectedProviderName,
+        score: providerHealth ? Number(providerHealth.score.toFixed(2)) : null,
+        routing_reason: routingReason,
+        quality_input: effectiveOptions._qualityModeInput,
+        quality_output: effectiveOptions.qualityMode,
+        quality_adjust_reason: adjusted.reason,
+        candidates: selection.candidates || []
+      });
+    } else {
+      const fallback = this.getProvider(requestedProvider);
+      selectedProviderName = fallback.name;
+      provider = fallback.instance;
+      effectiveOptions._qualityModeInput = options.qualityMode || 'standard';
+      effectiveOptions._qualityModeAdjust = { mode: effectiveOptions.qualityMode || 'standard', delta: 0, reason: 'strategy_disabled' };
+      effectiveOptions._strategyVersion = 'disabled';
+    }
+
+    logger.add("✅ MultiProviderRouter: Provider selected", {
+      providerName: selectedProviderName,
+      providerInstance: provider ? provider.name : 'null',
+      providerScore: providerHealth ? Number(providerHealth.score.toFixed(2)) : null,
+      routingReason,
+      qualityModeInput: effectiveOptions._qualityModeInput,
+      qualityModeOutput: effectiveOptions.qualityMode
     });
+
+    const enrichResult = (raw) => ({
+      ...raw,
+      selected_provider: selectedProviderName,
+      requested_provider: requestedProvider,
+      provider_score: providerHealth ? Number(providerHealth.score.toFixed(2)) : null,
+      strategy_version: effectiveOptions._strategyVersion,
+      quality_mode_input: effectiveOptions._qualityModeInput,
+      quality_mode_output: raw.quality_mode || effectiveOptions.qualityMode,
+      routing_reason: routingReason
+    });
+
+    const executeProvider = async (activeProviderName, activeProvider) => {
+      return await this.queueManager.addToQueue(activeProviderName, async () => {
+        const results = [];
+
+        // Optimization for Infip and Kaai: Use native batching if available
+        if ((activeProviderName === 'infip' || activeProviderName === 'kaai') && numOutputs > 1) {
+          const batchOptions = { ...effectiveOptions, numOutputs: numOutputs, seed: effectiveOptions.seed };
+          try {
+            const result = await activeProvider.generate(prompt, batchOptions, logger);
+            if (result.batch_results) {
+              results.push(...result.batch_results.map(item => enrichResult(item)));
+              return results;
+            } else {
+              results.push(enrichResult(result));
+            }
+          } catch (e) {
+            logger.add("❌ Batch Generation Failed", { error: e.message, provider: activeProviderName });
+            e._providerName = activeProviderName;
+            e._providerScore = providerHealth ? Number(providerHealth.score.toFixed(2)) : null;
+            throw e;
+          }
+          return results;
+        }
+
+        for (let i = 0; i < numOutputs; i++) {
+          const currentOptions = { ...effectiveOptions, seed: effectiveOptions.seed === -1 ? -1 : effectiveOptions.seed + i };
+          const result = await activeProvider.generate(prompt, currentOptions, logger);
+          results.push(enrichResult(result));
+        }
+        return results;
+      });
+    };
+
+    const isInfipCooldownError = (error) => {
+      const message = String(error?.message || '').toLowerCase();
+      if (error?._isCooldown === true) return true;
+      if (error?._status === 503 && /temporarily unavailable|cooldown|all tokens are on cooldown/.test(message)) return true;
+      return /infip api error \(503\)|service is temporarily unavailable|all tokens are on cooldown|cooldown/.test(message);
+    };
+
+    try {
+      return await executeProvider(selectedProviderName, provider);
+    } catch (firstError) {
+      const shouldRetryAndFallback = selectedProviderName === 'infip' && isInfipCooldownError(firstError);
+
+      if (!shouldRetryAndFallback) {
+        firstError._providerName = firstError._providerName || selectedProviderName;
+        firstError._providerScore = firstError._providerScore ?? (providerHealth ? Number(providerHealth.score.toFixed(2)) : null);
+        throw firstError;
+      }
+
+      logger.add("♻️ Infip Cooldown Detected", {
+        provider: selectedProviderName,
+        action: 'retry_once_then_fallback',
+        error: firstError.message
+      });
+
+      if (this.strategyManager?.recordProviderResult) {
+        await this.strategyManager.recordProviderResult(selectedProviderName, { success: false, duration: 0, errorMessage: firstError.message });
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
+      try {
+        logger.add("🔁 Retrying Infip Once", { provider: selectedProviderName, wait_ms: 1200 });
+        return await executeProvider(selectedProviderName, provider);
+      } catch (retryError) {
+        logger.add("⚠️ Infip Retry Failed", { provider: selectedProviderName, error: retryError.message });
+
+        if (this.strategyManager?.recordProviderResult) {
+          await this.strategyManager.recordProviderResult(selectedProviderName, { success: false, duration: 0, errorMessage: retryError.message });
+        }
+
+        const fallbackProviders = Object.keys(this.providers).filter(name => name !== selectedProviderName);
+        if (fallbackProviders.length === 0) {
+          retryError._providerName = retryError._providerName || selectedProviderName;
+          retryError._providerScore = retryError._providerScore ?? (providerHealth ? Number(providerHealth.score.toFixed(2)) : null);
+          throw retryError;
+        }
+
+        const fallbackSelection = this.strategyManager
+          ? await this.strategyManager.selectProvider({
+              requestedProvider: null,
+              defaultProvider: CONFIG.DEFAULT_PROVIDER,
+              availableProviders: fallbackProviders,
+              queueStatusMap: this.getAllQueueStatus()
+            })
+          : { provider: fallbackProviders[0], health: null, reason: 'legacy_first_available' };
+
+        const fallbackProviderName = fallbackSelection?.provider;
+        const fallbackProvider = fallbackProviderName ? this.providers[fallbackProviderName] : null;
+
+        if (!fallbackProvider) {
+          retryError._providerName = retryError._providerName || selectedProviderName;
+          retryError._providerScore = retryError._providerScore ?? (providerHealth ? Number(providerHealth.score.toFixed(2)) : null);
+          throw retryError;
+        }
+
+        applyRoutingContext(
+          fallbackProviderName,
+          fallbackSelection?.health || null,
+          `fallback_after_infip_cooldown:${fallbackSelection?.reason || 'selected'}`
+        );
+
+        if (this.strategyManager) {
+          const fallbackQueueStatus = this.queueManager.getQueueStatus(fallbackProviderName);
+          const fallbackAdjusted = this.strategyManager.adjustQualityMode(
+            effectiveOptions._qualityModeInput || options.qualityMode || 'standard',
+            providerHealth,
+            fallbackQueueStatus
+          );
+          effectiveOptions.qualityMode = fallbackAdjusted.mode;
+          effectiveOptions._qualityModeAdjust = fallbackAdjusted;
+        }
+
+        logger.add("🛟 Fallback Provider Selected", {
+          from: 'infip',
+          to: fallbackProviderName,
+          score: providerHealth ? Number(providerHealth.score.toFixed(2)) : null,
+          routing_reason: routingReason,
+          quality_output: effectiveOptions.qualityMode
+        });
+
+        try {
+          return await executeProvider(fallbackProviderName, fallbackProvider);
+        } catch (fallbackError) {
+          fallbackError._providerName = fallbackError._providerName || fallbackProviderName;
+          fallbackError._providerScore = fallbackError._providerScore ?? (providerHealth ? Number(providerHealth.score.toFixed(2)) : null);
+          throw fallbackError;
+        }
+      }
+    }
   }
 
   /**
@@ -2989,11 +3515,21 @@ async function handleInternalGenerate(request, env, ctx) {
   const logger = new Logger();
   const startTime = Date.now();
   const clientIP = getClientIP(request);
+  const strategyManager = new AdaptiveStrategyManager(env);
+
+  let requestedProviderForMetrics = null;
+  let selectedProviderForMetrics = null;
+  let providerScoreForMetrics = null;
+  let requestedQualityMode = 'standard';
+  let finalQualityModeForMetrics = 'standard';
   
   try {
     const body = await request.json();
     const prompt = body.prompt;
     if (!prompt || !prompt.trim()) throw new Error("Prompt is required");
+
+    requestedProviderForMetrics = body.provider || null;
+    requestedQualityMode = body.quality_mode || 'standard';
 
     console.log("🍌 [Server] 收到生成請求:", {
       model: body.model,
@@ -3037,9 +3573,9 @@ async function handleInternalGenerate(request, env, ctx) {
     
     const seedInput = body.seed !== undefined ? body.seed : -1;
     let seedValue = -1;
-    if (seedInput !== -1) { 
-        const parsedSeed = parseInt(seedInput); 
-        if (!isNaN(parsedSeed)) seedValue = parsedSeed; 
+    if (seedInput !== -1) {
+        const parsedSeed = parseInt(seedInput);
+        if (!isNaN(parsedSeed)) seedValue = parsedSeed;
     }
     
     const autoOptimize = body.auto_optimize !== false;
@@ -3063,36 +3599,114 @@ async function handleInternalGenerate(request, env, ctx) {
       style: body.style || "none",
       autoOptimize: autoOptimize,
       autoHD: body.auto_hd !== false,
-      qualityMode: body.quality_mode || 'standard',
+      qualityMode: requestedQualityMode,
       referenceImages: referenceImages,
       nsfw: body.nsfw === true,
       language: body.language || 'en'  // Track interface language
     };
     
-    const router = new MultiProviderRouter({}, env);
+    const router = new MultiProviderRouter({}, env, strategyManager);
     const results = await router.generate(prompt, options, logger);
     const duration = Date.now() - startTime;
+
+    if (results.length > 0) {
+      const first = results[0];
+      selectedProviderForMetrics = first.selected_provider || first.provider || requestedProviderForMetrics || CONFIG.DEFAULT_PROVIDER;
+      providerScoreForMetrics = typeof first.provider_score === 'number' ? first.provider_score : null;
+      finalQualityModeForMetrics = first.quality_mode_output || first.quality_mode || options.qualityMode || requestedQualityMode;
+      await strategyManager.recordProviderResult(selectedProviderForMetrics, { success: true, duration });
+    }
     
     if (results.length === 1 && results[0].imageData) {
       const result = results[0];
       return new Response(result.imageData, {
-        headers: { 'Content-Type': result.contentType || 'image/png', 'Content-Disposition': `inline; filename="flux-ai-${result.seed}.png"`, 'X-Model': result.model, 'X-Model-Name': result.style_name || result.model, 'X-Seed': result.seed.toString(), 'X-Width': result.width.toString(), 'X-Height': result.height.toString(), 'X-Generation-Time': duration + 'ms', 'X-Quality-Mode': result.quality_mode, 'X-Style': result.style, 'X-Style-Name': result.style_name || result.style, 'X-Style-Category': result.style_category || 'unknown', 'X-Generation-Mode': result.generation_mode || '文生圖', 'X-Authenticated': result.authenticated ? 'true' : 'false', 'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint, ...corsHeaders() }
+        headers: {
+          'Content-Type': result.contentType || 'image/png',
+          'Content-Disposition': `inline; filename="flux-ai-${result.seed}.png"`,
+          'X-Model': result.model,
+          'X-Model-Name': result.style_name || result.model,
+          'X-Seed': result.seed.toString(),
+          'X-Width': result.width.toString(),
+          'X-Height': result.height.toString(),
+          'X-Generation-Time': duration + 'ms',
+          'X-Quality-Mode': result.quality_mode,
+          'X-Quality-Mode-Input': requestedQualityMode,
+          'X-Quality-Mode-Output': finalQualityModeForMetrics,
+          'X-Style': result.style,
+          'X-Style-Name': result.style_name || result.style,
+          'X-Style-Category': result.style_category || 'unknown',
+          'X-Generation-Mode': result.generation_mode || '文生圖',
+          'X-Authenticated': result.authenticated ? 'true' : 'false',
+          'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint,
+          'X-Selected-Provider': selectedProviderForMetrics || 'unknown',
+          'X-Provider-Score': providerScoreForMetrics === null ? 'n/a' : providerScoreForMetrics.toString(),
+          'X-Strategy-Version': AdaptiveStrategyManager.VERSION,
+          ...corsHeaders()
+        }
       });
     }
+
     const imagesData = await Promise.all(results.map(async (r) => {
       if (r.imageData) {
         const uint8Array = new Uint8Array(r.imageData);
         let binary = '';
         const len = uint8Array.byteLength;
         for (let i = 0; i < len; i++) binary += String.fromCharCode(uint8Array[i]);
-        return { image: `data:${r.contentType};base64,${btoa(binary)}`, model: r.model, seed: r.seed, width: r.width, height: r.height, quality_mode: r.quality_mode, style: r.style, style_name: r.style_name || r.style, style_category: r.style_category || 'unknown', generation_mode: r.generation_mode, authenticated: r.authenticated };
+        return {
+          image: `data:${r.contentType};base64,${btoa(binary)}`,
+          model: r.model,
+          seed: r.seed,
+          width: r.width,
+          height: r.height,
+          quality_mode: r.quality_mode,
+          quality_mode_input: r.quality_mode_input || requestedQualityMode,
+          quality_mode_output: r.quality_mode_output || r.quality_mode,
+          style: r.style,
+          style_name: r.style_name || r.style,
+          style_category: r.style_category || 'unknown',
+          generation_mode: r.generation_mode,
+          authenticated: r.authenticated,
+          selected_provider: r.selected_provider || r.provider,
+          provider_score: r.provider_score,
+          strategy_version: r.strategy_version || AdaptiveStrategyManager.VERSION,
+          routing_reason: r.routing_reason
+        };
       }
       return null;
     }));
-    return new Response(JSON.stringify({ created: Math.floor(Date.now() / 1000), data: imagesData.filter(d => d !== null), generation_time_ms: duration, api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint, authenticated: CONFIG.POLLINATIONS_AUTH.enabled, styles_available: mergedStyles.stats.total }), { headers: corsHeaders({ 'Content-Type': 'application/json', 'X-Generation-Time': duration + 'ms', 'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint, 'X-Styles-Count': mergedStyles.stats.total.toString() }) });
+
+    return new Response(JSON.stringify({
+      created: Math.floor(Date.now() / 1000),
+      data: imagesData.filter(d => d !== null),
+      generation_time_ms: duration,
+      api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint,
+      authenticated: CONFIG.POLLINATIONS_AUTH.enabled,
+      styles_available: mergedStyles.stats.total,
+      strategy: {
+        version: AdaptiveStrategyManager.VERSION,
+        selected_provider: selectedProviderForMetrics,
+        provider_score: providerScoreForMetrics,
+        quality_mode_input: requestedQualityMode,
+        quality_mode_output: finalQualityModeForMetrics
+      }
+    }), {
+      headers: corsHeaders({
+        'Content-Type': 'application/json',
+        'X-Generation-Time': duration + 'ms',
+        'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint,
+        'X-Styles-Count': mergedStyles.stats.total.toString(),
+        'X-Selected-Provider': selectedProviderForMetrics || 'unknown',
+        'X-Provider-Score': providerScoreForMetrics === null ? 'n/a' : providerScoreForMetrics.toString(),
+        'X-Strategy-Version': AdaptiveStrategyManager.VERSION
+      })
+    });
   } catch (e) {
+    const failedDuration = Date.now() - startTime;
+    const failedProvider = e._providerName || selectedProviderForMetrics || requestedProviderForMetrics || CONFIG.DEFAULT_PROVIDER;
+    await strategyManager.recordProviderResult(failedProvider, { success: false, duration: failedDuration, errorMessage: e.message });
+
     logger.add("❌ Error", e.message);
-    return new Response(JSON.stringify({ error: { message: e.message, debug_logs: logger.get(), api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint, authenticated: CONFIG.POLLINATIONS_AUTH.enabled } }), { status: 400, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+    return new Response(JSON.stringify({ error: { message: e.message, debug_logs: logger.get(), api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint, authenticated: CONFIG.POLLINATIONS_AUTH.enabled, strategy_version: AdaptiveStrategyManager.VERSION, selected_provider: failedProvider } }), { status: 400, headers: corsHeaders({ 'Content-Type': 'application/json', 'X-Strategy-Version': AdaptiveStrategyManager.VERSION }) });
   }
 }
 // 🔥 Cyber-Banana UI: 包含每小時限額(5張)、Pro模型、燈箱、下載功能
