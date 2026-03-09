@@ -116,7 +116,6 @@ export const TRANSLATIONS = {
     provider_infip: "Ghostbot (Infip) 🌟",
     provider_aqua: "Aqua Server 🌊",
     provider_kinai: "Kinai API 🚀",
-    provider_airforce: "Airforce API ✈️",
     provider_nonpon: "Nonpon API 🎨",
     
     // 模型名稱
@@ -475,7 +474,6 @@ export const TRANSLATIONS = {
     provider_infip: "Ghostbot (Infip) 🌟",
     provider_aqua: "Aqua Server 🌊",
     provider_kinai: "Kinai API 🚀",
-    provider_airforce: "Airforce API ✈️",
     provider_nonpon: "Nonpon API 🎨",
     
     // Model Names
@@ -775,7 +773,6 @@ export const TRANSLATIONS = {
     provider_infip: "Ghostbot (Infip) 🌟",
     provider_aqua: "Aqua Server 🌊",
     provider_kinai: "Kinai API 🚀",
-    provider_airforce: "Airforce API ✈️",
     provider_nonpon: "Nonpon API 🎨",
     
     // モデル名
@@ -1075,7 +1072,6 @@ export const TRANSLATIONS = {
     provider_infip: "Ghostbot (Infip) 🌟",
     provider_aqua: "Aqua Server 🌊",
     provider_kinai: "Kinai API 🚀",
-    provider_airforce: "Airforce API ✈️",
     provider_nonpon: "Nonpon API 🎨",
     
     // 모델 이름
@@ -1375,7 +1371,6 @@ export const TRANSLATIONS = {
     provider_infip: "Ghostbot (Infip) 🌟",
     provider_aqua: "Aqua Server 🌊",
     provider_kinai: "Kinai API 🚀",
-    provider_airforce: "Airforce API ✈️",
     provider_nonpon: "Nonpon API 🎨",
     
     // أسماء النماذج

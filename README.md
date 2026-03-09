@@ -6,7 +6,7 @@
 ![I18N](https://img.shields.io/badge/I18N-5%20Languages-green?style=flat-square)
 ![Models](https://img.shields.io/badge/Models-40%2B-purple?style=flat-square)
 
-**Flux AI Pro - NanoBanana Edition** 是一個基於 Cloudflare Workers 構建的高性能、單文件 AI 圖像生成解決方案。它整合了 Pollinations.ai、Infip/Ghostbot、Aqua Server、Kinai API、Airforce API、Nonpon API 和 Kaai API 等頂級 AI 供應商，提供無伺服器、極速且功能豐富的創作體驗。
+**Flux AI Pro - NanoBanana Edition** 是一個基於 Cloudflare Workers 構建的高性能、單文件 AI 圖像生成解決方案。它整合了 Pollinations.ai、Infip/Ghostbot、Aqua Server、Kinai API、Nonpon API 和 Kaai API 等頂級 AI 供應商，提供無伺服器、極速且功能豐富的創作體驗。
 
 ---
 
@@ -35,7 +35,7 @@
 - **雙重介面設計**：
   - **專業版 UI**：完整控制 Steps、Guidance 和 Seed 等參數。
   - **NanoBanana Pro**：簡化、手機友好的「一鍵」生成體驗，使用 Gemini 3 Pro Image Preview 模型。
-- **多供應商架構**：無縫切換 Pollinations.ai（免費）、Infip/Ghostbot（專業版）、Aqua Server、Kinai API、Airforce API、Nonpon API 和 Kaai API。
+- **多供應商架構**：無縫切換 Pollinations.ai（免費）、Infip/Ghostbot（專業版）、Aqua Server、Kinai API、Nonpon API 和 Kaai API。
 - **全球語言支援**：原生支援 **英文、繁體中文、日文、韓文和阿拉伯文**。
 - **智慧語言偵測**：自動遵循您的系統/瀏覽器語言設置。
 - **完整 RTL 支援**：為從右到左語言（阿拉伯語）提供專用佈局和文字方向。
@@ -79,7 +79,6 @@
 - 提供完整的 RESTful API 端點供外部呼叫
 
 ### 🔧 供應商優化
-- **Airforce API**：更新端點為 `https://api.airforce/v1/images/generations`，改進 JSON 響應處理和錯誤處理。
 - **Nonpon API**：新增 Nonpon API 供應商，使用 Gemini 3 Pro Image Preview 模型。
 - **Kaai API**：新增 Kaai API 供應商，支援 DALL-E 3、GPT Image 系列模型。
 
@@ -165,21 +164,6 @@
 
 **特色功能**：NSFW 模式支援、批量生成（最多 4 張）
 
-#### ✈️ Airforce API（排隊系統）
-
-| 模型 | 描述 | 最大尺寸 |
-|------|------|----------|
-| **Plutogen O1** 🌟 | Plutogen O1 高品質圖像生成模型 | 2048x2048 |
-| **Z-Image** ⚡ | 快速 6B 參數圖像生成 | 2048x2048 |
-| **Imagen 4** 🌟 | Google 最新高品質繪圖模型 | 2048x2048 |
-| **Flux 2 Pro** 🌟 | Flux 2 Pro 高品質模型 | 2048x2048 |
-| **Flux 2 Flex** ⚡ | Flux 2 Flex 靈活模型 | 2048x2048 |
-| **GPT Image 1.5** 🎨 | GPT Image 1.5 圖像生成模型 | 2048x2048 |
-| **Flux 2 Klein 4B** | Advanced Flux 2 model - 4B parameters | 2048x2048 |
-| **Flux 2 Klein 9B** 🌟 | Advanced Flux 2 Large model - 9B parameters | 2048x2048 |
-| **SeeDream 4.5** 🌈 | 夢幻般的圖像生成 v4.5 | 2048x2048 |
-
-**特色功能**：排隊系統、並發控制、實時隊列狀態顯示
 
 #### 🍌 Nonpon API（Nano Pro 專用）
 
@@ -296,7 +280,6 @@ Flux-AI-Pro-main/
 | `AquaProvider` | worker.js:891 | Aqua API 處理 (含輪詢) |
 | `KinaiProvider` | worker.js:1192 | Kinai API 處理 |
 | `KaaiProvider` | worker.js:1330 | Kaai API 處理 |
-| `AirforceProvider` | worker.js:1474 | Airforce API 處理 |
 | `HDOptimizer` | worker.js:347 | HD 優化器 |
 | `ParameterOptimizer` | worker.js:382 | 參數優化器 |
 | `StyleProcessor` | worker.js:424 | 風格處理器 |
@@ -363,7 +346,6 @@ npx wrangler secret put POLLINATIONS_API_KEY
 npx wrangler secret put INFIP_API_KEY
 npx wrangler secret put AQUA_API_KEY
 npx wrangler secret put KINAI_API_KEY
-npx wrangler secret put AIRFORCE_API_KEY
 npx wrangler secret put NONPON_API_KEY
 npx wrangler secret put KAAI_API_KEY
 ```
@@ -455,7 +437,6 @@ GET /api/stats
 - [Infip.pro](https://infip.pro) - Ghostbot Web API
 - [Aqua Server](https://aqua.server) - AI Generation Server
 - [Kinai API](https://kinai.eu.cc) - High-Performance AI Generation API
-- [Airforce API](https://api.airforce) - High-Quality AI Image Generation API
 - [Nonpon API](https://api-reverse-engineering.kines966176.workers.dev) - AI Image Generation API (Nano Pro 專用)
 - [Kaai API](https://kaai.eu.cc) - OpenAI Compatible API (DALL-E/GPT Image)
 - [ShowMeBest.AI](https://showmebest.ai) - AI Tool Directory
@@ -496,7 +477,6 @@ MIT License. 歡迎 Fork 與二次開發。
 
 ### v11.16.0 (2026-02-19)
 - 新增 Kaai API 供應商支援
-- 優化 Airforce API JSON 響應處理
 - 改進錯誤處理和日誌記錄
 - 更新風格系統架構
 

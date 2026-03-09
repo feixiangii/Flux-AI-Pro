@@ -155,32 +155,6 @@ PROJECT_VERSION: "11.16.0",
       rate_limit: { requests: 60, interval: 60 },
       max_size: { width: 2048, height: 2048 }
     },
-    airforce: {
-      name: "Airforce API",
-      endpoint: "https://api.airforce",
-      type: "openai_compatible",
-      auth_mode: "bearer",
-      requires_key: true,
-      enabled: true,
-      default: false,
-      description: "Airforce AI 圖像生成服務",
-      features: {
-        private_mode: true, custom_size: true, seed_control: false, negative_prompt: false, enhance: false, nologo: false, style_presets: true, auto_hd: true, quality_modes: false, auto_translate: true, reference_images: false, image_to_image: false, batch_generation: false, api_key_auth: true, nsfw: false
-      },
-      models: [
-        { id: "plutogen-o1", name: "Plutogen O1 🌟", category: "plutogen", description: "Plutogen O1 高品質圖像生成模型", max_size: 2048 },
-        { id: "z-image", name: "Z-Image ⚡", category: "zimage", description: "快速 6B 參數圖像生成", max_size: 2048 },
-        { id: "imagen-4", name: "Imagen 4 (Google) 🌟", category: "google", description: "Google 最新高品質繪圖模型", max_size: 2048 },
-        { id: "flux-2-pro", name: "Flux 2 Pro 🌟", category: "flux", description: "Flux 2 Pro 高品質模型", max_size: 2048 },
-        { id: "flux-2-flex", name: "Flux 2 Flex ⚡", category: "flux", description: "Flux 2 Flex 靈活模型", max_size: 2048 },
-        { id: "gpt-image-1.5", name: "GPT Image 1.5 🎨", category: "gpt", description: "GPT Image 1.5 圖像生成模型", max_size: 2048 },
-        { id: "flux-2-klein-4b", name: "Flux 2 Klein 4B", category: "flux", description: "Advanced Flux 2 model - 4B parameters", max_size: 2048 },
-        { id: "flux-2-klein-9b", name: "Flux 2 Klein 9B 🌟", category: "flux", description: "Advanced Flux 2 Large model - 9B parameters", max_size: 2048 },
-        { id: "seedream-4.5", name: "SeeDream 4.5 🌈", category: "seedream", description: "夢幻般的圖像生成 v4.5", max_size: 2048 }
-      ],
-      rate_limit: { requests: 60, interval: 60 },
-      max_size: { width: 2048, height: 2048 }
-    },
     nonpon: {
       name: "Nonpon API",
       endpoint: "https://api-reverse-engineering.kines966176.workers.dev",
@@ -2028,598 +2002,6 @@ class KaaiProvider {
       throw new Error(`Task timeout after ${maxAttempts} attempts (${totalTimeout}s). Task ID: ${taskId}`);
     }
   }
-  
-  // =================================================================================
-  // AirforceProvider - Airforce API Provider
-  // =================================================================================
-class AirforceProvider {
-  constructor(config, env) {
-    this.config = config;
-    this.name = config.name;
-    this.env = env;
-  }
-
-  async generate(prompt, options, logger) {
-    const {
-      model = "plutogen-o1",
-      width = 1024,
-      height = 1024,
-      apiKey = "",
-      nsfw = false,
-      style = "none",
-      negativePrompt = "",
-      language = "en"
-    } = options;
-
-    const finalApiKey = this.env.AIRFORCE_API_KEY || apiKey;
-    if (!finalApiKey || finalApiKey.trim() === '') {
-      throw new Error("Airforce API key is required. Please configure AIRFORCE_API_KEY in your environment variables or provide it in the request.");
-    }
-    
-    // Validate API key format (should be a bearer token)
-    if (finalApiKey.length < 10) {
-      throw new Error("Invalid Airforce API key format. API key should be at least 10 characters.");
-    }
-
-    logger.add("🎨 Airforce Generating", {
-      model,
-      width,
-      height,
-      style,
-      nsfw,
-      language,
-      promptLength: prompt.length
-    });
-
-    try {
-      // Translate prompt to English if needed
-      const translationResult = await translateToEnglish(prompt, this.env);
-      const translatedPrompt = translationResult.text || prompt;
-      
-      // Apply style if specified
-      let finalPrompt = translatedPrompt;
-      if (style !== "none") {
-        const styleResult = StyleProcessor.applyStyle(translatedPrompt, style, negativePrompt);
-        finalPrompt = styleResult.enhancedPrompt || translatedPrompt;
-      }
-
-      const size = `${width}x${height}`;
-      const url = `${this.config.endpoint}/v1/images/generations`;
-      
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': finalApiKey.startsWith('Bearer ') ? finalApiKey : `Bearer ${finalApiKey}`,
-        'User-Agent': 'Flux-AI-Pro-Worker'
-      };
-
-      const body = {
-        model: model,
-        prompt: finalPrompt,
-        n: 1,
-        size: size,
-        response_format: "b64_json"
-      };
-
-      logger.add("📤 Request to Airforce", {
-        url,
-        model: body.model,
-        size: body.size,
-        response_format: body.response_format,
-        promptLength: finalPrompt.length,
-        apiKeyPrefix: finalApiKey ? finalApiKey.substring(0, 8) + '...' : 'none',
-        apiKeyLength: finalApiKey ? finalApiKey.length : 0,
-        hasBearerPrefix: finalApiKey ? finalApiKey.startsWith('Bearer ') : false
-      });
-
-      const response = await fetchWithTimeout(url, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(body)
-      }, this.config.timeout || 120000);
-
-      logger.add("📥 Airforce Response Status", {
-        status: response.status,
-        ok: response.ok,
-        contentType: response.headers.get('content-type')
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.add("❌ Airforce API Error", {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-          headers: Object.fromEntries(response.headers.entries())
-        });
-        
-        // Parse error details if possible
-        let errorMessage = `Airforce API error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(errorText);
-          if (errorData.error) {
-            errorMessage += ` - ${errorData.error.message || errorData.error}`;
-            if (errorData.error.code) {
-              errorMessage += ` (code: ${errorData.error.code})`;
-            }
-          } else if (errorData.message) {
-            errorMessage += ` - ${errorData.message}`;
-          } else {
-            errorMessage += ` - ${errorText}`;
-          }
-        } catch {
-          errorMessage += ` - ${errorText}`;
-        }
-        
-        // Add helpful hints for common errors
-        if (response.status === 401 || response.status === 403) {
-          errorMessage += '. Please check your Airforce API key.';
-        } else if (response.status === 429) {
-          errorMessage += '. Rate limit exceeded. Please try again later.';
-        } else if (response.status === 530) {
-          errorMessage += '. This may be an authentication issue. Please verify your API key.';
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      // Check if response is SSE (Server-Sent Events) or regular JSON
-      const contentType = response.headers.get('content-type') || '';
-      let results = [];
-      
-      if (contentType.includes('text/event-stream') || contentType.includes('text/plain')) {
-        // Handle SSE streaming response (fallback for unexpected SSE responses)
-        logger.add("📡 Using SSE stream handler (fallback)");
-        results = await this.handleSSEStream(response, logger, width, height, model);
-      } else {
-        // Handle regular JSON response (standard for Airforce API)
-        logger.add("📡 Using JSON response handler");
-        const data = await response.json();
-        logger.add("📊 Airforce Response Data", {
-          data,
-          dataType: typeof data,
-          dataKeys: Object.keys(data),
-          dataPreview: JSON.stringify(data).substring(0, 500)
-        });
-
-        // Parse JSON response
-        if (data.url) {
-          results.push({
-            url: data.url,
-            width: width,
-            height: height,
-            model: model,
-            provider: this.name
-          });
-          logger.add("✅ JSON: Found URL in data.url");
-        } else if (data.data && Array.isArray(data.data)) {
-          for (const item of data.data) {
-            if (item.url) {
-              results.push({
-                url: item.url,
-                width: width,
-                height: height,
-                model: model,
-                provider: this.name
-              });
-            }
-            if (item.b64_json) {
-              results.push({
-                url: `data:image/png;base64,${item.b64_json}`,
-                width: width,
-                height: height,
-                model: model,
-                provider: this.name
-              });
-            }
-          }
-          logger.add("✅ JSON: Processed data.data array", { count: results.length });
-        } else if (data.b64_json) {
-          results.push({
-            url: `data:image/png;base64,${data.b64_json}`,
-            width: width,
-            height: height,
-            model: model,
-            provider: this.name
-          });
-          logger.add("✅ JSON: Found b64_json");
-        } else if (data.images && Array.isArray(data.images)) {
-          for (const item of data.images) {
-            if (item.url) {
-              results.push({
-                url: item.url,
-                width: width,
-                height: height,
-                model: model,
-                provider: this.name
-              });
-            }
-          }
-          logger.add("✅ JSON: Processed data.images array", { count: results.length });
-        } else if (data.image) {
-          results.push({
-            url: data.image,
-            width: width,
-            height: height,
-            model: model,
-            provider: this.name
-          });
-          logger.add("✅ JSON: Found URL in data.image");
-        } else if (data.output && Array.isArray(data.output)) {
-          for (const item of data.output) {
-            if (item.url || item.image) {
-              results.push({
-                url: item.url || item.image,
-                width: width,
-                height: height,
-                model: model,
-                provider: this.name
-              });
-            }
-            if (item.b64_json) {
-              results.push({
-                url: `data:image/png;base64,${item.b64_json}`,
-                width: width,
-                height: height,
-                model: model,
-                provider: this.name
-              });
-            }
-          }
-          logger.add("✅ JSON: Processed data.output array", { count: results.length });
-        } else if (data.result && (data.result.url || data.result.b64_json)) {
-          if (data.result.url) {
-            results.push({
-              url: data.result.url,
-              width: width,
-              height: height,
-              model: model,
-              provider: this.name
-            });
-          }
-          if (data.result.b64_json) {
-            results.push({
-              url: `data:image/png;base64,${data.result.b64_json}`,
-              width: width,
-              height: height,
-              model: model,
-              provider: this.name
-            });
-          }
-          logger.add("✅ JSON: Found data in data.result");
-        } else {
-          logger.add("⚠️ JSON: Unknown format - deep searching", {
-            dataKeys: Object.keys(data),
-            fullData: JSON.stringify(data)
-          });
-          
-          const findImages = (obj, path = "") => {
-            const images = [];
-            if (typeof obj === 'string') {
-              if (obj.startsWith('http://') || obj.startsWith('https://')) {
-                images.push({ url: obj, path });
-              } else if (obj.startsWith('data:image')) {
-                images.push({ url: obj, path });
-              }
-            } else if (typeof obj === 'object' && obj !== null) {
-              for (const [key, value] of Object.entries(obj)) {
-                images.push(...findImages(value, path ? `${path}.${key}` : key));
-              }
-            }
-            return images;
-          };
-          
-          const foundImages = findImages(data);
-          if (foundImages.length > 0) {
-            for (const { url } of foundImages) {
-              results.push({
-                url: url,
-                width: width,
-                height: height,
-                model: model,
-                provider: this.name
-              });
-            }
-            logger.add("✅ JSON: Found images via deep search", { count: results.length });
-          }
-        }
-      }
-
-      if (results.length === 0) {
-        throw new Error("No images returned from Airforce API");
-      }
-
-      logger.add("✅ Success", {
-        imageCount: results.length,
-        firstUrl: results[0].url?.substring(0, 50) + "..."
-      });
-
-      // Return single result object (compatible with other providers)
-      const firstResult = results[0];
-      
-      // If the URL is a base64 data URI, extract the base64 part
-      let imgData = null;
-      let imgContentType = 'image/png';
-      const imgUrl = firstResult.url;
-      
-      if (imgUrl.startsWith('data:image/')) {
-        // It's already a base64 data URI
-        const match = imgUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-        if (match) {
-          imgContentType = match[1];
-          const base64Data = match[2];
-          // Convert base64 to ArrayBuffer
-          const binaryString = atob(base64Data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          imgData = bytes.buffer;
-        }
-      }
-      
-      return {
-        imageData: imgData,
-        contentType: imgContentType,
-        url: imgUrl,
-        provider: this.name,
-        model: model,
-        seed: -1, // Airforce doesn't return seed
-        width: width,
-        height: height,
-        auto_translated: false,
-        authenticated: true,
-        cost: "QUOTA"
-      };
-    } catch (e) {
-      logger.add("❌ Airforce Failed", { error: e.message });
-      throw e;
-    }
-  }
-
-  getAspectRatio(width, height) {
-    const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
-    const divisor = gcd(width, height);
-    return `${width / divisor}:${height / divisor}`;
-  }
-
-  getResolution(width, height) {
-    const totalPixels = width * height;
-    if (totalPixels >= 1920 * 1080) return "2k";
-    if (totalPixels >= 1024 * 1024) return "1k";
-    return "512";
-  }
-
-  async handleSSEStream(response, logger, width, height, model) {
-    const results = [];
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let accumulatedData = '';
-    let chunkCount = 0;
-
-    logger.add("📡 SSE Stream Started", {
-      contentType: response.headers.get('content-type'),
-      hasBody: !!response.body
-    });
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          logger.add("📡 SSE Stream Ended", {
-            totalChunks: chunkCount,
-            accumulatedDataLength: accumulatedData.length
-          });
-          break;
-        }
-
-        chunkCount++;
-        const decodedChunk = decoder.decode(value, { stream: true });
-        accumulatedData += decodedChunk;
-
-        // Use standard SSE format splitting (same as official example)
-        const lines = accumulatedData.split('\n\n');
-        accumulatedData = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6);
-            
-            // Skip keepalive and done messages (same as official example)
-            if (dataStr === '[DONE]') {
-              logger.add("📡 SSE: Received [DONE] signal");
-              continue;
-            }
-            if (dataStr === ': keepalive') continue;
-            if (!dataStr || dataStr.trim() === '') continue;
-
-            try {
-              const data = JSON.parse(dataStr);
-            console.log("📡 [AirforceProvider] SSE Data:", data);
-
-            // Handle different response formats
-            // Format 1: Direct URL
-            if (data.url) {
-              results.push({
-                url: data.url,
-                width: width,
-                height: height,
-                model: model,
-                provider: this.name
-              });
-              logger.add("✅ SSE: Found URL in data.url", { url: data.url.substring(0, 50) + "..." });
-            }
-            // Format 2: OpenAI compatible - data array
-            else if (data.data && Array.isArray(data.data)) {
-              for (const item of data.data) {
-                if (item.url) {
-                  results.push({
-                    url: item.url,
-                    width: width,
-                    height: height,
-                    model: model,
-                    provider: this.name
-                  });
-                }
-                // Handle b64_json in data array
-                if (item.b64_json) {
-                  results.push({
-                    url: `data:image/png;base64,${item.b64_json}`,
-                    width: width,
-                    height: height,
-                    model: model,
-                    provider: this.name
-                  });
-                  logger.add("✅ SSE: Found b64_json in data.data array");
-                }
-              }
-              logger.add("✅ SSE: Processed data.data array", { count: results.length });
-            }
-            // Format 3: Images array
-            else if (data.images && Array.isArray(data.images)) {
-              for (const item of data.images) {
-                if (item.url) {
-                  results.push({
-                    url: item.url,
-                    width: width,
-                    height: height,
-                    model: model,
-                    provider: this.name
-                  });
-                }
-              }
-              logger.add("✅ SSE: Processed data.images array", { count: results.length });
-            }
-            // Format 4: Direct image property
-            else if (data.image) {
-              results.push({
-                url: data.image,
-                width: width,
-                height: height,
-                model: model,
-                provider: this.name
-              });
-              logger.add("✅ SSE: Found URL in data.image", { url: data.image.substring(0, 50) + "..." });
-            }
-            // Format 5: Base64 encoded image (b64_json)
-            else if (data.b64_json) {
-              results.push({
-                url: `data:image/png;base64,${data.b64_json}`,
-                width: width,
-                height: height,
-                model: model,
-                provider: this.name
-              });
-              logger.add("✅ SSE: Found b64_json", { dataLength: data.b64_json.length });
-            }
-            // Format 6: Output array
-            else if (data.output && Array.isArray(data.output)) {
-              for (const item of data.output) {
-                if (item.url || item.image) {
-                  results.push({
-                    url: item.url || item.image,
-                    width: width,
-                    height: height,
-                    model: model,
-                    provider: this.name
-                  });
-                }
-                if (item.b64_json) {
-                  results.push({
-                    url: `data:image/png;base64,${item.b64_json}`,
-                    width: width,
-                    height: height,
-                    model: model,
-                    provider: this.name
-                  });
-                }
-              }
-              logger.add("✅ SSE: Processed data.output array", { count: results.length });
-            }
-            // Format 7: Result object
-            else if (data.result && (data.result.url || data.result.b64_json)) {
-              if (data.result.url) {
-                results.push({
-                  url: data.result.url,
-                  width: width,
-                  height: height,
-                  model: model,
-                  provider: this.name
-                });
-              }
-              if (data.result.b64_json) {
-                results.push({
-                  url: `data:image/png;base64,${data.result.b64_json}`,
-                  width: width,
-                  height: height,
-                  model: model,
-                  provider: this.name
-                });
-              }
-              logger.add("✅ SSE: Found data in data.result");
-            }
-            // Format 8: Deep search for any URL or base64
-            else {
-              logger.add("⚠️ SSE: Unknown format - deep searching", {
-                dataKeys: Object.keys(data),
-                dataPreview: JSON.stringify(data).substring(0, 300)
-              });
-              
-              const findImages = (obj, path = "") => {
-                const images = [];
-                if (typeof obj === 'string') {
-                  if (obj.startsWith('http://') || obj.startsWith('https://')) {
-                    images.push({ url: obj, path });
-                  } else if (obj.startsWith('data:image')) {
-                    images.push({ url: obj, path });
-                  }
-                } else if (typeof obj === 'object' && obj !== null) {
-                  for (const [key, value] of Object.entries(obj)) {
-                    images.push(...findImages(value, path ? `${path}.${key}` : key));
-                  }
-                }
-                return images;
-              };
-              
-              const foundImages = findImages(data);
-              if (foundImages.length > 0) {
-                for (const { url } of foundImages) {
-                  results.push({
-                    url: url,
-                    width: width,
-                    height: height,
-                    model: model,
-                    provider: this.name
-                  });
-                }
-                logger.add("✅ SSE: Found images via deep search", { count: results.length });
-              }
-            }
-            } catch (parseError) {
-              logger.add("⚠️ SSE Parse Error", {
-                dataStr: dataStr.substring(0, 500),
-                error: parseError.message
-              });
-            }
-          }
-        }
-      }
-    } catch (streamError) {
-      logger.add("❌ SSE Stream Error", {
-        error: streamError.message
-      });
-    } finally {
-      reader.releaseLock();
-    }
-
-    logger.add("📊 SSE Stream Complete", {
-      totalResults: results.length,
-      accumulatedDataRemaining: accumulatedData.length
-    });
-
-    return results;
-  }
-}
-
 // =================================================================================
 // NonponProvider - Nonpon API Provider
 // =================================================================================
@@ -2942,9 +2324,7 @@ class NonponProvider {
 class ProviderQueueManager {
   constructor() {
     // 只為需要隊列的供應商配置隊列
-    this.queues = {
-      aqua: { queue: [], maxConcurrent: 2, processing: 0 },
-      airforce: { queue: [], maxConcurrent: 1, processing: 0 }
+    this.queues = {      aqua: { queue: [], maxConcurrent: 2, processing: 0 }
     };
     
     // 不使用隊列的供應商列表
@@ -3106,7 +2486,6 @@ class MultiProviderRouter {
     else if (key === 'infip') this.providers[key] = new InfipProvider(config, env);
     else if (key === 'aqua') this.providers[key] = new AquaProvider(config, env);
     else if (key === 'kinai') this.providers[key] = new KinaiProvider(config, env);
-    else if (key === 'airforce') this.providers[key] = new AirforceProvider(config, env);
     else if (key === 'nonpon') this.providers[key] = new NonponProvider(config, env);
     else if (key === 'kaai') this.providers[key] = new KaaiProvider(config, env);
     else if (key === 'supabase') this.providers[key] = new SupabaseProvider(config, env);
@@ -6295,7 +5674,6 @@ function handleUI(request, env) {
     const hasAquaServerKey = !!(env && env.AQUA_API_KEY);
     const hasKinaiServerKey = !!(env && env.KINAI_API_KEY);
     const hasKaaiServerKey = !!(env && env.KAAI_API_KEY);
-    const hasAirforceServerKey = !!(env && env.AIRFORCE_API_KEY);
     const authStatus = CONFIG.POLLINATIONS_AUTH.enabled ? '<span style="color:#22c55e;font-weight:600;font-size:12px">🔐 已認證</span>' : '<span style="color:#f59e0b;font-weight:600;font-size:12px">⚠️ 需要 API Key</span>';
     
     // 生成樣式選單 HTML
@@ -6612,7 +5990,6 @@ select{background-color:#1e293b!important;color:#e2e8f0!important;cursor:pointer
         <option value="infip">Ghostbot (Infip) 🌟</option>
         <option value="aqua">Aqua API 💧</option>
         <option value="kinai">Kinai API 🚀</option>
-        <option value="airforce">Airforce API ✈️</option>
         <option value="kaai">Kaai API 🎨</option>
     </select>
 </div>
@@ -7050,7 +6427,7 @@ const I18N={
         nav_gen:"🎨 生成圖像", nav_his:"📚 歷史記錄", nav_nano:"Nano版", settings_title:"⚙️ 生成參數", provider_label:"API 供應商", model_label:"模型選擇", size_label:"尺寸預設", style_label:"藝術風格 🎨", quality_label:"質量模式", seed_label:"Seed (種子碼)", seed_random:"🎲 隨機", seed_lock:"🔒 鎖定", auto_opt_label:"✨ 自動優化", auto_opt_desc:"自動調整 Steps 與 Guidance", adv_settings:"🛠️ 進階參數", steps_label:"生成步數 (Steps)", guidance_label:"引導係數 (Guidance)", gen_btn:"🎨 開始生成", empty_title:"尚未生成任何圖像", pos_prompt:"正面提示詞", neg_prompt:"負面提示詞 (可選)", ref_img:"參考圖像 URL (Flux 2 Dev / Imagen 4 專用)", stat_total:"📊 總記錄數", stat_storage:"💾 存儲空間 (永久)", btn_export:"📥 導出", btn_clear:"🗑️ 清空", no_history:"暫無歷史記錄", btn_reuse:"🔄 重用", btn_dl:"💾 下載",
         cooldown_msg: "⏳ 請等待冷卻時間...",
         quality_economy: "Economy", quality_standard: "Standard", quality_ultra: "Ultra HD",
-        provider_pollinations: "Pollinations.ai (Free)", provider_infip: "Ghostbot (Infip) 🌟", provider_airforce: "Airforce API ✈️",
+        provider_pollinations: "Pollinations.ai (Free)", provider_infip: "Ghostbot (Infip) 🌟",
         api_key_label: "API Key", api_key_desc: "Stored locally", api_key_placeholder: "Paste your API Key here",
         nsfw_label: "🔞 解除成人內容限制 (NSFW)", nsfw_desc: "啟用此選項將允許生成成人內容 (Infip, Kinai)",
         batch_label: "🖼️ 批量生成", batch_size_label: "生成數量 (Batch Size)",
@@ -7066,7 +6443,7 @@ const I18N={
         nav_gen:"🎨 Generate Image", nav_his:"📚 History", nav_nano:"Nano", settings_title:"⚙️ Generation Settings", provider_label:"API Provider", model_label:"Model Selection", size_label:"Image Size", style_label:"Art Style 🎨", quality_label:"Quality Mode", seed_label:"Seed Value", seed_random:"🎲 Random", seed_lock:"🔒 Lock", auto_opt_label:"✨ Auto Optimize", auto_opt_desc:"Automatically adjust Steps & Guidance", adv_settings:"🛠️ Advanced Settings", steps_label:"Generation Steps", guidance_label:"Guidance Scale", gen_btn:"🎨 Start Generation", empty_title:"No images generated yet", pos_prompt:"Positive Prompt", neg_prompt:"Negative Prompt (Optional)", ref_img:"Reference Image URL (Flux 2 Dev / Imagen 4 Only)", stat_total:"📊 Total Records", stat_storage:"💾 Storage Space (Permanent)", btn_export:"📥 Export", btn_clear:"🗑️ Clear All", no_history:"No history records found", btn_reuse:"🔄 Reuse Settings", btn_dl:"💾 Download",
         cooldown_msg: "⏳ Please wait for cooldown...",
         quality_economy: "Economy", quality_standard: "Standard", quality_ultra: "Ultra HD",
-        provider_pollinations: "Pollinations.ai (Free)", provider_infip: "Ghostbot (Infip) 🌟", provider_airforce: "Airforce API ✈️",
+        provider_pollinations: "Pollinations.ai (Free)", provider_infip: "Ghostbot (Infip) 🌟",
         api_key_label: "API Key", api_key_desc: "Stored locally", api_key_placeholder: "Paste your API Key here",
         nsfw_label: "🔞 Disable NSFW Filter", nsfw_desc: "Enable this option to allow adult content generation (Infip, Kinai)",
         batch_label: "🖼️ Batch Generation", batch_size_label: "Batch Size",
@@ -7082,7 +6459,7 @@ const I18N={
         nav_gen:"🎨 画像生成", nav_his:"📚 履歴", nav_nano:"Nano版", settings_title:"⚙️ 生成設定", provider_label:"API プロバイダー", model_label:"モデル選択", size_label:"画像サイズ", style_label:"アートスタイル 🎨", quality_label:"品質モード", seed_label:"シード値", seed_random:"🎲 ランダム", seed_lock:"🔒 固定", auto_opt_label:"✨ 自動最適化", auto_opt_desc:"ステップ数とガイダンスを自動調整", adv_settings:"🛠️ 詳細設定", steps_label:"生成ステップ数", guidance_label:"ガイダンススケール", gen_btn:"🎨 生成開始", empty_title:"まだ画像が生成されていません", pos_prompt:"ポジティブプロンプト", neg_prompt:"ネガティブプロンプト（任意）", ref_img:"参照画像 (Img2Img) 📸", stat_total:"📊 総記録数", stat_storage:"💾 ストレージ（永続）", btn_export:"📥 エクスポート", btn_clear:"🗑️ 全削除", no_history:"履歴がありません", btn_reuse:"🔄 再利用", btn_dl:"💾 ダウンロード",
         cooldown_msg: "⏳ クールダウンをお待ちください...",
         quality_economy: "エコノミー", quality_standard: "スタンダード", quality_ultra: "ウルトラHD",
-        provider_pollinations: "Pollinations.ai (無料)", provider_infip: "Ghostbot (Infip) 🌟", provider_airforce: "Airforce API ✈️",
+        provider_pollinations: "Pollinations.ai (無料)", provider_infip: "Ghostbot (Infip) 🌟",
         api_key_label: "APIキー", api_key_desc: "ローカルに保存", api_key_placeholder: "ここにAPIキーを貼り付け",
         nsfw_label: "🔞 NSFWフィルターを無効化", nsfw_desc: "このオプションを有効にすると、成人向けコンテンツの生成が可能になります（Infip, Kinai）",
         batch_label: "🖼️ バッチ生成", batch_size_label: "バッチサイズ",
@@ -7098,7 +6475,7 @@ const I18N={
         nav_gen:"🎨 이미지 생성", nav_his:"📚 기록", nav_nano:"Nano", settings_title:"⚙️ 생성 설정", provider_label:"API 공급자", model_label:"모델 선택", size_label:"이미지 크기", style_label:"아트 스타일 🎨", quality_label:"품질 모드", seed_label:"시드 값", seed_random:"🎲 랜덤", seed_lock:"🔒 잠금", auto_opt_label:"✨ 자동 최적화", auto_opt_desc:"스텝 및 가이던스 자동 조정", adv_settings:"🛠️ 고급 설정", steps_label:"생성 스텝", guidance_label:"가이던스 스케일", gen_btn:"🎨 생성 시작", empty_title:"아직 생성된 이미지가 없습니다", pos_prompt:"긍정적 프롬프트", neg_prompt:"부정적 프롬프트 (선택 사항)", ref_img:"참조 이미지 (Img2Img) 📸", stat_total:"📊 총 기록 수", stat_storage:"💾 저장 공간 (영구)", btn_export:"📥 내보내기", btn_clear:"🗑️ 전체 삭제", no_history:"기록이 없습니다", btn_reuse:"🔄 설정 재사용", btn_dl:"💾 다운로드",
         cooldown_msg: "⏳ 쿨다운을 기다려주세요...",
         quality_economy: "이코노미", quality_standard: "스탠다드", quality_ultra: "울트라 HD",
-        provider_pollinations: "Pollinations.ai (무료)", provider_infip: "Ghostbot (Infip) 🌟", provider_airforce: "Airforce API ✈️",
+        provider_pollinations: "Pollinations.ai (무료)", provider_infip: "Ghostbot (Infip) 🌟",
         api_key_label: "API 키", api_key_desc: "로컬에 저장", api_key_placeholder: "여기에 API 키를 붙여넣으세요",
         nsfw_label: "🔞 NSFW 필터 비활성화", nsfw_desc: "이 옵션을 활성화하면 성인 콘텐츠 생성이 허용됩니다 (Infip, Kinai)",
         batch_label: "🖼️ 배치 생성", batch_size_label: "배치 크기",
@@ -7111,7 +6488,7 @@ const I18N={
         error_image_too_large: "이미지가 너무 큽니다! 최대 크기는 32MB입니다", error_invalid_file: "이미지 파일을 선택하세요", error_upload_failed: "업로드 실패"
     },
     ar:{
-        nav_gen:"🎨 إنشاء صورة", nav_his:"📚 السجل", nav_nano:"Nano", settings_title:"⚙️ إعدادات الإنشاء", provider_label:"مزود API", model_label:"اختيار النموذج", size_label:"حجم الصورة", style_label:"النمط الفني 🎨", quality_label:"وضع الجودة", seed_label:"قيمة البذرة", seed_random:"🎲 عشوائي", seed_lock:"🔒 قفل", auto_opt_label:"✨ تحسين تلقائي", auto_opt_desc:"ضبط الخطوات والتوجيه تلقائيًا", adv_settings:"🛠️ إعدادات متقدمة", steps_label:"خطوات الإنشاء", guidance_label:"مقياس التوجيه", gen_btn:"🎨 بدء الإنشاء", empty_title:"لم يتم إنشاء أي صور بعد", pos_prompt:"موجه إيجابي", neg_prompt:"موجه سلبي (اختياري)", ref_img:"صورة مرجعية (Img2Img) 📸", stat_total:"📊 إجمالي السجلات", stat_storage:"💾 مساحة التخزين (دائمة)", btn_export:"📥 تصدير", btn_clear:"🗑️ مسح الكل", btn_reuse:"🔄 إعادة الاستخدام", btn_dl:"💾 تنزيل", no_history:"لا توجد سجلات", cooldown_msg:"⏳ يرجى الانتظار...", quality_economy:"اقتصادي", quality_standard:"قياسي", quality_ultra:"فائق الدقة", provider_pollinations:"Pollinations.ai (مجاني)", provider_infip:"Ghostbot (Infip) 🌟", provider_kinai:"Kinai API 🚀", provider_airforce:"Airforce API ✈️", api_key_label:"مفتاح API", api_key_desc:"مخزن محليًا", api_key_placeholder:"الصق مفتاح API هنا", nsfw_label:"🔞 تعطيل فلتر NSFW", nsfw_desc:"تمكين هذا الخيار للسماح بإنشاء محتوى للبالغين (Infip, Airforce)", batch_label:"🖼️ إنشاء مجموع", batch_size_label:"حجم المجموعة", prompt_generator_title:"مولد المطالبات الاحترافي", prompt_generator_upload_ref:"رفع صورة مرجعية (اختياري)", prompt_generator_select_image:"اختر صورة", prompt_generator_simple_desc:"صف الصورة التي تريدها ببساطة", prompt_generator_generate:"إنشاء موجه احترافي", prompt_generator_apply:"تطبيق على الموجه", prompt_generator_generated:"الموجه الاحترافي المُنشأ", prompt_generator_tip:"💡 نصيحة: بعد تحديد 'نمط فني' على اليسار، سيقوم المولد بدمج هذا النمط (مثل السايبربانك، الرسم بالحبر) تلقائيًا في موجهك للحصول على نتائج أكثر فنية!", error_no_prompt:"⚠️ يرجى إدخال موجه", error_energy_depleted:"🚫 نفدت الطاقة لهذه الساعة، يرجى العودة لاحقًا!", error_image_too_large:"الصورة كبيرة جدًا! الحد الأقصى 5 ميجابايت", error_invalid_file:"يرجى اختيار ملف صورة", error_upload_failed:"فشل الرفع"
+        nav_gen:"🎨 إنشاء صورة", nav_his:"📚 السجل", nav_nano:"Nano", settings_title:"⚙️ إعدادات الإنشاء", provider_label:"مزود API", model_label:"اختيار النموذج", size_label:"حجم الصورة", style_label:"النمط الفني 🎨", quality_label:"وضع الجودة", seed_label:"قيمة البذرة", seed_random:"🎲 عشوائي", seed_lock:"🔒 قفل", auto_opt_label:"✨ تحسين تلقائي", auto_opt_desc:"ضبط الخطوات والتوجيه تلقائيًا", adv_settings:"🛠️ إعدادات متقدمة", steps_label:"خطوات الإنشاء", guidance_label:"مقياس التوجيه", gen_btn:"🎨 بدء الإنشاء", empty_title:"لم يتم إنشاء أي صور بعد", pos_prompt:"موجه إيجابي", neg_prompt:"موجه سلبي (اختياري)", ref_img:"صورة مرجعية (Img2Img) 📸", stat_total:"📊 إجمالي السجلات", stat_storage:"💾 مساحة التخزين (دائمة)", btn_export:"📥 تصدير", btn_clear:"🗑️ مسح الكل", btn_reuse:"🔄 إعادة الاستخدام", btn_dl:"💾 تنزيل", no_history:"لا توجد سجلات", cooldown_msg:"⏳ يرجى الانتظار...", quality_economy:"اقتصادي", quality_standard:"قياسي", quality_ultra:"فائق الدقة", provider_pollinations:"Pollinations.ai (مجاني)", provider_infip:"Ghostbot (Infip) 🌟", provider_kinai:"Kinai API 🚀", api_key_label:"مفتاح API", api_key_desc:"مخزن محليًا", api_key_placeholder:"الصق مفتاح API هنا", nsfw_label:"🔞 تعطيل فلتر NSFW", nsfw_desc:"تمكين هذا الخيار للسماح بإنشاء محتوى للبالغين (Infip, Kinai)", batch_label:"🖼️ إنشاء مجموع", batch_size_label:"حجم المجموعة", prompt_generator_title:"مولد المطالبات الاحترافي", prompt_generator_upload_ref:"رفع صورة مرجعية (اختياري)", prompt_generator_select_image:"اختر صورة", prompt_generator_simple_desc:"صف الصورة التي تريدها ببساطة", prompt_generator_generate:"إنشاء موجه احترافي", prompt_generator_apply:"تطبيق على الموجه", prompt_generator_generated:"الموجه الاحترافي المُنشأ", prompt_generator_tip:"💡 نصيحة: بعد تحديد 'نمط فني' على اليسار، سيقوم المولد بدمج هذا النمط (مثل السايبربانك، الرسم بالحبر) تلقائيًا في موجهك للحصول على نتائج أكثر فنية!", error_no_prompt:"⚠️ يرجى إدخال موجه", error_energy_depleted:"🚫 نفدت الطاقة لهذه الساعة، يرجى العودة لاحقًا!", error_image_too_large:"الصورة كبيرة جدًا! الحد الأقصى 5 ميجابايت", error_invalid_file:"يرجى اختيار ملف صورة", error_upload_failed:"فشل الرفع"
     }
 };
 
@@ -7365,7 +6742,6 @@ function updateModelOptions() {
             'infip': { url: 'https://infip.pro/api-keys', text: 'infip.pro/api-keys' },
             'aqua': { url: 'https://aqua-api.com/api-keys', text: 'aqua-api.com/api-keys' },
             'kinai': { url: 'https://kinai.ai/api-keys', text: 'kinai.ai/api-keys' },
-            'airforce': { url: 'https://api.airforce/', text: 'api.airforce/' },
             'kaai': { url: 'https://kaai.eu.cc/', text: 'kaai.eu.cc/' }
         };
         if (providerLinks[p]) {
@@ -7384,7 +6760,6 @@ function updateModelOptions() {
             if (p === 'infip') storedKey = sessionStorage.getItem('infip_api_key');
             if (p === 'aqua') storedKey = sessionStorage.getItem('aqua_api_key');
             if (p === 'kinai') storedKey = sessionStorage.getItem('kinai_api_key');
-            if (p === 'airforce') storedKey = sessionStorage.getItem('airforce_api_key');
             if (p === 'kaai') storedKey = sessionStorage.getItem('kaai_api_key');
             
             apiKeyInput.value = storedKey || '';
@@ -7642,7 +7017,6 @@ apiKeyInput.addEventListener('input', (e) => {
     if (p === 'infip') sessionStorage.setItem('infip_api_key', e.target.value);
     if (p === 'aqua') sessionStorage.setItem('aqua_api_key', e.target.value);
     if (p === 'kinai') sessionStorage.setItem('kinai_api_key', e.target.value);
-    if (p === 'airforce') sessionStorage.setItem('airforce_api_key', e.target.value);
     if (p === 'kaai') sessionStorage.setItem('kaai_api_key', e.target.value);
 });
 
@@ -7677,9 +7051,6 @@ if (${hasAquaServerKey} && frontendProviders.aqua) {
 }
 if (${hasKinaiServerKey} && frontendProviders.kinai) {
     frontendProviders.kinai.has_server_key = true;
-}
-if (${hasAirforceServerKey} && frontendProviders.airforce) {
-    frontendProviders.airforce.has_server_key = true;
 }
 if (${hasKaaiServerKey} && frontendProviders.kaai) {
     frontendProviders.kaai.has_server_key = true;
@@ -7796,7 +7167,6 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
     if(curProvider === 'infip') localStorage.setItem('infip_api_key', curKey);
     if(curProvider === 'aqua') localStorage.setItem('aqua_api_key', curKey);
     if(curProvider === 'kinai') localStorage.setItem('kinai_api_key', curKey);
-    if(curProvider === 'airforce') localStorage.setItem('airforce_api_key', curKey);
 
     const prompt=document.getElementById('prompt').value;
     const resDiv=document.getElementById('results');
@@ -7832,7 +7202,7 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
     if(qualityEl) qualityEl.value = 'ultra';
     
     let finalNegative = document.getElementById('negativePrompt').value;
-    if (isNSFW && (document.getElementById('provider').value === 'infip' || document.getElementById('provider').value === 'kinai' || document.getElementById('provider').value === 'airforce')) {
+    if (isNSFW && (document.getElementById('provider').value === 'infip' || document.getElementById('provider').value === 'kinai')) {
         // Filter out common NSFW keywords from negative prompt
         const nsfwKeywords = ['nsfw', 'nudity', 'naked', 'porn', 'xxx', 'uncensored'];
         let negParts = finalNegative.split(',').map(s => s.trim());
@@ -7884,7 +7254,7 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
                 
                 // Determine cooldown based on provider
                 const provider = document.getElementById('provider').value;
-                const cooldownTime = provider === 'infip' ? INFIP_COOLDOWN_SEC : (provider === 'kinai' ? INFIP_COOLDOWN_SEC : (provider === 'airforce' ? INFIP_COOLDOWN_SEC : COOLDOWN_SEC));
+                const cooldownTime = (provider === 'infip' || provider === 'kinai') ? INFIP_COOLDOWN_SEC : COOLDOWN_SEC;
                 startCooldown(cooldownTime);
             };
         }else{
@@ -7905,7 +7275,7 @@ document.getElementById('generateForm').addEventListener('submit',async(e)=>{
             
             // Determine cooldown based on provider
             const provider = document.getElementById('provider').value;
-            const cooldownTime = provider === 'infip' ? INFIP_COOLDOWN_SEC : (provider === 'kinai' ? INFIP_COOLDOWN_SEC : (provider === 'airforce' ? INFIP_COOLDOWN_SEC : COOLDOWN_SEC));
+            const cooldownTime = (provider === 'infip' || provider === 'kinai') ? INFIP_COOLDOWN_SEC : COOLDOWN_SEC;
             startCooldown(cooldownTime);
         }
     }catch(err){
