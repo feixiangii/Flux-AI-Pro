@@ -119,14 +119,13 @@ export const TRANSLATIONS = {
     provider_nonpon: "Nonpon API 🎨",
     
     // 模型名稱
-    model_flux_2_dev: "Flux 2 Dev 🌟",
     model_imagen_4: "Imagen 4 (Google) 🌟",
-    model_nanobanana: "NanoBanana 🍌",
-    model_seedream: "SeeDream",
     model_flux_schnell: "Flux Schnell",
     model_zimage: "Z-Image",
     model_klein: "FLUX.2 Klein",
     model_klein_large: "FLUX.2 Klein 9B",
+    model_grok_imagine: "Grok Imagine 🚀",
+    model_qwen_image: "Qwen Image 🎨",
     
     // 供應商統計
     provider_stats_title: "📊 供應商使用統計",
@@ -477,11 +476,10 @@ export const TRANSLATIONS = {
     provider_nonpon: "Nonpon API 🎨",
     
     // Model Names
-    model_flux_2_dev: "Flux 2 Dev 🌟",
     model_imagen_4: "Imagen 4 (Google) 🌟",
-    model_nanobanana: "NanoBanana 🍌",
-    model_seedream: "SeeDream",
     model_flux_schnell: "Flux Schnell",
+    model_grok_imagine: "Grok Imagine 🚀",
+    model_qwen_image: "Qwen Image 🎨",
     model_zimage: "Z-Image",
     model_klein: "FLUX.2 Klein",
     model_klein_large: "FLUX.2 Klein 9B",
@@ -776,11 +774,10 @@ export const TRANSLATIONS = {
     provider_nonpon: "Nonpon API 🎨",
     
     // モデル名
-    model_flux_2_dev: "Flux 2 Dev 🌟",
     model_imagen_4: "Imagen 4 (Google) 🌟",
-    model_nanobanana: "NanoBanana 🍌",
-    model_seedream: "SeeDream",
     model_flux_schnell: "Flux Schnell",
+    model_grok_imagine: "Grok Imagine 🚀",
+    model_qwen_image: "Qwen Image 🎨",
     model_zimage: "Z-Image",
     model_klein: "FLUX.2 Klein",
     model_klein_large: "FLUX.2 Klein 9B",
@@ -1075,11 +1072,10 @@ export const TRANSLATIONS = {
     provider_nonpon: "Nonpon API 🎨",
     
     // 모델 이름
-    model_flux_2_dev: "Flux 2 Dev 🌟",
     model_imagen_4: "Imagen 4 (Google) 🌟",
-    model_nanobanana: "NanoBanana 🍌",
-    model_seedream: "SeeDream",
     model_flux_schnell: "Flux Schnell",
+    model_grok_imagine: "Grok Imagine 🚀",
+    model_qwen_image: "Qwen Image 🎨",
     model_zimage: "Z-Image",
     model_klein: "FLUX.2 Klein",
     model_klein_large: "FLUX.2 Klein 9B",
@@ -1374,11 +1370,10 @@ export const TRANSLATIONS = {
     provider_nonpon: "Nonpon API 🎨",
     
     // أسماء النماذج
-    model_flux_2_dev: "Flux 2 Dev 🌟",
     model_imagen_4: "Imagen 4 (Google) 🌟",
-    model_nanobanana: "NanoBanana 🍌",
-    model_seedream: "SeeDream",
     model_flux_schnell: "Flux Schnell",
+    model_grok_imagine: "Grok Imagine 🚀",
+    model_qwen_image: "Qwen Image 🎨",
     model_zimage: "Z-Image",
     model_klein: "FLUX.2 Klein",
     model_klein_large: "FLUX.2 Klein 9B",

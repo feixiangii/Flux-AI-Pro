@@ -63,13 +63,12 @@ PROJECT_VERSION: "11.16.0",
         private_mode: true, custom_size: true, seed_control: true, negative_prompt: true, enhance: true, nologo: true, style_presets: true, auto_hd: true, quality_modes: true, auto_translate: true, reference_images: true, image_to_image: true, batch_generation: true, api_key_auth: true
       },
       models: [
-        { id: "flux-2-dev", name: "Flux 2 Dev 🌟", confirmed: true, category: "flux", description: "Flux 2 開發者版本 - 高品質圖像生成", max_size: 2048, pricing: { image_price: 0.0005, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "nanobanana", name: "NanoBanana 🍌", confirmed: true, category: "flux", description: "NanoBanana 高品質模型", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "seedream", name: "SeeDream 🌈", confirmed: true, category: "seedream", description: "夢幻般的圖像生成", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "flux-schnell", name: "Flux Schnell ⚡", confirmed: true, category: "flux", description: "快速且高質量的圖像生成", max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "zimage", name: "Z-Image Turbo ⚡", confirmed: true, category: "zimage", description: "快速 6B 參數圖像生成 (Alpha)", max_size: 2048, pricing: { image_price: 0.0002, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "klein", name: "FLUX.2 Klein 4B", confirmed: true, category: "flux", description: "Advanced Flux 2 model", max_size: 2048, pricing: { image_price: 0.0003, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
-        { id: "klein-large", name: "FLUX.2 Klein 9B 🌟", confirmed: true, category: "flux", description: "Advanced Flux 2 Large model - 9B parameters", max_size: 2048, pricing: { image_price: 0.0004, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] }
+        { id: "flux-schnell",  name: "Flux Schnell ⚡",    confirmed: true, category: "flux",  description: "快速且高質量的圖像生成",                      max_size: 2048, pricing: { image_price: 0.00012, currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
+        { id: "zimage",        name: "Z-Image Turbo ⚡",   confirmed: true, category: "zimage",description: "快速 6B 參數圖像生成 (Alpha)",                  max_size: 2048, pricing: { image_price: 0.0002,  currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
+        { id: "klein",         name: "FLUX.2 Klein 4B",    confirmed: true, category: "flux",  description: "Advanced Flux 2 model",                      max_size: 2048, pricing: { image_price: 0.0003,  currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
+        { id: "klein-large",   name: "FLUX.2 Klein 9B 🌟", confirmed: true, category: "flux",  description: "Advanced Flux 2 Large model - 9B parameters", max_size: 2048, pricing: { image_price: 0.0004,  currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
+        { id: "grok-imagine",  name: "Grok Imagine 🚀",    confirmed: true, category: "grok",  description: "xAI Grok 圖像生成模型",                      max_size: 2048, pricing: { image_price: 0.0005,  currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] },
+        { id: "qwen-image",    name: "Qwen Image 🎨",      confirmed: true, category: "qwen",  description: "通義千問圖像生成模型",                        max_size: 2048, pricing: { image_price: 0.0003,  currency: "pollen" }, input_modalities: ["text"], output_modalities: ["image"] }
       ],
       rate_limit: null,
       max_size: { width: 2048, height: 2048 }
@@ -238,14 +237,13 @@ PROJECT_VERSION: "11.16.0",
   
   OPTIMIZATION_RULES: {
     MODEL_STEPS: {
-      "flux-2-dev": { min: 30, optimal: 35, max: 60 },
-      "imagen-4": { min: 25, optimal: 30, max: 50 },
-      "nanobanana": { min: 25, optimal: 30, max: 50 },
-      "seedream": { min: 25, optimal: 30, max: 50 },
+      "imagen-4":     { min: 25, optimal: 30, max: 50 },
       "flux-schnell": { min: 20, optimal: 25, max: 40 },
-      "zimage": { min: 25, optimal: 30, max: 50 },
-      "klein": { min: 25, optimal: 30, max: 50 },
-      "klein-large": { min: 30, optimal: 35, max: 55 }
+      "zimage":       { min: 25, optimal: 30, max: 50 },
+      "klein":        { min: 25, optimal: 30, max: 50 },
+      "klein-large":  { min: 30, optimal: 35, max: 55 },
+      "grok-imagine": { min: 25, optimal: 30, max: 50 },
+      "qwen-image":   { min: 25, optimal: 30, max: 50 }
     },
     SIZE_MULTIPLIER: { small: { threshold: 512 * 512, multiplier: 0.8 }, medium: { threshold: 1024 * 1024, multiplier: 1.0 }, large: { threshold: 1536 * 1536, multiplier: 1.15 }, xlarge: { threshold: 2048 * 2048, multiplier: 1.3 } },
     STYLE_ADJUSTMENT: { "photorealistic": 1.1, "oil-painting": 1.05, "watercolor": 0.95, "sketch": 0.9, "manga": 1.0, "pixel-art": 0.85, "3d-render": 1.15, "default": 1.0 }
@@ -265,14 +263,13 @@ PROJECT_VERSION: "11.16.0",
     },
     HD_NEGATIVE: "blurry, low quality, distorted, ugly, bad anatomy, low resolution, pixelated, artifacts, noise, jpeg artifacts, watermark, text, signature, mutation, deformed, extra limbs, extra fingers, bad hands, bad feet, poor composition, out of frame, worst quality, normal quality, error, missing fingers, extra digit, fewer digits, cropped",
     MODEL_QUALITY_PROFILES: {
-      "flux-2-dev": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.25, guidance_boost: 1.2, recommended_quality: "ultra" },
-      "imagen-4": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
-      "nanobanana": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
-      "seedream": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
-      "flux-schnell": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0, guidance_boost: 1.0, recommended_quality: "standard" },
-      "zimage": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
-      "klein": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1, recommended_quality: "ultra" },
-      "klein-large": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.2, guidance_boost: 1.15, recommended_quality: "ultra" }
+      "imagen-4":     { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1,  recommended_quality: "ultra" },
+      "flux-schnell": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.0,  guidance_boost: 1.0,  recommended_quality: "standard" },
+      "zimage":       { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1,  recommended_quality: "ultra" },
+      "klein":        { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1,  recommended_quality: "ultra" },
+      "klein-large":  { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.2,  guidance_boost: 1.15, recommended_quality: "ultra" },
+      "grok-imagine": { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.15, guidance_boost: 1.1,  recommended_quality: "ultra" },
+      "qwen-image":   { min_resolution: 1024, max_resolution: 2048, optimal_steps_boost: 1.1,  guidance_boost: 1.05, recommended_quality: "standard" }
     }
   }
 };
@@ -754,7 +751,7 @@ class PollinationsProvider {
     let validReferenceImages = [];
     if (referenceImages && referenceImages.length > 0) {
       if (!supportsRefImages) {
-        logger.add("⚠️ Reference Images", { warning: model + " 不支持參考圖像，已忽略", supported_models: ["flux-2-dev", "imagen-4"] });
+        logger.add("⚠️ Reference Images", { warning: model + " 不支持參考圖像，已忽略", supported_models: ["imagen-4"] });
       } else if (referenceImages.length > maxRefImages) {
         logger.add("⚠️ Reference Images", { warning: model + " 最多支持 " + maxRefImages + " 張參考圖", provided: referenceImages.length, using: maxRefImages });
         validReferenceImages = referenceImages.slice(0, maxRefImages);
